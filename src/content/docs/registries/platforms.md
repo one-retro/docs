@@ -34,4 +34,5 @@ The list is **non-normative** and first-come; to add a platform, open a PR with 
 | `muos`     | muOS     |
 | `onion`    | Onion    |
 | `rocknix`  | ROCKNIX  |
+| `spruce`   | spruceOS |
 | `windows`  | Windows  |
