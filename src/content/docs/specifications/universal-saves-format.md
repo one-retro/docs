@@ -19,9 +19,9 @@ moved. A version covers the format, the [common types](/specifications/common-ty
 producer's schedule instead.
 
 - **0.4**, 2026-10-16. Breaking: a [`source`](/specifications/bundle/#source-map) names the core apart from the app that
-  ran it. A core's registry slug moves from `app` to the new `core` key, beside `core_version`, and `app` takes its slug
-  from the new [Apps registry](/registries/apps/) instead, so an `app` of `"mgba"` written under 0.3 meant the mGBA core
-  and now means an app.
+  ran it. A core's registry slug moves from `app` to the new `core` key, beside `core_version`. `app` takes its slug
+  from the new [Apps registry](/registries/apps/) instead. So an `app` of `"mgba"` written under 0.3 meant the mGBA
+  core, and now means an app.
 - **0.3**, 2026-09-18. Breaking: shapes are explicit. A bundle names one in required header key 0, and `created_at`
   moved to key 6. Breaking: an [`x.1sav.dirent`](/specifications/extensions/x.1sav.dirent/) time is a reading and an
   optional UTC offset rather than a bare instant, because no console here records the zone its clock was set to.
@@ -31,10 +31,12 @@ producer's schedule instead.
 ## Context
 
 A retro save is a bare binary dump with no agreed way to say what game it belongs to, what wrote it, or what else
-belongs with it. Every emulator invented its own convention: the game is implied by a filename or a per-game directory,
-a clock reading or a completion percentage has nowhere to live beside the bytes, save states and screenshots become
-sidecar files named differently by every tool, and multi-part media like N64 controller paks or PS1 memory cards each
-got their own layout.
+belongs with it. Every emulator invented its own convention:
+
+- The game is implied by a filename or a per-game directory.
+- A clock reading or a completion percentage has nowhere to live beside the bytes.
+- Save states and screenshots become sidecar files, named differently by every tool.
+- Multi-part media like N64 controller paks or PS1 memory cards each got their own layout.
 
 This document specifies one portable container file, extension `.1saves`, holding typed binary parts plus whatever
 identifying context and interpretation a producer has. Everything but the parts is optional: a system slug and a chunk
@@ -89,9 +91,9 @@ mirror and checksum rather than reading them back, and `capacity` counts the dat
 None of those is a space optimisation. Each is a field that could disagree with the bytes, removed so that it cannot.
 
 A producer that wants the original file kept anyway attaches it as a part, where it gets a digest and can be compressed
-like any other payload: a [`card-image`](/specifications/bundle/#part-kinds) for a whole card, an
-[`aux` part](/specifications/bundle/#part-kinds) with a `content_type` for a container this format has no name for. That
-is archival, riding alongside, and a consumer that rebuilds from the parts never has to consult it.
+like any other payload. A whole card goes in a [`card-image`](/specifications/bundle/#part-kinds). A container this
+format has no name for goes in an [`aux` part](/specifications/bundle/#part-kinds) with a `content_type`. That is
+archival, riding alongside, and a consumer that rebuilds from the parts never has to consult it.
 
 Where bytes are carried verbatim, it is because nothing has decoded them and so nobody can say which of them are read.
 [`dirent`](/specifications/bundle/#part-map) and [`system_area`](/specifications/bundle/#card-map) are that case, not
@@ -100,9 +102,9 @@ exceptions to this rule: the format holds them whole precisely because it cannot
 ### One encoding per bundle
 
 A bundle's [content hash](/specifications/bundle/#content-hash-and-file-hash) is the identifier a store keys on and the
-value a [`bundle` part](/specifications/bundle/#nested-bundles) carries, so it has to be a function of what the bundle
-says and not of how a producer chose to say it. Deterministic encoding gets most of the way: it fixes how a given value
-is written. What it cannot fix is a format that offers two ways to say the same thing.
+value a [`bundle` part](/specifications/bundle/#nested-bundles) carries. So it has to be a function of what the bundle
+says, not of how a producer chose to say it. Deterministic encoding gets most of the way: it fixes how a given value is
+written. What it cannot fix is a format that offers two ways to say the same thing.
 
 So this one offers one, everywhere:
 
@@ -204,7 +206,7 @@ namespace, not a field label, so paying for it once buys single-byte integer key
 ```
 
 Whether a key is [listed](/specifications/extensions/) is a social matter and not a structural one. A catalogued key and
-one a producer invented this morning are the same thing on the wire, and no decoder can tell them apart; the catalogue
+one a producer invented this morning are the same thing on the wire, and no decoder can tell them apart. The catalogue
 exists so a producer finds an existing key instead of inventing one that overlaps.
 
 ## Out of scope of this specification
