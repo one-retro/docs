@@ -63,7 +63,7 @@ Only when the cartridge carries the clock, which on the Game Boy means MBC3 and 
 This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
 [scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a
 [`bundle` part](/specifications/bundle/#nested-bundles). A producer **SHOULD** carry
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map: a consumer that only wants to know how long the
-clock has run should not have to unpack a day counter, and the two
+[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map. A consumer that only wants to know how long the
+clock has run should not have to unpack a day counter. And the two
 [may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
 wrong.

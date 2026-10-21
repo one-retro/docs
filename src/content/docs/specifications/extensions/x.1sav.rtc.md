@@ -8,9 +8,9 @@ slug: specifications/extensions/x.1sav.rtc
 · **Status:** normative schema, optional to carry
 
 A snapshot of the clock a game keeps, normalized so that any consumer can read it without knowing which chip produced
-it. Battery-backed clocks are a minority feature, so this is an extension key rather than a header field; what makes it
-worth defining centrally is that an in-game clock means nothing without an agreed epoch, and two producers inventing
-their own representation could not read each other's.
+it. Battery-backed clocks are a minority feature, so this is an extension key rather than a header field. It is worth
+defining centrally because an in-game clock means nothing without an agreed epoch. Two producers inventing their own
+representation could not read each other's.
 
 The name sits in the `x` tree because the value belongs to no single producer. A key under some company's domain would
 make one vendor the owner of a value the whole format shares.
@@ -34,15 +34,15 @@ legible without either.
 `reading` is what the game's clock showed when the bundle was written, never the point a counting clock advances from.
 
 Counting clocks make the difference concrete. An MBC3 cartridge holds elapsed seconds, minutes, hours and days in a
-footer beside a host timestamp, and [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/) carries that
-timestamp under key 2 because regenerating the footer needs it, which puts it nearest to hand. The timestamp is the
-anchor. The reading is the counters themselves, put on the Unix scale as that many days, hours, minutes and seconds
-after 1970-01-01T00:00:00Z, so a cartridge whose clock has run for two minutes and twelve seconds reads 1970-01-01
-00:02:12. What a game displays is that plus an offset of its own, kept in save memory where only something that knows
-the game can find it.
+footer beside a host timestamp. [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/) carries that timestamp
+under key 2 because regenerating the footer needs it, which puts it nearest to hand. The timestamp is the anchor. The
+reading is the counters themselves, put on the Unix scale as that many days, hours, minutes and seconds after
+1970-01-01T00:00:00Z. A cartridge whose clock has run for two minutes and twelve seconds reads 1970-01-01 00:02:12. What
+a game displays is that plus an offset of its own, kept in save memory where only something that knows the game can find
+it.
 
 Adding the anchor to the counters is no better than copying it across. The anchor moves with the host and the counters
-with the cartridge, so their sum advances at twice the rate of either, and the anchor is on the producer's own scale,
+with the cartridge, so their sum advances at twice the rate of either. The anchor is also on the producer's own scale,
 which need not be UTC.
 
 A dating clock has an anchor too. [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/) carries the
@@ -59,7 +59,7 @@ This key carries an instant on the Unix scale. The two answer different question
 difference between them as malformed or prefer one as authoritative.
 
 They come apart for ordinary reasons. Normalizing a chip's value means resolving a two-digit year, a 12- or 24-hour
-mode, a PM bit and whatever the producer knows about the cartridge, so a consumer re-deriving an instant from the same
+mode, a PM bit and whatever the producer knows about the cartridge. A consumer re-deriving an instant from the same
 bytes can land somewhere else without either of them being wrong. Scope pulls them apart too: this key may sit on the
 header while the chip key sits on a part, in which case they describe different media.
 

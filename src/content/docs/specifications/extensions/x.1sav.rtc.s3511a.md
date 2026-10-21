@@ -8,10 +8,10 @@ slug: specifications/extensions/x.1sav.rtc.s3511a
 · **Status:** normative schema, optional to carry
 
 The GBA's clock is a Seiko S-3511A on the cartridge. [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) carries the
-instant a consumer needs to display it; this key carries what the chip itself holds and the moment a producer took it,
-which is what a producer handing the cartridge back byte for byte needs.
+instant a consumer needs to display it. This key carries what the chip itself holds and the moment a producer took it.
+That is what a producer handing the cartridge back byte for byte needs.
 
-Every emulator that keeps this clock keeps the same values, so the representation belongs to no one of them and the name
+Every emulator that keeps this clock keeps the same values, so the representation belongs to no one of them. The name
 sits in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree) for the reason
 [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) gives, under that key rather than beside it.
 
@@ -26,10 +26,10 @@ each and in that order. Bit 7 of the hour byte carries PM, and only when 24-hour
 register as read, whose bit 6 is that 24-hour flag and whose bit 7 is the power-off status.
 
 Key 2 is the producer's clock at the moment it took the components, in whole epoch seconds. It is the anchor the
-producer advances the chip from when the save is next loaded, and it plays the part
+producer advances the chip from when the save is next loaded. It plays the part
 [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/)'s key 2 does: regenerating the producer's file needs
-it, and nothing else in the bundle holds it. It is optional, since a producer may keep no such moment, but a producer
-that keeps one **SHOULD** carry it, because without it the file cannot be rebuilt byte for byte.
+it, and nothing else in the bundle holds it. It is optional, since a producer may keep no such moment. A producer that
+keeps one **SHOULD** carry it. Without it, the file cannot be rebuilt byte for byte.
 
 Key 2 is on the producer's scale, which need not be UTC. MiSTer hands nearly all of its cores local standard time
 counted as though it were UTC, so its GBA core, saving in Pacific time, writes an anchor eight hours behind the instant.
@@ -42,8 +42,8 @@ by reading them as though they were UTC, the way [`x.1sav.dirent`](/specificatio
 console's wall clock on it. The chip keeps no zone, and naming one would be a guess. Reading them resolves the hour: in
 12-hour mode, bit 7 of the hour byte is what says it is after noon.
 
-It is not key 2. The chip runs from whatever the game last set it to, which need not be anywhere near the host's clock:
-GBA_MiSTer starts it at 2009-12-31 23:59:45, and a game that never sets it leaves it there, so a save written in 2026
+It is not key 2. The chip runs from whatever the game last set it to, which need not be anywhere near the host's clock.
+GBA_MiSTer starts it at 2009-12-31 23:59:45, and a game that never sets it leaves it there. So a save written in 2026
 can hold a clock reading early 2010. Both dates are correct. A producer whose components are not a date **MUST** omit
 [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/), as that key requires of any reading a producer cannot compute.
 
@@ -76,7 +76,7 @@ Boy cartridge keeps a different clock and takes [`x.1sav.rtc.mbc3`](/specificati
 This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
 [scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a
 [`bundle` part](/specifications/bundle/#nested-bundles). A producer **SHOULD** carry
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map: a consumer that only wants to know what time the
-game thinks it is should not have to decode BCD to find out, and the two
+[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map. A consumer that only wants to know what time the
+game thinks it is should not have to decode BCD to find out. And the two
 [may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
 wrong.
