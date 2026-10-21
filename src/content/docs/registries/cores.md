@@ -4,7 +4,7 @@ description: Known emulator cores, their canonical slugs, and the systems they r
 ---
 
 An emulator core is the engine that actually runs the game, as distinct from the frontend or device that hosts it, which
-is an [app](/registries/apps/). The registry covers three kinds:
+is an [app](/registries/apps/). The registry covers four kinds:
 
 - **`libretro`** — software cores hosted by RetroArch, on its own or inside Onion and most handheld firmwares. The
   canonical name is the core's `library_name`, the exact string RetroArch uses to name a `saves/<core>/` folder.
@@ -12,6 +12,8 @@ is an [app](/registries/apps/). The registry covers three kinds:
   (`NES_MiSTer`), which derives to `nes-mister`; the `MiSTer` suffix namespaces the slug on its own.
 - **`openfpga`** — Analogue Pocket openFPGA cores. The canonical name is the `Author.Platform` folder the core installs
   to on the SD card, so the slug carries its author.
+- **`standalone`** — engines that ship as emulators of their own and have no build under the kinds above, such as
+  Mednafen. The canonical name is the name the emulator goes by.
 
 The slug is what a producer writes in the Universal Saves Format's [`source.core`](/specifications/bundle/#source-map)
 field when a save was produced by that core, beside the app that ran it in `source.app`. A core listed here MUST use its
@@ -19,12 +21,18 @@ slug rather than a reverse-DNS name, even if it holds a domain, so that one core
 mechanically from the kind's canonical name: lowercase, with every run of non-alphanumeric characters replaced by a
 single `-`, and any leading or trailing one dropped. The result conforms to the
 [slug grammar](/specifications/common-types/slug/) every vocabulary here shares. Where a core also exists as a
-standalone emulator (mGBA, DuckStation), the slug covers both; the engine is the same.
+standalone emulator (mGBA, DuckStation) or as a frontend's own build (OpenEmu's Snes9x), one slug covers them all; the
+engine is the same. A fork that has diverged under a name of its own is a separate core: the Beetle cores began as
+Mednafen's and are not `mednafen`.
 
 The **Systems** column uses slugs from the [System Slugs registry](/registries/systems/). The **Also seen as** column
 records other names for the same core: former names (the Mednafen cores were renamed Beetle, Genesis_MiSTer became
 MegaDrive_MiSTer), the SD-card saves folders a MiSTer core writes to (`/media/fat/saves/<name>/`), or Analogizer builds
 of a Pocket core, which count as the same core. They help mapping folders and old data, and are never emitted.
+Standalone Mednafen is one `mednafen` core rather than one per system, so that no slug derived from a Beetle core's
+former name, such as `Mednafen PCE Fast`, names it. Where a collision cannot be avoided, the slug wins and the former
+name is not listed: libretro's PS2 core reported `pcsx2` until it was renamed LRPS2 in 2024, and its 3DO core reported
+`4DO` before it became Opera, so saves under those names read as `pcsx2` and `4do`, the engines both forks began from.
 
 Cores are grouped by system family for browsing. Each core appears exactly once, and the **Systems** column is the
 authoritative coverage; some cores reach past their section (blueMSX also runs `sg-1000`, PicoDrive also runs
@@ -35,15 +43,16 @@ slug.
 
 ## NES
 
-| Slug                | Core              | Kind       | Systems      | Also seen as               |
-| ------------------- | ----------------- | ---------- | ------------ | -------------------------- |
-| `agg23-nes`         | agg23.NES         | `openfpga` | `nes`        | `RndMnkIII.NES_Analogizer` |
-| `fceumm`            | FCEUmm            | `libretro` | `nes`        |                            |
-| `mesen`             | Mesen             | `libretro` | `nes`        |                            |
-| `nes-mister`        | NES_MiSTer        | `mister`   | `nes`, `fds` | `NES`                      |
-| `nestopia`          | Nestopia          | `libretro` | `nes`        |                            |
-| `quicknes`          | QuickNES          | `libretro` | `nes`        |                            |
-| `spiritualized-nes` | Spiritualized.NES | `openfpga` | `nes`, `fds` |                            |
+| Slug                | Core              | Kind         | Systems      | Also seen as               |
+| ------------------- | ----------------- | ------------ | ------------ | -------------------------- |
+| `agg23-nes`         | agg23.NES         | `openfpga`   | `nes`        | `RndMnkIII.NES_Analogizer` |
+| `fceumm`            | FCEUmm            | `libretro`   | `nes`        |                            |
+| `fceux`             | FCEUX             | `standalone` | `nes`, `fds` |                            |
+| `mesen`             | Mesen             | `libretro`   | `nes`        |                            |
+| `nes-mister`        | NES_MiSTer        | `mister`     | `nes`, `fds` | `NES`                      |
+| `nestopia`          | Nestopia          | `libretro`   | `nes`        |                            |
+| `quicknes`          | QuickNES          | `libretro`   | `nes`        |                            |
+| `spiritualized-nes` | Spiritualized.NES | `openfpga`   | `nes`, `fds` |                            |
 
 ## SNES
 
@@ -81,16 +90,24 @@ slug.
 | `spiritualized-gba`     | Spiritualized.GBA     | `openfpga` | `gba`              |                               |
 | `spiritualized-gbc`     | Spiritualized.GBC     | `openfpga` | `gbc`              |                               |
 | `spiritualized-supergb` | Spiritualized.SuperGB | `openfpga` | `gb`               |                               |
+| `tgb-dual`              | TGB Dual              | `libretro` | `gb`, `gbc`        |                               |
 | `vba-m`                 | VBA-M                 | `libretro` | `gba`, `gbc`, `gb` |                               |
 | `vba-next`              | VBA Next              | `libretro` | `gba`              |                               |
 
 ## Nintendo 64
 
-| Slug               | Core             | Kind       | Systems | Also seen as |
-| ------------------ | ---------------- | ---------- | ------- | ------------ |
-| `mupen64plus-next` | Mupen64Plus-Next | `libretro` | `n64`   |              |
-| `n64-mister`       | N64_MiSTer       | `mister`   | `n64`   | `N64`        |
-| `parallel-n64`     | ParaLLEl N64     | `libretro` | `n64`   |              |
+| Slug               | Core             | Kind         | Systems | Also seen as |
+| ------------------ | ---------------- | ------------ | ------- | ------------ |
+| `mupen64plus`      | Mupen64Plus      | `standalone` | `n64`   |              |
+| `mupen64plus-next` | Mupen64Plus-Next | `libretro`   | `n64`   |              |
+| `n64-mister`       | N64_MiSTer       | `mister`     | `n64`   | `N64`        |
+| `parallel-n64`     | ParaLLEl N64     | `libretro`   | `n64`   |              |
+
+## GameCube and Wii
+
+| Slug          | Core        | Kind       | Systems     | Also seen as |
+| ------------- | ----------- | ---------- | ----------- | ------------ |
+| `dolphin-emu` | dolphin-emu | `libretro` | `gc`, `wii` |              |
 
 ## Nintendo DS
 
@@ -101,6 +118,14 @@ slug.
 | `melonds`      | melonDS      | `libretro` | `nds`   |              |
 | `melonds-ds`   | melonDS DS   | `libretro` | `nds`   |              |
 
+## Nintendo 3DS
+
+| Slug         | Core       | Kind         | Systems | Also seen as |
+| ------------ | ---------- | ------------ | ------- | ------------ |
+| `azahar`     | Azahar     | `libretro`   | `3ds`   |              |
+| `citra`      | Citra      | `libretro`   | `3ds`   |              |
+| `emuthreeds` | emuThreeDS | `standalone` | `3ds`   |              |
+
 ## Virtual Boy
 
 | Slug        | Core      | Kind       | Systems      | Also seen as  |
@@ -109,26 +134,27 @@ slug.
 
 ## Sega 8- and 16-bit
 
-| Slug                    | Core                  | Kind       | Systems                                                    | Also seen as                             |
-| ----------------------- | --------------------- | ---------- | ---------------------------------------------------------- | ---------------------------------------- |
-| `blastem`               | BlastEm               | `libretro` | `genesis`                                                  |                                          |
-| `drizzt-gg`             | drizzt.GG             | `openfpga` | `sega-gg`                                                  |                                          |
-| `drizzt-megadrive`      | drizzt.MegaDrive      | `openfpga` | `genesis`                                                  |                                          |
-| `drizzt-sg-1000`        | drizzt.SG-1000        | `openfpga` | `sg-1000`                                                  |                                          |
-| `drizzt-sms`            | drizzt.SMS            | `openfpga` | `mastersystem`                                             |                                          |
-| `ericlewis-genesis`     | ericlewis.Genesis     | `openfpga` | `genesis`                                                  | `ericlewis.Genesis_Analogizer`           |
-| `genesis-plus-gx`       | Genesis Plus GX       | `libretro` | `genesis`, `mastersystem`, `sega-gg`, `sg-1000`, `sega-cd` |                                          |
-| `genesis-plus-gx-wide`  | Genesis Plus GX Wide  | `libretro` | `genesis`, `mastersystem`, `sega-gg`, `sg-1000`, `sega-cd` |                                          |
-| `jeremy-megacd`         | jeremy.MegaCD         | `openfpga` | `sega-cd`                                                  |                                          |
-| `megacd-mister`         | MegaCD_MiSTer         | `mister`   | `sega-cd`                                                  | `MegaCD`                                 |
-| `megadrive-mister`      | MegaDrive_MiSTer      | `mister`   | `genesis`, `mastersystem`                                  | `Genesis_MiSTer`, `MegaDrive`, `Genesis` |
-| `picodrive`             | PicoDrive             | `libretro` | `genesis`, `sega-32x`, `sega-cd`, `mastersystem`           |                                          |
-| `s32x-mister`           | S32X_MiSTer           | `mister`   | `sega-32x`                                                 | `S32X`                                   |
-| `sms-mister`            | SMS_MiSTer            | `mister`   | `mastersystem`, `sega-gg`, `sg-1000`                       | `SMS`                                    |
-| `spiritualized-genesis` | Spiritualized.Genesis | `openfpga` | `genesis`                                                  |                                          |
-| `spiritualized-gg`      | Spiritualized.GG      | `openfpga` | `sega-gg`                                                  |                                          |
-| `spiritualized-sg-1000` | Spiritualized.SG-1000 | `openfpga` | `sg-1000`                                                  |                                          |
-| `spiritualized-sms`     | Spiritualized.SMS     | `openfpga` | `mastersystem`                                             |                                          |
+| Slug                    | Core                  | Kind         | Systems                                                    | Also seen as                             |
+| ----------------------- | --------------------- | ------------ | ---------------------------------------------------------- | ---------------------------------------- |
+| `blastem`               | BlastEm               | `libretro`   | `genesis`                                                  |                                          |
+| `crabemu`               | CrabEmu               | `standalone` | `mastersystem`, `sg-1000`, `colecovision`                  |                                          |
+| `drizzt-gg`             | drizzt.GG             | `openfpga`   | `sega-gg`                                                  |                                          |
+| `drizzt-megadrive`      | drizzt.MegaDrive      | `openfpga`   | `genesis`                                                  |                                          |
+| `drizzt-sg-1000`        | drizzt.SG-1000        | `openfpga`   | `sg-1000`                                                  |                                          |
+| `drizzt-sms`            | drizzt.SMS            | `openfpga`   | `mastersystem`                                             |                                          |
+| `ericlewis-genesis`     | ericlewis.Genesis     | `openfpga`   | `genesis`                                                  | `ericlewis.Genesis_Analogizer`           |
+| `genesis-plus-gx`       | Genesis Plus GX       | `libretro`   | `genesis`, `mastersystem`, `sega-gg`, `sg-1000`, `sega-cd` |                                          |
+| `genesis-plus-gx-wide`  | Genesis Plus GX Wide  | `libretro`   | `genesis`, `mastersystem`, `sega-gg`, `sg-1000`, `sega-cd` |                                          |
+| `jeremy-megacd`         | jeremy.MegaCD         | `openfpga`   | `sega-cd`                                                  |                                          |
+| `megacd-mister`         | MegaCD_MiSTer         | `mister`     | `sega-cd`                                                  | `MegaCD`                                 |
+| `megadrive-mister`      | MegaDrive_MiSTer      | `mister`     | `genesis`, `mastersystem`                                  | `Genesis_MiSTer`, `MegaDrive`, `Genesis` |
+| `picodrive`             | PicoDrive             | `libretro`   | `genesis`, `sega-32x`, `sega-cd`, `mastersystem`           |                                          |
+| `s32x-mister`           | S32X_MiSTer           | `mister`     | `sega-32x`                                                 | `S32X`                                   |
+| `sms-mister`            | SMS_MiSTer            | `mister`     | `mastersystem`, `sega-gg`, `sg-1000`                       | `SMS`                                    |
+| `spiritualized-genesis` | Spiritualized.Genesis | `openfpga`   | `genesis`                                                  |                                          |
+| `spiritualized-gg`      | Spiritualized.GG      | `openfpga`   | `sega-gg`                                                  |                                          |
+| `spiritualized-sg-1000` | Spiritualized.SG-1000 | `openfpga`   | `sg-1000`                                                  |                                          |
+| `spiritualized-sms`     | Spiritualized.SMS     | `openfpga`   | `mastersystem`                                             |                                          |
 
 ## Sega Saturn
 
@@ -138,6 +164,12 @@ slug.
 | `kronos`        | Kronos        | `libretro` | `saturn` |                   |
 | `saturn-mister` | Saturn_MiSTer | `mister`   | `saturn` | `Saturn`          |
 | `yabasanshiro`  | YabaSanshiro  | `libretro` | `saturn` |                   |
+
+## Dreamcast
+
+| Slug      | Core    | Kind       | Systems     | Also seen as |
+| --------- | ------- | ---------- | ----------- | ------------ |
+| `flycast` | Flycast | `libretro` | `dreamcast` |              |
 
 ## PC Engine
 
@@ -161,11 +193,25 @@ slug.
 | `psx-mister`    | PSX_MiSTer    | `mister`   | `psx`   | `PSX`        |
 | `swanstation`   | SwanStation   | `libretro` | `psx`   |              |
 
+## PlayStation 2
+
+| Slug    | Core  | Kind         | Systems | Also seen as |
+| ------- | ----- | ------------ | ------- | ------------ |
+| `lrps2` | LRPS2 | `libretro`   | `ps2`   |              |
+| `pcsx2` | PCSX2 | `standalone` | `ps2`   |              |
+| `play`  | Play! | `libretro`   | `ps2`   |              |
+
 ## PlayStation Portable
 
 | Slug     | Core   | Kind       | Systems | Also seen as |
 | -------- | ------ | ---------- | ------- | ------------ |
 | `ppsspp` | PPSSPP | `libretro` | `psp`   |              |
+
+## PlayStation Vita
+
+| Slug     | Core   | Kind       | Systems  | Also seen as |
+| -------- | ------ | ---------- | -------- | ------------ |
+| `vita3k` | Vita3K | `libretro` | `psvita` |              |
 
 ## WonderSwan and Neo Geo Pocket
 
@@ -217,20 +263,28 @@ slug.
 | `msx-mister`           | MSX_MiSTer           | `mister`   | `msx`, `msx2`                            | `MSX`        |
 | `spiritualized-coleco` | Spiritualized.Coleco | `openfpga` | `colecovision`                           |              |
 
+## Multi-system
+
+| Slug       | Core     | Kind         | Systems                                                                                                                                                                                                                      | Also seen as |
+| ---------- | -------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `mednafen` | Mednafen | `standalone` | `atari-lynx`, `fds`, `gb`, `gba`, `gbc`, `genesis`, `mastersystem`, `nes`, `ngp`, `ngpc`, `pcengine`, `pcenginecd`, `pcfx`, `psx`, `saturn`, `sega-gg`, `snes`, `supergrafx`, `virtualboy`, `wonderswan`, `wonderswan-color` |              |
+
 ## Other systems
 
-| Slug                     | Core                   | Kind       | Systems         | Also seen as    |
-| ------------------------ | ---------------------- | ---------- | --------------- | --------------- |
-| `3do-mister`             | 3DO_MiSTer             | `mister`   | `3do`           | `3DO`           |
-| `c64-mister`             | C64_MiSTer             | `mister`   | `c64`           | `C64`           |
-| `freeintv`               | FreeIntv               | `libretro` | `intellivision` |                 |
-| `intv-mister`            | Intv_MiSTer            | `mister`   | `intellivision` | `Intellivision` |
-| `markus-zzz-myc64`       | markus-zzz.MyC64       | `openfpga` | `c64`           |                 |
-| `o2em`                   | O2EM                   | `libretro` | `odyssey2`      |                 |
-| `obsidian-vectrex`       | obsidian.Vectrex       | `openfpga` | `vectrex`       |                 |
-| `odyssey2-mister`        | Odyssey2_MiSTer        | `mister`   | `odyssey2`      | `ODYSSEY2`      |
-| `opera`                  | Opera                  | `libretro` | `3do`           | `4DO`           |
-| `spiritualized-intv`     | Spiritualized.Intv     | `openfpga` | `intellivision` |                 |
-| `spiritualized-odyssey2` | Spiritualized.Odyssey2 | `openfpga` | `odyssey2`      |                 |
-| `vectrex-mister`         | Vectrex_MiSTer         | `mister`   | `vectrex`       | `VECTREX`       |
-| `vecx`                   | vecx                   | `libretro` | `vectrex`       |                 |
+| Slug                     | Core                   | Kind         | Systems         | Also seen as    |
+| ------------------------ | ---------------------- | ------------ | --------------- | --------------- |
+| `3do-mister`             | 3DO_MiSTer             | `mister`     | `3do`           | `3DO`           |
+| `4do`                    | 4DO                    | `standalone` | `3do`           |                 |
+| `bliss`                  | Bliss                  | `standalone` | `intellivision` |                 |
+| `c64-mister`             | C64_MiSTer             | `mister`     | `c64`           | `C64`           |
+| `freeintv`               | FreeIntv               | `libretro`   | `intellivision` |                 |
+| `intv-mister`            | Intv_MiSTer            | `mister`     | `intellivision` | `Intellivision` |
+| `markus-zzz-myc64`       | markus-zzz.MyC64       | `openfpga`   | `c64`           |                 |
+| `o2em`                   | O2EM                   | `libretro`   | `odyssey2`      |                 |
+| `obsidian-vectrex`       | obsidian.Vectrex       | `openfpga`   | `vectrex`       |                 |
+| `odyssey2-mister`        | Odyssey2_MiSTer        | `mister`     | `odyssey2`      | `ODYSSEY2`      |
+| `opera`                  | Opera                  | `libretro`   | `3do`           |                 |
+| `spiritualized-intv`     | Spiritualized.Intv     | `openfpga`   | `intellivision` |                 |
+| `spiritualized-odyssey2` | Spiritualized.Odyssey2 | `openfpga`   | `odyssey2`      |                 |
+| `vectrex-mister`         | Vectrex_MiSTer         | `mister`     | `vectrex`       | `VECTREX`       |
+| `vecx`                   | vecx                   | `libretro`   | `vectrex`       |                 |

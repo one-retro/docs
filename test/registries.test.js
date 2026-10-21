@@ -84,6 +84,46 @@ describe("registries", () => {
     }
   });
 
+  // A core's kind is where its slug comes from, so a Kind cell the page never
+  // describes leaves the slug with no canonical name to derive from.
+  it("gives every core a kind the cores registry describes", () => {
+    const cores = read("cores");
+    const kinds = new Set([...cores.matchAll(/^- \*\*`([a-z0-9-]+)`\*\*/gm)].map((m) => m[1]));
+    assert.ok(kinds.size > 0, "no kinds described in cores.md");
+    for (const kind of column(cores, "Kind").flatMap(slugs))
+      assert.ok(kinds.has(kind), `cores.md uses kind \`${kind}\`, which the page does not describe`);
+  });
+
+  // An alias is how a tool maps a folder or an old name to a core, so one that
+  // derives to another core's slug would send the same folder two ways.
+  it("derives no alias in the cores registry to another core's slug", () => {
+    const derive = (name) =>
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    const listed = [];
+    let at;
+    for (const cells of rows(read("cores"))) {
+      if (cells.includes("Slug")) {
+        at = { slug: cells.indexOf("Slug"), alias: cells.indexOf("Also seen as") };
+        continue;
+      }
+      if (at)
+        listed.push([slugs(cells[at.slug])[0], [...(cells[at.alias] ?? "").matchAll(/`([^`]+)`/g)].map((m) => m[1])]);
+    }
+    const cores = new Set(listed.map(([slug]) => slug));
+    assert.ok(cores.size > 100, `found ${cores.size} cores, which suggests the tables did not parse`);
+    for (const [slug, aliases] of listed)
+      for (const alias of aliases) {
+        const derived = derive(alias);
+        assert.ok(
+          derived === slug || !cores.has(derived),
+          `cores.md: \`${alias}\` on \`${slug}\` derives to \`${derived}\``,
+        );
+      }
+  });
+
   it("gives every app a slug that matches the shared grammar", () => {
     const apps = column(read("apps"), "Slug").flatMap(slugs);
     assert.ok(apps.length > 0, "no Slug column found in apps.md");

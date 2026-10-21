@@ -78,9 +78,9 @@ the ones with nothing to reverse.
 
 ## Examples
 
-| Name               | Held by                       | Used as                                                       |
-| ------------------ | ----------------------------- | ------------------------------------------------------------- |
-| `io.mgba`          | mGBA, from `mgba.io`          | producer identity                                             |
-| `com.1retro.forge` | 1retro, from `1retro.com`     | [extension key](/specifications/extensions/com.1retro.forge/) |
-| `org.hasheous`     | Hasheous, from `hasheous.org` | catalog resolver name                                         |
-| `x.example`        | nobody, reserved for docs     | producer identity                                             |
+| Name               | Held by                       | Used as                                                                |
+| ------------------ | ----------------------------- | ---------------------------------------------------------------------- |
+| `io.mgba`          | mGBA, from `mgba.io`          | [part kind](/specifications/bundle/#minting-a-kind) (`io.mgba.rewind`) |
+| `com.1retro.forge` | 1retro, from `1retro.com`     | [extension key](/specifications/extensions/com.1retro.forge/)          |
+| `org.hasheous`     | Hasheous, from `hasheous.org` | catalog resolver name                                                  |
+| `x.example`        | nobody, reserved for docs     | producer identity                                                      |
