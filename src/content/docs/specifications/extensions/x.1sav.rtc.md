@@ -39,6 +39,10 @@ timestamp under key 2 because regenerating the footer needs it, which puts it ne
 anchor. The reading is the anchor plus the elapsed time the counters describe, and copying the anchor across writes a
 number wrong by however long the cartridge has been running.
 
+A dating clock has an anchor too. [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/) carries the
+moment a producer took the chip's components under its key 2, and the reading is the components themselves, which a game
+may have set to any date at all.
+
 A producer that cannot compute the reading **MUST** omit the key rather than write the anchor under it. Nothing
 downstream can tell the two apart.
 

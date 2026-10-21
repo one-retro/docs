@@ -3,7 +3,7 @@
 ;
 ; An extension key for the Universal Saves Format, defined by these
 ; specifications under a name reserved in the Vendor Names registry because
-; every emulator that keeps this clock keeps the same two values.
+; every emulator that keeps this clock keeps the same values.
 ;
 ; The root here is the value carried under the key, not a bundle. A bundle
 ; validates against the format's own schema whatever this holds, since an
@@ -13,6 +13,7 @@
 rtc-s3511a = {
   0 => bstr .size 7, ; components - latched BCD: year, month, day, weekday, hour, minute, second
   1 => uint,         ; control    - the control register as read
+  ? 2 => #6.1(int),  ; taken_at   - the producer's clock when it took the components
 }
 
 ; 24-hour mode is bit 6 of the control register and does not get a field of its
