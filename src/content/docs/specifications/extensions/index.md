@@ -7,9 +7,10 @@ sidebar:
 ---
 
 [Extension keys](/specifications/universal-saves-format/#extensions) let parsers, emulators, and third parties attach
-data to a bundle's header, to a single part, or to the `game` map either one carries, under a
-[reverse-DNS](/specifications/common-types/reverse-dns-name/) text key, without the core spec having to know about them.
-The spec defines the _mechanism_ and the round-tripping rules; this catalogue lists the _keys_ people have defined.
+data without the core spec having to know about them. Each sits under a
+[reverse-DNS](/specifications/common-types/reverse-dns-name/) text key, on a bundle's header, on a single part, or in
+the `game` map either one carries. The spec defines the _mechanism_ and the round-tripping rules; this catalogue lists
+the _keys_ people have defined.
 
 A key's schema belongs to its producer, and those entries are **non-normative**: the page records a shape these
 specifications observed, and the producer may change it without notice. A key under a
@@ -21,7 +22,7 @@ column below is what tells the two apart.
 Which tree a name sits in follows from the same split. A key whose meaning is one producer's sits under a domain that
 producer holds, as [`com.1retro.forge`](/specifications/extensions/com.1retro.forge/) does: what one parser read out of
 a save is that parser's. A key whose meaning belongs to nobody takes a reserved name in the
-[`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree) instead, which is where
+[`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree) instead. That is where
 [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) carries a clock reading normalized to a Unix instant, with
 [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/) under it for the chip state a GBA cartridge keeps.
 

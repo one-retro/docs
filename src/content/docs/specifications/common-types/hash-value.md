@@ -59,5 +59,5 @@ Open a PR against this page. An algorithm that has a COSE number in -256..255 al
 anything else needs a new First-Come-First-Served registration, which is a form and no review.
 
 That form is filed rather than merely planned. A number this specification uses and has not registered is held by
-nothing but this page, so every outstanding registration is submitted while the format is still in beta, and none is
+nothing but this page. So every outstanding registration is submitted while the format is still in beta, and none is
 carried into 1.0 unfiled. An algorithm already listed here never changes tag, even if it later gains a standard one.

@@ -7,10 +7,14 @@ slug: specifications/device
 A `device` bundle is one console's storage as it was when read: every component that holds saves, each a complete
 [card](/specifications/cards/) or [save](/specifications/saves/) of its own.
 
-Several systems keep saves in more than one place at once. A Sega CD has internal backup RAM and a Backup RAM Cart, a
-Neo Geo CD has internal storage beside a memory card, and an MVS cabinet keeps its own backup RAM behind the card slot.
-None of those pairs is one game's state, so none is a [save](/specifications/saves/); none is a single card, so none is
-a [card](/specifications/cards/); and all of them came off one system, which is what a
+Several systems keep saves in more than one place at once:
+
+- A Sega CD has internal backup RAM and a Backup RAM Cart.
+- A Neo Geo CD has internal storage beside a memory card.
+- An MVS cabinet keeps its own backup RAM behind the card slot.
+
+None of those pairs is one game's state, so none is a [save](/specifications/saves/). None is a single card, so none is
+a [card](/specifications/cards/). And all of them came off one system, which is what a
 [collection](/specifications/collections/) is not allowed to say.
 
 ## Header

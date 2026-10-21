@@ -22,9 +22,9 @@ not rebuild an entry. The name sits under that key rather than beside it, the wa
 [`game`](/specifications/bundle/#game-hints-map)'s `serial` usually holds them joined, but that is a hint a producer may
 normalize or omit.
 
-`filename` is the raw name at 0x08 without its padding, carried as bytes rather than text: a Japanese save names itself
-in Shift-JIS and [`path`](/specifications/bundle/#part-map) is UTF-8 by construction, so transcoding in and back out
-need not land on the same 32 bytes.
+`filename` is the raw name at 0x08 without its padding, carried as bytes rather than text. A Japanese save names itself
+in Shift-JIS, and [`path`](/specifications/bundle/#part-map) is UTF-8 by construction. Transcoding in and back out need
+not land on the same 32 bytes.
 
 `banner_flags`, `icon_format` and `anim_speed` at 0x07, 0x30 and 0x32 stay packed as the hardware packs them, two bits
 per icon and two bits per frame. The decoded picture is [`x.1sav.icon`](/specifications/extensions/x.1sav.icon/).

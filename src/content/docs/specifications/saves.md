@@ -73,7 +73,7 @@ Three cases need it, and a producer that does not meet them should not reach for
 - **Anything else binary.** An [`aux` part](/specifications/bundle/#part-kinds) with a `content_type`.
 
 A save's parts are never [`bundle` parts](/specifications/bundle/#nested-bundles). One game's note in a Controller Pak
-is an ordinary part, told apart by its `role`; the whole pak is a card in its own right, and a dump holding both the
+is an ordinary part, told apart by its `role`. The whole pak is a card in its own right. A dump holding both the
 cartridge and the whole pak is a [device](/specifications/device/), because it is two storage components rather than one
 game's bytes.
 

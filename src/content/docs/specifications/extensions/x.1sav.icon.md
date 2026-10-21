@@ -24,9 +24,9 @@ beside the icon rather than instead of it: a GameCube save's 96x32 banner, a VMU
 
 ## Decoded to PNG
 
-A producer decodes to PNG. A PS1 icon is 4bpp against a 16-colour CLUT, a GameCube icon is RGB5A3 or CI8 depending on
-two bits in the directory entry, and a VMU icon is 4bpp against a palette in the VMS header. A consumer should need none
-of those decoders.
+A producer decodes to PNG. A PS1 icon is 4bpp against a 16-colour CLUT. A GameCube icon is RGB5A3 or CI8, depending on
+two bits in the directory entry. A VMU icon is 4bpp against a palette in the VMS header. A consumer should need none of
+those decoders.
 
 A producer **MUST NOT** improve the picture. Scaling it up, correcting its palette, compositing a background behind
 transparency and reordering frames all produce something the card does not hold. The native bytes stay in the payload,
@@ -35,8 +35,8 @@ where a writer reads them through the format's own key.
 ## Where it goes
 
 The [header](/specifications/bundle/#0-header-map) of the bundle that is the save, because the image bytes are in the
-save's payload and travel with it: PS1 in the first block, VMU in the VMS header, GameCube at the image address the
-directory entry points to.
+save's payload and travel with it. PS1 keeps them in the first block, VMU in the VMS header, and GameCube at the image
+address the directory entry points to.
 
 An [`aux` part](/specifications/bundle/#part-kinds) is not the place. Beside the save it is linked only by inference
 from `slot` and `path`; inside the save's own bundle it joins that bundle's

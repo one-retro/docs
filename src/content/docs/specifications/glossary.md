@@ -13,9 +13,9 @@ Non-normative. Each entry points at the text that defines the term, and that tex
 - **Bundle.** A complete `1SAV` document: the tag, the header and the array of parts. What a bundle _represents_ is
   whatever its header says, so the word alone does not say whether you hold one save, one card or a collection. It is
   the format's atomic unit and [means the same thing sliced out](/specifications/bundle/#nested-bundles) as in place.
-- **Part.** One addressed slot inside a bundle, and not the atomic unit:
-  [`kind`, `role`, `path`](/specifications/bundle/#part-map) fall back to defaults and `source` and `game` to the
-  header, so a part lifted out of its bundle loses most of what it meant.
+- **Part.** One addressed slot inside a bundle, and not the atomic unit. Its
+  [`kind`, `role` and `path`](/specifications/bundle/#part-map) fall back to defaults, and its `source` and `game` fall
+  back to the header. So a part lifted out of its bundle loses most of what it meant.
 - **Nested bundle.** A complete bundle carried as a part's payload. This is how a card holds its saves and a collection
   holds its cards. See [Nested bundles](/specifications/bundle/#nested-bundles).
 - **`bundle` part.** The part carrying a nested bundle, whose `sha256` is that bundle's content hash. Several extension

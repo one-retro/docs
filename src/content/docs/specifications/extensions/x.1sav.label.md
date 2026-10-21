@@ -25,16 +25,21 @@ VMU keeps a longer description for the boot ROM menu than the one it shows in it
 its name omits it.
 
 Neither field is a slot for whatever a format prints next. The name of the game or of the application that wrote the
-save is [`game`](/specifications/bundle/#game-hints-map), and a title a format breaks across two lines for layout is one
-title: a PS2 title carries a break offset into a single string, and both halves are `title`.
+save is [`game`](/specifications/bundle/#game-hints-map). A title a format breaks across two lines for layout is one
+title. A PS2 title carries a break offset into a single string, and both halves are `title`.
 
 ## Where the text comes from
 
-On nearly every format it is in the save's payload rather than in the directory entry. GameCube keeps a comment address,
-PS1 keeps its 64-byte title in the save's first block, a VMU's descriptions are in the VMS header, a PS2 save keeps its
-title in `icon.sys`, and a Neo Geo game writes one into the first 20 bytes of its own data. N64 and Saturn are the
-exceptions: a controller pak's note table holds the note name, and a Saturn entry holds a ten-byte comment beside its
-file name.
+On nearly every format it is in the save's payload rather than in the directory entry:
+
+- GameCube keeps a comment address.
+- PS1 keeps its 64-byte title in the save's first block.
+- A VMU's descriptions are in the VMS header.
+- A PS2 save keeps its title in `icon.sys`.
+- A Neo Geo game writes one into the first 20 bytes of its own data.
+
+N64 and Saturn are the exceptions: a controller pak's note table holds the note name, and a Saturn entry holds a
+ten-byte comment beside its file name.
 
 ## Where it goes
 

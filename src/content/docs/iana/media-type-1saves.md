@@ -28,16 +28,17 @@ The permanent reference for one entry in the IANA **Media Types** registry. Not 
 
 ## What it identifies
 
-A portable container for retro console save data: one CBOR document holding a header and an array of typed parts, which
-may be one save, one memory card, one console's storage, or a collection of those. The whole file is a single CBOR value
-under [tag 827539798](/iana/cbor-tag-827539798/), so a generic CBOR reader can walk it without knowing this format.
+A portable container for retro console save data. It is one CBOR document holding a header and an array of typed parts.
+It may hold one save, one memory card, one console's storage, or a collection of those. The whole file is a single CBOR
+value under [tag 827539798](/iana/cbor-tag-827539798/), so a generic CBOR reader can walk it without knowing this
+format.
 
 ## Security considerations
 
 - **Can it carry executable content?** No. A bundle is data: no scripts, no references to external code, nothing a
   consumer is expected to run.
 - **What can hostile input cost a decoder?** Nothing it does not agree to spend. A part's declared length, a compressed
-  part's expansion and the parts array's count are all claims an attacker can inflate for free, and a consumer is never
+  part's expansion and the parts array's count are all claims an attacker can inflate for free. A consumer is never
   obliged to honour one: it may decline a part, decline to decompress it, or abandon a decompression that outgrows what
   it expected.
 - **Does it provide integrity?** Each part carries a SHA-256 of its payload, which detects corruption and substitution
@@ -54,7 +55,7 @@ under [tag 827539798](/iana/cbor-tag-827539798/), so a generic CBOR reader can w
 ## Interoperability considerations
 
 The file is deterministically encoded CBOR per RFC 8949 section 4.2 with no exceptions, so two producers building the
-same bundle emit the same bytes. Integer map keys belong to the specification and text keys to producers, and a decoder
+same bundle emit the same bytes. Integer map keys belong to the specification and text keys to producers. A decoder
 round-trips both when it does not recognise them, which is what lets a later minor version add fields without breaking
 an older reader. A breaking change takes a new CBOR tag, which an old decoder rejects on the tag alone.
 

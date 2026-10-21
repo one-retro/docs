@@ -9,8 +9,8 @@ sidebar:
 
 A name a producer mints for itself, with nobody to ask, by reversing a domain it controls. `mgba.io` becomes `io.mgba`,
 and every name under `io.mgba` belongs to whoever holds the domain. The specifications use this wherever a value has to
-be globally unique and the spec cannot enumerate the possibilities: extension keys, catalog resolver names, the identity
-of a producing app, and the open vocabularies a producer can add to, such as a part's kind.
+be globally unique and the spec cannot list the possibilities. That covers extension keys, catalog resolver names, the
+identity of a producing app, and the open vocabularies a producer can add to, such as a part's kind.
 
 A special vendor label `x` is used for names that must be referred to for which there is no DNS associated.
 
