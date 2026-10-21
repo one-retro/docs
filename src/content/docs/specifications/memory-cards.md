@@ -5,10 +5,10 @@ description:
   of real cards.
 ---
 
-How a card is represented is in [Cards](/specifications/cards/): the card is a bundle of `shape` `"card"`, its `card`
-map holds the card's own properties, and each save is a `bundle` part carrying that save's directory entry. This page is
-the other half, the part that is specific to real hardware. What a writer has to regenerate. What each format fixes.
-What splitting costs, worked through on actual cards.
+[Cards](/specifications/cards/) says how a card is represented. The card is a bundle of `shape` `"card"`, and its `card`
+map holds the card's own properties. Each save is a `bundle` part carrying that save's directory entry. This page is the
+other half, the part that is specific to real hardware. What a writer has to regenerate. What each format fixes. What
+splitting costs, worked through on actual cards.
 
 That representation is enough to write the saves back onto a card of the same kind. It is not enough to reproduce the
 original card byte for byte, and it is not meant to be. A producer that wants byte-exact fidelity keeps a
@@ -28,13 +28,13 @@ original card byte for byte, and it is not meant to be. A producer that wants by
 | `neogeo-mc`  | 4        | 64    | Cards run from 2 KiB to 16 KiB and every one of them uses the same block.                                                                                                                                                                          |
 | `saturn-bup` | 30       | 64    | The entry sits at the head of the save's own first block rather than in a directory region, and the block list that follows it is the writer's. The 64 is the console's internal memory; a backup cartridge is a separate device carrying its own. |
 
-The names are the ones already in circulation for these layouts, not system slugs with a suffix, which is why `ps1-mc`
+The names are the ones already in circulation for these layouts, not system slugs with a suffix. That is why `ps1-mc`
 says `ps1` where the [registry](/registries/systems/) says `psx`, and why `vmu` carries no system at all. Reading a
 system out of one of these names is a mistake; that is what [`system`](/specifications/bundle/#0-header-map) is for.
 
 The table covers the formats this spec has rebuild rules for, not every backup medium ever built. PC Engine internal
-backup RAM, a Famicom Disk System disk, a WonderSwan's internal EEPROM and several others have no entry yet, and adding
-one means documenting its `dirent` length and its rebuild rules alongside the name.
+backup RAM, a Famicom Disk System disk, a WonderSwan's internal EEPROM and several others have no entry yet. Adding one
+means documenting its `dirent` length and its rebuild rules alongside the name.
 
 ## Capacity and out-of-band bytes
 
@@ -43,8 +43,8 @@ on it, the blocks the filesystem keeps for itself included. It is the figure the
 move when the card fills up.
 
 It is not the room a save has. Every format here spends part of its data area on a header, a directory and a FAT, and
-some spend a great deal more: a VMU addresses 256 blocks and hands saves 200 of them, and a GameCube Memory Card 59 has
-64 blocks and is named for the 59 that survive its header, its directory and its block allocation table, the last two
+some spend a great deal more. A VMU addresses 256 blocks and hands saves 200 of them. A GameCube Memory Card 59 has 64
+blocks and is named for the 59 that survive its header, its directory and its block allocation table, the last two
 mirrored. `capacity` on those two is 131072 and 524288, the whole area in both cases. What actually fits is that number
 minus what the format reserves, which is a rebuild rule rather than a field: a writer allocating blocks has to know it,
 and nothing else does.
@@ -76,16 +76,16 @@ Consoles open saves by name and identifier instead: `bu00:BASLUS-XXXXX` on PS1, 
 GameCube, company and game code plus note name on N64, NGH plus sub-number on Neo Geo. Block placement is an allocator's
 business, so recording it would preserve a number that is wrong the moment the save lands anywhere else.
 
-Block _counts_ are a different thing, and they are still not stored, because they are derivable: a producer stores
+Block _counts_ are a different thing, and they are still not stored, because they are derivable. A producer stores
 exactly the bytes the card allocated, so the count is the nested bundle's total payload size divided by the
 [block size](#per-format-facts) for the format.
 
 That division takes the block size from the format, which holds for every format here except `saturn-bup`. Its 64 is the
 console's internal memory and a backup cartridge carries its own, so a count derived this way for a cartridge is wrong.
 The table stands as written for 0.4. Settling it means keying the block size on
-[`capacity`](/specifications/bundle/#card-map), which is required on every card map, rather than on the format alone: a
-cartridge dumped by itself is a card bundle with no [`role`](/registries/roles/) anywhere in it, so the medium cannot be
-read back off the role the way it can when a Saturn is read whole as a [device](/specifications/device/).
+[`capacity`](/specifications/bundle/#card-map), which is required on every card map, rather than on the format alone. A
+cartridge dumped by itself is a card bundle with no [`role`](/registries/roles/) anywhere in it. So the medium cannot be
+read back off the role, as it can when a Saturn is read whole as a [device](/specifications/device/).
 
 ## What a writer regenerates
 
@@ -97,8 +97,8 @@ Three cases need more:
 
 - **Saturn** stores its own block chain inside the save's first block, so a writer rewrites those numbers rather than
   treating the payload as opaque. It is the only format here where that is true. The `dirent` ahead of that chain is not
-  affected: every field in it — name, language, comment, date, length — is the same wherever the save sits, so it is
-  carried verbatim like any other format's and only the chain is rebuilt.
+  affected. Every field in it — name, language, comment, date, length — is the same wherever the save sits. So it is
+  carried verbatim like any other format's, and only the chain is rebuilt.
 - **GameCube** saves for Phantasy Star Online and F-Zero GX embed the destination card's flash serial and a CRC32 over
   it, and the game rejects a save whose serial does not match. A writer re-signs them, as Dolphin does on every copy.
 - **Dreamcast** mini-games must start at block 0 and stay contiguous, because they execute in place from flash. The
@@ -111,9 +111,9 @@ than following a chain.
 ## What splitting a card drops
 
 [`system_area`](/specifications/bundle/#card-map) is what a writer needs to rebuild a card's own identity rather than
-only its contents: an N64 controller pak's 32-byte label, a Neo Geo card's 16-byte cardholder username, a Dreamcast
-VMU's custom colour and icon shape. None of it belongs to any save, so splitting a card would otherwise drop it, and
-keeping it would otherwise mean keeping a whole `card-image` for a few dozen bytes.
+only its contents. It holds an N64 controller pak's 32-byte label, a Neo Geo card's 16-byte cardholder username, or a
+Dreamcast VMU's custom colour and icon shape. None of it belongs to any save, so splitting a card would otherwise drop
+it, and keeping it would otherwise mean keeping a whole `card-image` for a few dozen bytes.
 
 What `system_area` does not cover is the residue of deleted saves, whose payload blocks a card keeps intact long after
 the directory stops pointing at them, and the contents of free blocks. Neither belongs to any save, so neither survives
@@ -309,7 +309,7 @@ The pak's is a card, one nested save per note, laid out like any other card:
 The device header carries no `game`, because the pak's other notes are not Mario Kart 64's, and the outer parts carry
 `game` and `system` only as an [index](/specifications/bundle/#nested-bundles) of what each component holds.
 
-Carry only that game's note instead of the whole pak and there is no device at all: the cartridge save and the note are
+Carry only that game's note instead of the whole pak and there is no device at all. The cartridge save and the note are
 two ordinary parts of one [save](/specifications/saves/), told apart by `role`, with nothing nested. Which of the two a
 producer writes depends on what it read, not on what the game is.
 
