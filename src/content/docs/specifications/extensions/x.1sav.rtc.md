@@ -36,8 +36,14 @@ legible without either.
 Counting clocks make the difference concrete. An MBC3 cartridge holds elapsed seconds, minutes, hours and days in a
 footer beside a host timestamp, and [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/) carries that
 timestamp under key 2 because regenerating the footer needs it, which puts it nearest to hand. The timestamp is the
-anchor. The reading is the anchor plus the elapsed time the counters describe, and copying the anchor across writes a
-number wrong by however long the cartridge has been running.
+anchor. The reading is the counters themselves, put on the Unix scale as that many days, hours, minutes and seconds
+after 1970-01-01T00:00:00Z, so a cartridge whose clock has run for two minutes and twelve seconds reads 1970-01-01
+00:02:12. What a game displays is that plus an offset of its own, kept in save memory where only something that knows
+the game can find it.
+
+Adding the anchor to the counters is no better than copying it across. The anchor moves with the host and the counters
+with the cartridge, so their sum advances at twice the rate of either, and the anchor is on the producer's own scale,
+which need not be UTC.
 
 A dating clock has an anchor too. [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/) carries the
 moment a producer took the chip's components under its key 2, and the reading is the components themselves, which a game

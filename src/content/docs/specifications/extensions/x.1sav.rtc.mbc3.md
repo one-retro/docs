@@ -29,9 +29,11 @@ The high register is three things at once. Bit 0 is the day counter's ninth bit,
 carry it sets on running past 511 days. They stay packed where the hardware puts them, so what a consumer writes back is
 what it read.
 
-Key 2 is the host clock at the moment the emulator wrote the save, which is the anchor the counters advance from; the
-[reading](/specifications/extensions/x.1sav.rtc/#a-reading-not-an-anchor) is that plus the elapsed time they describe.
-Key 3 is how many bytes the timestamp occupied.
+Key 2 is the host clock at the moment the emulator wrote the save, which is the anchor it advances the counters from on
+the next load; the [reading](/specifications/extensions/x.1sav.rtc/#a-reading-not-an-anchor) is the counters alone. Like
+[`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/)'s key 2, it is on the producer's own scale, which
+need not be UTC: MiSTer's Gameboy core writes local standard time counted as though it were UTC. Key 3 is how many bytes
+the timestamp occupied.
 
 ## Why the timestamp width is carried
 
@@ -61,7 +63,7 @@ Only when the cartridge carries the clock, which on the Game Boy means MBC3 and 
 This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
 [scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a
 [`bundle` part](/specifications/bundle/#nested-bundles). A producer **SHOULD** carry
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map: a consumer that only wants the instant should
-not have to reconstruct one out of a day counter, and the two
+[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map: a consumer that only wants to know how long the
+clock has run should not have to unpack a day counter, and the two
 [may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
 wrong.
