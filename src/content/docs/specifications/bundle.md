@@ -43,46 +43,53 @@ bundle whose parts are all a consumer knows about it.
 | 5   | `description` | text             | no            | Free-form human-readable note about this bundle ("Right before the final boss", "100% completion run"). No length limit by spec; producers should keep it short enough to display in a list view.                                                                                                                                                                                                                                   |
 | 6   | `created_at`  | CBOR tag 1 (int) | no            | When the bundle was assembled, in whole epoch seconds. Tag 1 also admits a float, which this format forbids; see [One encoding per bundle](/specifications/universal-saves-format/#one-encoding-per-bundle).                                                                                                                                                                                                                        |
 
-What a bundle's parts mean follows from its `shape`, and each shape has a document of its own that says so. A
-[save](/specifications/saves/) carries one game's state, a [card](/specifications/cards/) carries one
-[`bundle` part](#nested-bundles) per save it holds, a [device](/specifications/device/) carries one per component of a
-console's storage, and a [collection](/specifications/collections/) carries one per device, card or save. Everything
-else a bundle carries is named by a [part kind](#part-kinds).
+What a bundle's parts mean follows from its `shape`, and each shape has a document of its own that says so:
+
+- A [save](/specifications/saves/) carries one game's state.
+- A [card](/specifications/cards/) carries one [`bundle` part](#nested-bundles) per save it holds.
+- A [device](/specifications/device/) carries one `bundle` part per component of a console's storage.
+- A [collection](/specifications/collections/) carries one `bundle` part per device, card or save.
+
+Everything else a bundle carries is named by a [part kind](#part-kinds).
 
 That counts saves as the medium stored them, not as a player would. This format never looks inside a payload, so a game
-keeping several of its own slots in one blob is one save here: A Link to the Past holds three playthroughs in a single 8
-KB SRAM image, and splitting them would mean parsing a format per game.
+that keeps several slots of its own in one blob is one save here. A Link to the Past holds three playthroughs in a
+single 8 KB SRAM image, and splitting them would mean parsing a format per game.
 
 #### Two systems, and what each answers
 
 A bundle can carry the word `system` twice, and the two are not the same field.
 
-The header's [`system`](#0-header-map) is **what will load these bytes**, never what wrote them, because the two come
-apart on real hardware: an N64 Transfer Pak lets Pokemon Stadium write a Game Boy cartridge's SRAM, and that is a `gb`
-save whatever produced it. It is a property of the medium rather than of the reader, so a `.vmp` virtual PS1 card on a
-PSP memory stick is `psx` and so is a PS1 card read through a PS2, with the hosting platform recorded as
-[`source`](#source-map) provenance instead. A consumer restoring a save reads this one.
+The header's [`system`](#0-header-map) is **what will load these bytes**, never what wrote them. The two come apart on
+real hardware. An N64 Transfer Pak lets Pokemon Stadium write a Game Boy cartridge's SRAM, and that is a `gb` save
+whatever produced it. It is a property of the medium rather than of the reader. A `.vmp` virtual PS1 card on a PSP
+memory stick is `psx`, and so is a PS1 card read through a PS2; the hosting platform is recorded in
+[`source`](#source-map) instead. A consumer restoring a save reads this one.
 
-[`game`](#game-hints-map)'s `system` is **which system's release these hints identify**, and it is there because a title
-alone does not settle it: Sonic Adventure is a Dreamcast game and a GameCube game, and a catalog handed the title and
-nothing else cannot tell which. A consumer resolving the game against a catalog reads this one, and falls back to the
-header's where it is absent.
+[`game`](#game-hints-map)'s `system` is **which system's release these hints identify**. It is there because a title
+alone does not settle it. Sonic Adventure is a Dreamcast game and a GameCube game, and a catalog handed only the title
+cannot tell which. A consumer resolving the game against a catalog reads this one, and falls back to the header's where
+it is absent.
 
 They usually agree, and a producer that sets both sets them the same. Where they differ, neither is wrong and neither
 overrides the other: they answer different questions, so a consumer picks by what it is doing rather than by precedence.
 
-The header's `system` stays outside `game` because a card has a system and often no game at all, and because `game`
-refines per-part where `system` cannot: a card is one system, and a genuinely varying one means you have crossed into a
+The header's `system` stays outside `game` for two reasons. A card has a system and often no game at all. And `game`
+refines per part where `system` cannot: a card is one system, and a genuinely varying one means you have crossed into a
 [collection](/specifications/universal-saves-format/#shapes).
 
 #### `game` (hints map)
 
 A producer fills in as many clues as it has; a consumer matches with whatever its catalog can resolve. This spec fixes
-no resolution order, because the hints answer different questions rather than the same one with different confidence: a
-`sha256` or `sha1` hash identifies one dump, `serial` identifies one release and many dumps share it, and `crc32`,
-`rom_filename` and `title` narrow the field without settling it, and `system` tells apart two releases that share a
-title. A producer that wants the answer pinned rather than inferred emits `game_id`, which is what it is for. All keys
-are optional.
+no resolution order, because the hints answer different questions rather than the same one with different confidence:
+
+- A `sha256` or `sha1` hash identifies one dump.
+- `serial` identifies one release, which many dumps share.
+- `crc32`, `rom_filename` and `title` narrow the field without settling it.
+- `system` tells apart two releases that share a title.
+
+A producer that wants the answer pinned rather than inferred emits `game_id`, which is what it is for. All keys are
+optional.
 
 | Key | Name           | Type              | Notes                                                                                                                                                    |
 | --- | -------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -111,8 +118,8 @@ computes none it doesn't need: a consumer matching against a catalog only needs 
 on the header and a part. That is where a clue goes that none of the six names, such as the revision byte a ROM header
 carries beside its serial, which tells apart two releases that share one. A consumer matching against a catalog skips an
 extension key it does not recognise, as it skips an unknown resolver in `game_id`, and round-trips it unchanged. A key
-here describes the game and says nothing about this save, so that two saves of one game still carry the same `game`; a
-clock reading or what a parser found in the payload stays on the header or the part.
+here describes the game and says nothing about this save, so two saves of one game still carry the same `game`. A clock
+reading, or what a parser found in the payload, stays on the header or the part.
 
 #### `source` (map)
 
@@ -134,15 +141,19 @@ use this for display and provenance, never for game matching.
 | 6   | `platform`         | text | The operating system or firmware `app` ran on: a handheld firmware such as muOS, or a general-purpose system such as Windows. Either a slug from the [Platforms registry](/registries/platforms/) (`"muos"`), or, for a platform with no entry, a reverse-DNS name.                                                           |
 | 7   | `platform_version` | text | Version of `platform`, in whatever scheme that platform uses.                                                                                                                                                                                                                                                                 |
 
-`platform`, `app` and `core` are three fields because each comes apart from the others. One app runs many cores and one
-core runs in many apps: RetroArch running mGBA is `app: "retroarch"` with `core: "mgba"`, and the same game played on
-its Gambatte core differs only in `core` and `core_version`. One app also ships on many platforms, and a firmware that
-ships an app is the platform rather than the app: RetroArch on a handheld running muOS is `platform: "muos"` with
-`app: "retroarch"`, and the same RetroArch on a desktop differs only in `platform` and `platform_version`. A device
-whose firmware loads cores itself, such as the Analogue Pocket, is the app, with no platform beneath it to name. A
-standalone emulator is an app around an engine of its own, and names both: mGBA run on its own is `app: "mgba"` with
-`core: "mgba"`. A producer that runs no core, such as a cartridge reader, a flashcart or a service, leaves `core` out
-and has no slug to take in the Apps registry either, so it names itself in reverse-DNS.
+`platform`, `app` and `core` are three fields because each comes apart from the others.
+
+One app runs many cores, and one core runs in many apps. RetroArch running mGBA is `app: "retroarch"` with
+`core: "mgba"`. The same game played on RetroArch's Gambatte core differs only in `core` and `core_version`.
+
+One app also ships on many platforms, and a firmware that ships an app is the platform rather than the app. RetroArch on
+a handheld running muOS is `platform: "muos"` with `app: "retroarch"`. The same RetroArch on a desktop differs only in
+`platform` and `platform_version`.
+
+A device whose firmware loads cores itself, such as the Analogue Pocket, is the app, with no platform beneath it to
+name. A standalone emulator is an app around an engine of its own, and names both: mGBA run on its own is `app: "mgba"`
+with `core: "mgba"`. A producer that runs no core, such as a cartridge reader, a flashcart or a service, leaves `core`
+out. It has no slug to take in the Apps registry either, so it names itself in reverse-DNS.
 
 Which arm applies is not a preference, and the rule is the same for all three fields. A field naming software its
 registry lists **MUST** hold that slug. A field naming software with no entry **MUST** hold a reverse-DNS name that
@@ -151,14 +162,15 @@ software's owner minted, or be left out. Each piece of software has exactly one 
 though both hold their domains. Left to taste, two producers would describe one piece of software two ways, and `source`
 sits in the header where that changes the [content hash](#content-hash-and-file-hash).
 
-The slug is also the string a consumer already has: a core's derives mechanically from the `saves/<core>/` folder it
-writes to, the app is whichever install that folder sits in, and the platform is whatever that install runs on. That
-matters because most of `source` names somebody else's software. An app names the core it ran and the platform beneath
-it, and a tool reporting saves it found on someone's muOS handheld names all three. Minting reverse-DNS names on muOS's,
-RetroArch's or a core's behalf would claim names in namespaces the producer does not hold, so a producer naming software
-it does not own, with no entry, leaves that field out rather than mint one. Shipping the software does not make the
-producer its owner: Provenance runs its own build of PokeMini, which has no entry, so a save from that build carries no
-`core`.
+The slug is also the string a consumer already has. A core's slug derives mechanically from the `saves/<core>/` folder
+it writes to. The app is whichever install that folder sits in, and the platform is whatever that install runs on.
+
+That matters because most of `source` names somebody else's software. An app names the core it ran and the platform
+beneath it, and a tool reporting saves it found on someone's muOS handheld names all three. Minting a reverse-DNS name
+on behalf of muOS, RetroArch or a core would claim a name in a namespace the producer does not hold. So when the
+software has no entry and the producer does not own it, the producer leaves that field out rather than mint a name.
+Shipping the software does not make the producer its owner: Provenance runs its own build of PokeMini, which has no
+entry, so a save from that build carries no `core`.
 
 A producer that writes a reverse-DNS name and is later listed switches to the slug. Bundles written before keep the name
 they were written with and round-trip unchanged, the same way an [`x` name](/registries/vendors/) stays assigned after a
@@ -190,18 +202,19 @@ splitting a card drops.
 | 2   | `system_area` | bstr | no   | The card-level bytes that belong to no save, verbatim and opaque.                                                                                                                                                                                                                                                                                                    |
 
 `format` and [`system`](#0-header-map) answer different questions. `system` decides which emulators can load these bytes
-at all; `format` decides how they are laid out, fixing the length of each save's `dirent` and the size of a block, and
-selecting which rebuild rules apply. Both are properties of the medium rather than of the reader, for the reason
+at all. `format` decides how they are laid out: it fixes the length of each save's `dirent` and the size of a block, and
+selects which rebuild rules apply. Both are properties of the medium rather than of the reader, for the reason
 [`system`](#two-systems-and-what-each-answers) gives, so a PS1 card read through a PS2 is `system: "psx"` and
 `format: "ps1-mc"` at once.
 
 ### [1] Parts (`array of Part`)
 
-A bundle holds at least one part. There is no upper limit. Most bundles hold a handful, but a producer that explodes a
-memory card into one part per save legitimately reaches into the dozens, and picking a number here would only be a guess
-at where that stops. Decoders MAY reject a bundle with more parts than they are willing to handle, and SHOULD NOT size
-any buffer from the array's declared count before reading that many parts, since the count costs an attacker nothing to
-inflate.
+A bundle holds at least one part. There is no upper limit. Most bundles hold a handful, but a producer that splits a
+memory card into one part per save legitimately reaches into the dozens. Any number fixed here would only be a guess at
+where that stops.
+
+Decoders MAY reject a bundle with more parts than they are willing to handle. Decoders SHOULD NOT size any buffer from
+the array's declared count before reading that many parts. The count costs an attacker nothing to inflate.
 
 #### Part kinds
 
@@ -222,9 +235,9 @@ parts for portability. Keeping the image alongside the split saves is how a prod
 [`system_area`](#card-map).
 
 `aux` is the escape hatch that keeps the vocabulary small. A producer with a blob the format has no name for carries it
-as `aux` with a `content_type` rather than minting a kind, because a name that only describes the bytes changes nothing
-about how a consumer handles them, and a minted kind a consumer does not recognise is handled as `aux` in the end
-anyway. Screenshots, box art and the container file a bundle was read from all belong here.
+as `aux` with a `content_type`, rather than minting a kind. A name that only describes the bytes changes nothing about
+how a consumer handles them. And a consumer handles a minted kind it does not recognise as `aux` in the end anyway.
+Screenshots, box art and the container file a bundle was read from all belong here.
 
 ##### Minting a kind
 
@@ -253,17 +266,16 @@ The rules a decoder enforces:
   bundle's [file hash and content hash](#content-hash-and-file-hash) are the same value. Compression belongs on the
   outer part, where it does not change `sha256` and compresses better anyway for having the whole inner bundle to work
   with.
-- **`sha256` is the inner bundle's identity.** A card is therefore a list of content hashes, which is what makes
-  extracting a save a byte copy rather than a re-encode, and what lets two producers of the same save agree on what to
-  call it.
+- **`sha256` is the inner bundle's identity.** A card is therefore a list of content hashes. That makes extracting a
+  save a byte copy rather than a re-encode, and it lets two producers of the same save agree on what to call it.
 - **Nothing is inherited.** An inner bundle does not read `system`, `game` or `source` from the enclosing header. It
   means the same thing sliced out as it does in place, which is the entire point.
 - **What a bundle may hold follows from its shape**, and decoders MUST enforce it. A
-  [collection](/specifications/collections/) holds any shape but another collection, a [device](/specifications/device/)
+  [collection](/specifications/collections/) holds any shape but another collection. A [device](/specifications/device/)
   holds cards and saves, a [card](/specifications/cards/) holds saves, and a [save](/specifications/saves/) holds no
-  nested bundle at all. Nothing in that chain leads back to itself, so a decoder that checks each nested bundle against
-  the shape of the one holding it terminates without counting levels, and no depth limit has to be written down to be
-  true.
+  nested bundle at all. Nothing in that chain leads back to itself. So a decoder that checks each nested bundle against
+  the shape of the one holding it terminates without counting levels. The depth is bounded without a limit being written
+  down.
 - **A bundle's parts need not be all one thing.** A `bundle` part sits beside ordinary save parts in the same array
   whenever a producer has both. See [Shapes](/specifications/universal-saves-format/#shapes).
 - **The outer `game` and `system` are an index.** They repeat what the inner header says so a consumer can list a card's
@@ -271,13 +283,16 @@ The rules a decoder enforces:
   on a mismatch the inner header wins.
 - `content_type` SHOULD be omitted. It is `application/vnd.1saves+cbor` by construction.
 
-These arrangements are required rather than conventional. A `bundle` part is what says that its payload is one save, so
-a producer **MUST NOT** flatten that boundary away. A bundle whose header describes a container, a card or a collection
-of cards, carries what is inside it as `bundle` parts, and every save it splits out **MUST** be one of those rather than
-an ordinary part sitting beside the container's own. Where such a save is itself made of several files, those files
-**MUST** be parts of that save's own bundle and **MUST NOT** be parts of the container's. A producer holding only a
-byte-exact dump carries a [`card-image`](#part-kinds) and splits out no saves at all, which is a different thing from
-flattening one.
+These arrangements are required rather than conventional. A `bundle` part is what says that its payload is one save. A
+producer **MUST NOT** flatten that boundary away.
+
+A bundle whose header describes a container, a card or a collection of cards, carries what is inside it as `bundle`
+parts. Every save such a bundle splits out **MUST** be one of those `bundle` parts, not an ordinary part beside the
+container's own. Where such a save is itself made of several files, those files **MUST** be parts of that save's own
+bundle. They **MUST NOT** be parts of the container's.
+
+A producer holding only a byte-exact dump carries a [`card-image`](#part-kinds) and splits out no saves at all. That is
+a different thing from flattening one.
 
 No decoder can check this, which is why it sits outside the list above: three files of one save and three saves of one
 card are the same shape to a validator. A save flattened into its container has no bundle to hash, and so no
@@ -311,12 +326,12 @@ happens: inflate, allocate, verify. Refinements of the header come last, since t
 Two limits are worth knowing. The payload lands after every unsigned key because it sits at
 [-1](/specifications/universal-saves-format/#additive-integer-keys) and not because of where the others are numbered, so
 that property survives any later assignment. And extension keys are text, which sorts after `-1`, so a producer's own
-data arrives _after_ the bytes it describes; anything a consumer needs in order to read the payload belongs in an
+data arrives _after_ the bytes it describes. Anything a consumer needs in order to read the payload belongs in an
 integer key rather than an extension.
 
 `slot` and `dirent` describe a part's place in the container it came from, and they apply at both nesting levels. On a
-card's [`bundle`](#nested-bundles) part they carry the save's own directory entry; inside that nested bundle they carry
-each file's, which is what a PS2 save needs, since it is a directory with an entry of its own and an entry per file.
+card's [`bundle`](#nested-bundles) part they carry the save's own directory entry. Inside that nested bundle they carry
+each file's. A PS2 save needs both levels, since it is a directory with an entry of its own and an entry per file.
 
 A part's `game` refines the header's exactly as its `source` does, and for the same reason: identity belongs to each
 save, not only to the file around it. A bundle holding a memory card whose saves span several titles leaves the header's
@@ -340,11 +355,12 @@ Between them, `encoding` and `size` give a part one of two forms:
 | Uncompressed | absent  | absent     | byte string |
 | Compressed   | present | `"zstd"`   | byte string |
 
-`size` is what a producer says the payload will come to, not a promise it will. A consumer **MAY** decline to decompress
-a part whose `size` is larger than it is willing to handle, and **MAY** abandon a decompression that outgrows what it
-expected, the same way it may [reject a bundle with more parts than it wants](#1-parts-array-of-part): the number costs
-an attacker nothing to inflate, and a small payload can claim to expand without limit. Nothing obliges a consumer to
-read a part, so declining one is always available and is the answer to a payload it cannot afford.
+`size` is what a producer says the payload will come to, not a promise that it will. A consumer **MAY** decline to
+decompress a part whose `size` is larger than it is willing to handle. A consumer **MAY** abandon a decompression that
+outgrows what it expected. Both follow the reasoning for
+[rejecting a bundle with more parts than it wants](#1-parts-array-of-part). The number costs an attacker nothing to
+inflate, and a small payload can claim to expand without limit. Nothing obliges a consumer to read a part, so declining
+one is always available and is the answer to a payload it cannot afford.
 
 #### Bound payloads
 
@@ -354,9 +370,9 @@ encrypted under a key derived from `movable.sed`, which is console-unique. PS3 a
 often per account.
 
 A save can also be bound to the thing carrying it rather than to any console. An amiibo is a few hundred bytes on an NFC
-tag, signed against that tag's own serial: any console can write one and the result stays valid, but copying it to a
-second tag does not. Skylanders and Disney Infinity figures work the same way. Those are `medium`, and the field is
-worth having for them precisely because nothing else in the part would say the bytes are stuck where they are.
+tag, signed against that tag's own serial. Any console can write one and the result stays valid, but a copy on a second
+tag does not. Skylanders and Disney Infinity figures work the same way. Those are `medium`, and the field is worth
+having for them precisely because nothing else in the part would say the bytes are stuck where they are.
 
 Every other field in such a part reads as an ordinary save, so without `binding` a consumer would offer the file to
 another console and the restore would fail or corrupt. Its presence is what a consumer acts on; the value only names
@@ -374,8 +390,8 @@ The rules:
 - A producer that knows the bytes it read are bound **MUST** set `binding`. Absence is a claim of portability, so a
   producer that cannot tell says so in `source` and does not guess in either direction.
 - Bytes that merely _mention_ where they live are not bound. A GameCube save for Phantasy Star Online carries the
-  destination card's flash serial and a checksum over it, and a writer re-signs both on every copy, so the save is
-  portable and **MUST NOT** set `binding`. The test is whether anything but the original can be made to accept it.
+  destination card's flash serial and a checksum over it. A writer re-signs both on every copy, so the save is portable.
+  A producer **MUST NOT** set `binding` on it. The test is whether anything but the original can be made to accept it.
 - A consumer **MUST NOT** present a bound payload as restorable to anything but the producer named in `source`. It
   **MUST** still store, sync, hash and round-trip it like any other part.
 - `binding` belongs on the part holding the bound bytes. On a card, that is a part inside the nested bundle, not the
@@ -386,8 +402,8 @@ The rules:
 ### Layout consequences
 
 The two-element shape pins `parts` to position [1], which encodes after the header [0]. That is the whole of the layout
-this format guarantees. Where a key sits inside a part is not part of it: `payload` at [-1](#part-map) does sort after
-every unsigned key, so a blob lands at its part's tail in practice, but nothing may depend on that.
+this format guarantees. Where a key sits inside a part is not part of that guarantee. `payload` at [-1](#part-map) does
+sort after every unsigned key, so a blob lands at its part's tail in practice, but nothing may depend on that.
 
 - **Cheap identification**: the header occupies a small head region (typically <2 KiB), so a consumer that only needs to
   know what a bundle is reads the front and stops. Listing what a card or a
@@ -418,8 +434,8 @@ that build the same logical bundle agree on it. That is the identifier a content
 value a [`bundle`](#nested-bundles) part's `sha256` holds.
 
 They are the same value for an uncompressed bundle, which is every bundle nested inside another. They differ only where
-a part is compressed, and that is the whole reason they are defined separately: `zstd` output depends on the
-implementation, its version and the level, none of which this format pins, so two encoders building the same logical
+a part is compressed, and that is the whole reason they are defined separately. `zstd` output depends on the
+implementation, its version and the level, and this format pins none of them. So two encoders building the same logical
 bundle produce different files and the same content hash.
 
 #### What a content hash does not answer
@@ -428,9 +444,9 @@ Both hashes are over bytes, and identical bytes are a stronger claim than identi
 cartridge can differ in length or padding, and two consoles produce different [bound](#bound-payloads) bytes for the
 same progress, so one save can arrive under two content hashes.
 
-The format has no canonical byte form for a save and does not try to acquire one, since deciding that a 64 KB dump and
-its 32 KB half are the same save takes exactly the per-system parsing this container keeps out. The content hash answers
-"are these the same bytes", which is what a store needs to deduplicate safely; a producer that wants "is this the same
+The format has no canonical byte form for a save and does not try to acquire one. Deciding that a 64 KB dump and its 32
+KB half are the same save takes exactly the per-system parsing this container keeps out. The content hash answers "are
+these the same bytes", which is what a store needs to deduplicate safely. A producer that wants "is this the same
 playthrough" builds that on top.
 
 ## Appendix A: CDDL schema
