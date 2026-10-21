@@ -8,11 +8,11 @@ slug: specifications/extensions/x.1sav.dirent
 **Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a card's or save's part
 · **Status:** normative schema, optional to carry
 
-When a card's directory dates a save and when it says the console last wrote it, on a scale a consumer can read without
-knowing how that card counts time, and the zone those times were kept in where a producer knows it. The entry itself is
-carried verbatim in [`dirent`](/specifications/bundle/#part-map), which is enough to write the save back onto a card and
-useless for anything else. The name sits in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree)
-because the value belongs to no single producer.
+When a card's directory dates a save, and when it says the console last wrote it. Both are put on a scale a consumer can
+read without knowing how that card counts time. Where a producer knows the zone those times were kept in, the key
+carries that too. The entry itself is carried verbatim in [`dirent`](/specifications/bundle/#part-map), which is enough
+to write the save back onto a card and useless for anything else. The name sits in the
+[`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree) because the value belongs to no single producer.
 
 ## Schema
 
@@ -27,15 +27,14 @@ keys.
 
 Both are the wall clock the console showed, put on the Unix scale by reading that wall clock as though it were UTC. They
 are deliberately not instants. A GameCube sets its clock in the IPL menu with no notion of a zone, and a VMU is the
-same, so the seconds a directory holds fix a date and a time of day and say nothing about where on Earth that was.
+same. So the seconds a directory holds fix a date and a time of day, and say nothing about where on Earth that was.
 Calling such a reading UTC would be a guess dressed as a fact, and one a consumer could not see through.
 
 The offset is what closes the gap, in seconds east of UTC, so the instant is the reading minus the offset. It follows a
-reading only where a producer actually knows the zone the console's clock was set to: a PS2 keeps its directory times in
-a fixed +9 whatever the console's region, and a producer that read the card as part of a
-[device](/specifications/device/) whose [`source`](/specifications/bundle/#source-map) records where the read happened
-knows it another way. A producer that does not know writes the one-element form, which is the common case and not a
-degraded one.
+reading only where a producer actually knows the zone the console's clock was set to. A PS2 keeps its directory times in
+a fixed +9 whatever the console's region. A producer that read the card as part of a [device](/specifications/device/)
+whose [`source`](/specifications/bundle/#source-map) records where the read happened knows the zone another way. A
+producer that does not know writes the one-element form, which is the common case and not a degraded one.
 
 The first element means the same thing whether a second follows it or not, which is the point of qualifying the reading
 rather than replacing it. A consumer that reads only the head of the array gets the wall clock the card recorded, in
@@ -44,8 +43,8 @@ producer could supply one.
 
 The zone rides on each reading rather than on the entry because one entry can hold two of them. A save created in winter
 and last written in summer was kept at two offsets on the same console, and a single field beside the pair could not say
-so. It is the shape [`x.1sav.icon`](/specifications/extensions/x.1sav.icon/) already uses for a frame, a value and the
-qualifier it may turn out not to have, and it leaves an offset with no reading beside it unwritable rather than merely
+so. It is the shape [`x.1sav.icon`](/specifications/extensions/x.1sav.icon/) already uses for a frame: a value, and the
+qualifier it may turn out not to have. It also leaves an offset with no reading beside it unwritable rather than merely
 invalid.
 
 Four of the seven [card formats](/specifications/memory-cards/) date an entry, and PS1, N64 and Neo Geo carry no time.
@@ -54,10 +53,11 @@ than in a directory region.
 
 ## Where it goes
 
-The part that stands for one entry in a directory, which is two places and no others: a [card](/specifications/cards/)'s
-[`bundle` part](/specifications/bundle/#nested-bundles) holding a save, and a [save](/specifications/saves/)'s own part
-where the save is a directory, as a PS2 save's files are. These times are the directory's record and do not survive the
-save being sliced out, which is why they sit beside the raw `dirent` bytes rather than in the save's own header.
+The part that stands for one entry in a directory, which is two places and no others. One is a
+[card](/specifications/cards/)'s [`bundle` part](/specifications/bundle/#nested-bundles) holding a save. The other is a
+[save](/specifications/saves/)'s own part where the save is a directory, as a PS2 save's files are. These times are the
+directory's record and do not survive the save being sliced out, which is why they sit beside the raw `dirent` bytes
+rather than in the save's own header.
 
 It does not go on a [device](/specifications/device/)'s part or a [collection](/specifications/collections/)'s. Those
 parts are components and entries, which sit in a socket and in a file rather than in a directory, and neither has an
@@ -99,7 +99,10 @@ Only when the producer read the entry. A producer that would be guessing omits t
 time it performed the dump, which is [`created_at`](/specifications/bundle/#0-header-map) in the bundle header.
 
 The offset is a separate decision from the reading it follows. Not knowing the zone is a reason to write the one-element
-form and no reason at all to drop the reading, which is what qualifying it separately buys: before, a producer reading a
-GameCube entry had a modify time it could not honestly convert, and the only conforming move was to drop a field the
-card really does hold. A producer **MUST NOT** fill the offset with the zone the _dump_ happened in, which is a fact
-about the reader rather than about the console, nor with a default of zero, which claims UTC and means it.
+form, and no reason at all to drop the reading. That is what qualifying it separately buys. Before, a producer reading a
+GameCube entry had a modify time it could not honestly convert. The only conforming move was to drop a field the card
+really does hold.
+
+A producer **MUST NOT** fill the offset with the zone the _dump_ happened in. That zone is a fact about the reader
+rather than about the console. A producer **MUST NOT** fill it with a default of zero either. Zero claims UTC, and means
+it.
