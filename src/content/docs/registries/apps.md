@@ -3,10 +3,10 @@ title: Apps
 description: Known apps that run emulator cores, their canonical slugs, and the cores they run.
 ---
 
-An app is the software or device that runs an [emulator core](/registries/cores/): a frontend that loads cores, an FPGA
-device that loads them as bitstreams, or a standalone emulator built around an engine of its own. The Universal Saves
-Format carries it in a [`source`](/specifications/bundle/#source-map)'s `app` field, beside the core in `core`, because
-one app runs many cores and one core runs in many apps.
+An app is the software or device that runs an [emulator core](/registries/cores/). It is a frontend that loads cores, an
+FPGA device that loads them as bitstreams, or a standalone emulator built around an engine of its own. The Universal
+Saves Format carries it in a [`source`](/specifications/bundle/#source-map)'s `app` field, beside the core in `core`,
+because one app runs many cores and one core runs in many apps.
 
 The slug is what a producer writes in `app` when a save was produced by that app. An app listed here MUST use its slug
 rather than a reverse-DNS name, even if it holds a domain, so that one app has one spelling. A slug is the name the app
@@ -20,11 +20,11 @@ the app and is listed here. A launcher that starts another app, such as ES-DE, r
 app it launched. A producer that runs no core, such as a cartridge reader or a service, has no entry here and names
 itself in reverse-DNS.
 
-The **Cores** column says what the app runs: a **Kind** from the [Emulator Cores registry](/registries/cores/) for an
-app that loads that kind's cores, core slugs for the builds an app ships itself, or both, as Provenance does. A
-standalone emulator lists its one engine, which usually shares its slug (`duckstation` runs `duckstation`) but need not
-(`dolphin` runs `dolphin-emu`, the name its libretro build reports). A frontend that builds other emulators' engines
-itself, such as OpenEmu, lists each under the slug that engine already has.
+The **Cores** column says what the app runs. An app that loads a kind's cores lists that **Kind** from the
+[Emulator Cores registry](/registries/cores/). An app that ships its own builds lists their core slugs, and Provenance,
+which does both, lists both. A standalone emulator lists its one engine, which usually shares its slug (`duckstation`
+runs `duckstation`) but need not (`dolphin` runs `dolphin-emu`, the name its libretro build reports). A frontend that
+builds other emulators' engines itself, such as OpenEmu, lists each under the slug that engine already has.
 
 The list is **non-normative** and first-come; to add an app, open a PR with a row, alphabetical by slug.
 

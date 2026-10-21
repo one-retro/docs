@@ -14,13 +14,13 @@ producer map its input to the right slug, and are never emitted.
 
 A slug names **one system, not a family**. Successive generations get their own slug even where their media are
 compatible, so `psx` and `ps2` are separate despite a PS2 reading PS1 cards. Emulators support a system rather than a
-family, and file-format compatibility is not system identity: converting a PS2 card for a PS1 emulator is meaningless,
-and keeping the slugs apart is what lets a tool decline it by ordinary matching instead of a special case. Where two
-systems genuinely are interchangeable for some purpose, that is a policy the tool holds, not a fact the slug carries.
+family, and file-format compatibility is not system identity. Converting a PS2 card for a PS1 emulator is meaningless.
+Keeping the slugs apart is what lets a tool decline it by ordinary matching instead of a special case. Where two systems
+genuinely are interchangeable for some purpose, that is a policy the tool holds, not a fact the slug carries.
 
 Arcade is the exception that rule cannot absorb, and `mame` is the slug for it. An arcade board's identity is its
-romset, and nothing above that level is worth naming: a CPS2 board, a System 16 and an MVS cabinet share no medium, no
-save layout and no consumer that would treat them alike, so a slug per board family would carry information nobody
+romset, and nothing above that level is worth naming. A CPS2 board, a System 16 and an MVS cabinet share no medium, no
+save layout and no consumer that would treat them alike. So a slug per board family would carry information nobody
 matches on. The slug says the bytes came off an arcade machine catalogued by MAME, and which machine lives in
 [`game_id`](/specifications/bundle/#game-hints-map) under `org.mamedev`. `neogeo` stays separate from it because a
 cabinet and an AES take the same memory card, which is a medium a consumer really does treat alike.

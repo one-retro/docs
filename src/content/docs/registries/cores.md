@@ -31,13 +31,17 @@ all report `bsnes-mercury`, and PCSX ReARMed's NEON build reports `PCSX-ReARMed`
 so its saves can only read as `mame`.
 
 The **Systems** column uses slugs from the [System Slugs registry](/registries/systems/). The **Also seen as** column
-records other names for the same core: former names (the Mednafen cores were renamed Beetle, Genesis_MiSTer became
-MegaDrive_MiSTer), the SD-card saves folders a MiSTer core writes to (`/media/fat/saves/<name>/`), or Analogizer builds
-of a Pocket core, which count as the same core. They help mapping folders and old data, and are never emitted.
-Standalone Mednafen is one `mednafen` core rather than one per system, so that no slug derived from a Beetle core's
-former name, such as `Mednafen PCE Fast`, names it. Where a collision cannot be avoided, the slug wins and the former
-name is not listed: libretro's PS2 core reported `pcsx2` until it was renamed LRPS2 in 2024, and its 3DO core reported
-`4DO` before it became Opera, so saves under those names read as `pcsx2` and `4do`, the engines both forks began from.
+records other names for the same core:
+
+- Former names: the Mednafen cores were renamed Beetle, and Genesis_MiSTer became MegaDrive_MiSTer.
+- The SD-card saves folders a MiSTer core writes to (`/media/fat/saves/<name>/`).
+- Analogizer builds of a Pocket core, which count as the same core.
+
+They help mapping folders and old data, and are never emitted. Standalone Mednafen is one `mednafen` core rather than
+one per system, so that no slug derived from a Beetle core's former name, such as `Mednafen PCE Fast`, names it. Where a
+collision cannot be avoided, the slug wins and the former name is not listed. The libretro PS2 core reported `pcsx2`
+until it was renamed LRPS2 in 2024, and its 3DO core reported `4DO` before it became Opera. Saves under those names read
+as `pcsx2` and `4do`, the engines both forks began from.
 
 Cores are grouped by system family for browsing. Each core appears exactly once, and the **Systems** column is the
 authoritative coverage; some cores reach past their section (blueMSX also runs `sg-1000`, PicoDrive also runs

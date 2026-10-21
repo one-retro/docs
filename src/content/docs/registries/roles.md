@@ -11,8 +11,8 @@ A role follows the [slug grammar](/specifications/common-types/slug/) every voca
 lowercase ASCII, single hyphens between runs, at most 64 bytes.
 
 A consumer uses `role` to name a part to a user and to match it against a socket when restoring. That second job is why
-a producer takes a name from this registry rather than inventing one: a private name is one nothing else can match, and
-a consumer meeting a role it does not recognise **MUST NOT** guess which socket is meant. Round-trip it, show it, do not
+a producer takes a name from this registry rather than inventing one. A private name is one nothing else can match. A
+consumer meeting a role it does not recognise **MUST NOT** guess which socket is meant. Round-trip it, show it, do not
 restore by it.
 
 The list is **non-normative** and first-come; to add a role, open a PR against the section for its system.
@@ -34,12 +34,12 @@ Roles that mean the same thing everywhere, and cover most bundles on their own.
 Where a system has several sockets of one kind, the role ends in a number: `memcard-1`, `controller-pak-3`. Numbering
 starts at 1 and follows the console's own ordering, so player 1's controller is `controller-pak-1` and the first memory
 card slot is `memcard-1`. Systems that label their slots with letters are numbered in the same order, so a GameCube's
-Slot A is `memcard-1` and Slot B is `memcard-2`; the registry keeps one convention rather than mirroring each console's
+Slot A is `memcard-1` and Slot B is `memcard-2`. The registry keeps one convention rather than mirroring each console's
 silkscreen.
 
 A prefix is registered once and covers every number. A role ending in `-<n>`, where `<n>` is a decimal number with no
-leading zero, names the nth socket of the kind its prefix names, and a consumer that recognises the prefix **MAY** match
-on the number without that exact role being listed here. A device with eight card slots writes `memcard-8` and is
+leading zero, names the nth socket of the kind its prefix names. A consumer that recognises the prefix **MAY** match on
+the number without that exact role being listed here. A device with eight card slots writes `memcard-8` and is
 understood.
 
 This is the only place these specifications allow reading structure out of a slug. Everywhere else a name is opaque and
