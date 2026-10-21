@@ -38,7 +38,7 @@ producer most consumers can read, and an emulator writing a cartridge save has n
 | --- | --------- | -------------- | ---------------------------------------------------------------- |
 | 0   | `id`      | yes            | The part's index, counting from 0.                               |
 | 9   | `sha256`  | yes            | Tag 18540 over the uncompressed payload.                         |
-| -1  | `payload` | yes            | The bytes, or a reference to them. Always last in the map.       |
+| -1  | `payload` | yes            | The bytes. Always last in the map.                               |
 | 7   | `size`    | on compression | The uncompressed length, carried only when it cannot be derived. |
 
 Every other key is for a save the container gave more than one part, and [Bundle](/specifications/bundle/#part-map)

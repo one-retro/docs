@@ -36,15 +36,15 @@ was _meant_ to be in, nor that a default is spelled out where the default is its
 but that one" cannot be written. The other two part defaults are catchable and are caught, `path` by a minimum size of 1
 and `encoding` by admitting only `"zstd"`.
 
-A part is written as a choice of three forms, which is what makes `size` checkable: present when the payload is
-compressed or referenced, absent when it is embedded and uncompressed and therefore states its own length. The arms are
-ordered most-constrained-first because the tool takes the first that matches without backtracking, so reordering them
-would silently start rejecting valid parts.
+A part is written as a choice of two forms, which is what makes `size` checkable: present when the payload is
+compressed, absent when it is embedded and uncompressed and therefore states its own length. The arms are ordered
+most-constrained-first because the tool takes the first that matches without backtracking, so reordering them would
+silently start rejecting valid parts.
 
 Other constraints are not expressible in CDDL and remain prose-only in
-[the spec](/specifications/universal-saves-format/): an unrecognized `kind` being treated as `aux`, a referenced
-payload's hash equaling key 9, `rom_hashes` holding at most one entry per algorithm in ascending tag order, `path`
-avoiding a leading `/` and `..` segments, and no two parts agreeing on `role`, `path` and `slot` at once.
+[the spec](/specifications/universal-saves-format/): an unrecognized `kind` being treated as `aux`, `rom_hashes` holding
+at most one entry per algorithm in ascending tag order, `path` avoiding a leading `/` and `..` segments, and no two
+parts agreeing on `role`, `path` and `slot` at once.
 
 One of those is a gap CDDL cannot close: it can require a key but not "at least one of these optional keys", so the
 [non-empty rule](/specifications/universal-saves-format/#one-encoding-per-bundle) on a `game` map stays prose. The other

@@ -89,9 +89,9 @@ mirror and checksum rather than reading them back, and `capacity` counts the dat
 None of those is a space optimisation. Each is a field that could disagree with the bytes, removed so that it cannot.
 
 A producer that wants the original file kept anyway attaches it as a part, where it gets a digest and can be compressed
-or resolved from a store like any other payload: a [`card-image`](/specifications/bundle/#part-kinds) for a whole card,
-an [`aux` part](/specifications/bundle/#part-kinds) with a `content_type` for a container this format has no name for.
-That is archival, riding alongside, and a consumer that rebuilds from the parts never has to consult it.
+like any other payload: a [`card-image`](/specifications/bundle/#part-kinds) for a whole card, an
+[`aux` part](/specifications/bundle/#part-kinds) with a `content_type` for a container this format has no name for. That
+is archival, riding alongside, and a consumer that rebuilds from the parts never has to consult it.
 
 Where bytes are carried verbatim, it is because nothing has decoded them and so nobody can say which of them are read.
 [`dirent`](/specifications/bundle/#part-map) and [`system_area`](/specifications/bundle/#card-map) are that case, not
