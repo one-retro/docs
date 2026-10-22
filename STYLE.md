@@ -43,6 +43,10 @@ old one.
 
 Note the version a feature belongs to when it matters for compatibility.
 
+Say what the format is and what a reader has to do. Give a reason only where a reader needs it to apply a rule, and keep
+it to a sentence or two. Do not describe the alternatives a design rejected or how a rule came to be; that history
+belongs in the commit message.
+
 ## Guides
 
 Write a procedure as numbered steps. Start each step with a verb, give it one action, and keep it to 20 words or fewer.
