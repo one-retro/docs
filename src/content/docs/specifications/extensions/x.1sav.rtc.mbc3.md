@@ -30,7 +30,7 @@ carry it sets on running past 511 days. They stay packed where the hardware puts
 what it read.
 
 Key 2 is the host clock at the moment the emulator wrote the save, which is the anchor it advances the counters from on
-the next load; the [reading](/specifications/extensions/x.1sav.rtc/#a-reading-not-an-anchor) is the counters alone. Like
+the next load; the [reading](/specifications/extensions/x.1sav.rtc/#the-reading) is the counters alone. Like
 [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/)'s key 2, it is on the producer's own scale, which
 need not be UTC: MiSTer's Gameboy core writes local standard time counted as though it were UTC. Key 3 is how many bytes
 the timestamp occupied.

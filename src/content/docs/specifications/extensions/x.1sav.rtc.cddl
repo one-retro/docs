@@ -1,9 +1,8 @@
 ; ============================================================================
-; x.1sav.rtc - a clock reading normalized to a Unix instant
+; x.1sav.rtc - a game's clock reading on the Unix scale
 ;
 ; An extension key for the Universal Saves Format, defined by these
-; specifications under a name reserved in the Vendor Names registry because the
-; value belongs to no single producer.
+; specifications under a name reserved in the Vendor Names registry.
 ;
 ; The root here is the value carried under the key, not a bundle. A bundle
 ; validates against the format's own schema whatever this holds, since an
@@ -11,18 +10,13 @@
 ; ============================================================================
 
 rtc = {
-  0 => reading-seconds, ; reading     - what the clock shows, as a Unix instant
+  0 => reading-seconds, ; reading     - the game's clock, on the Unix scale
   ? 1 => uint,          ; accuracy_ms - uncertainty, in milliseconds
 }
 
-; Which clock produced the reading is not carried here. The chip key beside this
-; one names it, `source` names the producer, and a normalized instant is meant
-; to be readable without either.
+; Key 0 is the clock's own value, never the anchor a chip key carries. A
+; counting clock reads as its elapsed time after 1970-01-01T00:00:00Z, and a
+; dating clock as its components read as though they were UTC.
 ;
-; Key 0 is what the clock shows, never the point a counting clock advances from.
-; An MBC3 footer's host timestamp is such an anchor; the reading is that plus
-; the elapsed time the footer's counters describe.
-;
-; Tag 1 admits a float and this key does not, for the reason `created_at` gives
-; in the format spec: one instant would otherwise have two encodings.
+; Whole seconds only: tag 1 over an integer, never a float.
 reading-seconds = #6.1(int)
