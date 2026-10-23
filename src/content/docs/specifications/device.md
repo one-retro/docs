@@ -10,7 +10,6 @@ A `device` bundle is one console's storage as it was when read: every component 
 Several systems keep saves in more than one place at once:
 
 - A Sega CD has internal backup RAM and a Backup RAM Cart.
-- A Neo Geo CD has internal storage beside a memory card.
 - An MVS cabinet keeps its own backup RAM behind the card slot.
 
 None of those pairs is one game's state, so none is a [save](/specifications/saves/). None is a single card, so none is

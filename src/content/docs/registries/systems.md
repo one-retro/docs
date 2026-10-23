@@ -54,6 +54,7 @@ The list is **non-normative** and first-come; to add a system, open a PR with a 
 | `n64`              | Nintendo 64          |                      |
 | `nds`              | Nintendo DS          |                      |
 | `neogeo`           | Neo Geo              |                      |
+| `neogeo-cd`        | Neo Geo CD           | `neocd`, `neogeocd`  |
 | `nes`              | NES                  |                      |
 | `ngp`              | Neo Geo Pocket       | `neogeopocket`       |
 | `ngpc`             | Neo Geo Pocket Color | `neogeopocketcolor`  |

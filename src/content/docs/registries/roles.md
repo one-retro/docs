@@ -80,10 +80,10 @@ compared whole, and an unrecognised prefix stays unrecognised however it ends.
 
 ## SNK
 
-| Role          | System   | Socket                                                                                   |
-| ------------- | -------- | ---------------------------------------------------------------------------------------- |
-| `internal`    | `neogeo` | Built-in memory: the AES console's, or an MVS cabinet's backup RAM behind the card slot. |
-| `neogeo-card` | `neogeo` | The Neo Geo memory card, which an arcade cabinet and a home console both take.           |
+| Role          | System                | Socket                                                                                                                                                                  |
+| ------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `internal`    | `neogeo`, `neogeo-cd` | Built-in memory: the AES console's, or an MVS cabinet's backup RAM behind the card slot. On a Neo Geo CD, the 8 KiB its BIOS keeps saves in, laid out as a memory card. |
+| `neogeo-card` | `neogeo`              | The Neo Geo memory card, which an arcade cabinet and a home console both take.                                                                                          |
 
 ## Sony
 

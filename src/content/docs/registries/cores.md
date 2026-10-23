@@ -273,24 +273,25 @@ slug.
 
 ## Neo Geo and arcade
 
-| Slug                          | Core                          | Kind       | Systems          | Also seen as                    |
-| ----------------------------- | ----------------------------- | ---------- | ---------------- | ------------------------------- |
-| `fb-alpha`                    | FB Alpha                      | `libretro` | `neogeo`, `mame` |                                 |
-| `finalburn-neo`               | FinalBurn Neo                 | `libretro` | `neogeo`, `mame` |                                 |
-| `finalburn-neo-cps12-subset`  | FinalBurn Neo (cps12 subset)  | `libretro` | `mame`           |                                 |
-| `finalburn-neo-neogeo-subset` | FinalBurn Neo (neogeo subset) | `libretro` | `neogeo`         |                                 |
-| `geolith`                     | Geolith                       | `libretro` | `neogeo`         |                                 |
-| `mame`                        | MAME                          | `libretro` | `mame`           |                                 |
-| `mame-2000`                   | MAME 2000                     | `libretro` | `mame`           |                                 |
-| `mame-2003-0-78`              | MAME 2003 (0.78)              | `libretro` | `mame`           |                                 |
-| `mame-2003-midway`            | MAME 2003 Midway              | `libretro` | `mame`           |                                 |
-| `mame-2003-plus`              | MAME 2003-Plus                | `libretro` | `mame`           |                                 |
-| `mame-2009`                   | MAME 2009                     | `libretro` | `mame`           |                                 |
-| `mame-2010`                   | MAME 2010                     | `libretro` | `mame`           |                                 |
-| `mame-2015`                   | MAME 2015                     | `libretro` | `mame`           |                                 |
-| `mame-2016`                   | MAME 2016                     | `libretro` | `mame`           |                                 |
-| `mazamars312-neogeo`          | Mazamars312.NeoGeo            | `openfpga` | `neogeo`         | `Mazamars312.NeoGeo_Analogizer` |
-| `neogeo-mister`               | NeoGeo_MiSTer                 | `mister`   | `neogeo`         | `NEOGEO`                        |
+| Slug                          | Core                          | Kind       | Systems               | Also seen as                    |
+| ----------------------------- | ----------------------------- | ---------- | --------------------- | ------------------------------- |
+| `fb-alpha`                    | FB Alpha                      | `libretro` | `neogeo`, `mame`      |                                 |
+| `finalburn-neo`               | FinalBurn Neo                 | `libretro` | `neogeo`, `mame`      |                                 |
+| `finalburn-neo-cps12-subset`  | FinalBurn Neo (cps12 subset)  | `libretro` | `mame`                |                                 |
+| `finalburn-neo-neogeo-subset` | FinalBurn Neo (neogeo subset) | `libretro` | `neogeo`              |                                 |
+| `geolith`                     | Geolith                       | `libretro` | `neogeo`              |                                 |
+| `mame`                        | MAME                          | `libretro` | `mame`                |                                 |
+| `mame-2000`                   | MAME 2000                     | `libretro` | `mame`                |                                 |
+| `mame-2003-0-78`              | MAME 2003 (0.78)              | `libretro` | `mame`                |                                 |
+| `mame-2003-midway`            | MAME 2003 Midway              | `libretro` | `mame`                |                                 |
+| `mame-2003-plus`              | MAME 2003-Plus                | `libretro` | `mame`                |                                 |
+| `mame-2009`                   | MAME 2009                     | `libretro` | `mame`                |                                 |
+| `mame-2010`                   | MAME 2010                     | `libretro` | `mame`                |                                 |
+| `mame-2015`                   | MAME 2015                     | `libretro` | `mame`                |                                 |
+| `mame-2016`                   | MAME 2016                     | `libretro` | `mame`                |                                 |
+| `mazamars312-neogeo`          | Mazamars312.NeoGeo            | `openfpga` | `neogeo`              | `Mazamars312.NeoGeo_Analogizer` |
+| `neocd`                       | NeoCD                         | `libretro` | `neogeo-cd`           |                                 |
+| `neogeo-mister`               | NeoGeo_MiSTer                 | `mister`   | `neogeo`, `neogeo-cd` | `NEOGEO`                        |
 
 ## Atari
 
