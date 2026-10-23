@@ -286,8 +286,8 @@ export const extensions = {
         2: new Tag(1, 1044057600),
         3: 4,
       }),
-      // The Gambatte speedrun core keeps both copies and a timestamp in a file
-      // of its own. There is no footer, so there is no width.
+      // Gambatte-Speedrun keeps both copies and a timestamp in a file of its
+      // own. There is no footer, so there is no width.
       "outside-a-footer": map({
         0: [59, 30, 12, 0xc8, 0x01],
         1: [59, 30, 12, 0xc8, 0x01],

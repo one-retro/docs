@@ -24,18 +24,19 @@ reason [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) gives, under that 
 
 Keys 0 and 1 hold the same five registers twice: seconds, minutes, hours, day counter low and day counter high. Key 0 is
 the clock as it runs and key 1 the latched copy the game reads, and the two differ whenever the game has not latched
-recently. Key 1 is null where the producer's source does not keep the latched copy, as ares and libretro's Gambatte core
-do not.
+recently. Key 1 is null where the producer's source does not keep the latched copy, as ares and Gambatte do not.
+Gambatte-Speedrun, a fork of Gambatte, keeps both.
 
 The high register is three things at once. Bit 0 is the day counter's ninth bit, bit 6 halts the clock, and bit 7 is the
 carry it sets on running past 511 days. They stay packed where the hardware puts them, so what a consumer writes back is
 what it read.
 
-Key 2 is the host clock the emulator advances the counters from on the next load. SameBoy takes it when it writes the
-save. VBA-M and mGBA take it when the game last latched the clock, and mGBA advances key 1 from it rather than key 0.
+Key 2 is the host clock the emulator advances the counters from on the next load. SameBoy and Gambatte-Speedrun take it
+when they write the save. VBA-M and mGBA take it when the game last latched the clock, and mGBA advances key 1 from it
+rather than key 0.
 
-The libretro Gambatte core keeps a base time instead: the moment the counters would have read zero. The counters at any
-moment are the time since then. A producer reading such a source takes the counters at the moment it reads them, and
+Gambatte and its libretro core keep a base time instead: the moment the counters would have read zero. The counters at
+any moment are the time since then. A producer reading such a source takes the counters at the moment it reads them, and
 carries that moment as key 2.
 
 Key 2 is on the producer's own scale, as [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/)'s key 2
