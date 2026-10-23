@@ -3,7 +3,7 @@
 ;
 ; An extension key for the Universal Saves Format, defined by these
 ; specifications under a name reserved in the Vendor Names registry because
-; VBA, BGB, Gambatte and mGBA all write this footer the same way.
+; VBA, BGB, mGBA and SameBoy write this footer the same way.
 ;
 ; The root here is the value carried under the key, not a bundle. A bundle
 ; validates against the format's own schema whatever this holds, since an
@@ -11,11 +11,14 @@
 ; ============================================================================
 
 rtc-mbc3 = {
-  0 => registers, ; live:    seconds, minutes, hours, day counter low, day counter high
-  1 => registers, ; latched: the copy the game reads
-  2 => #6.1(int), ; the host clock when the emulator wrote the save
-  3 => 4 / 8,     ; how many bytes that timestamp occupied
+  0 => registers,        ; live:    seconds, minutes, hours, day counter low, day counter high
+  1 => registers / null, ; latched: the copy the game reads
+  2 => #6.1(int),        ; the host clock the emulator advances the counters from
+  ? 3 => 4 / 8,          ; how many bytes that timestamp occupied in the footer
 }
+
+; The latched copy is null where the producer's source does not keep it. The
+; width is absent where the source keeps the clock outside a footer.
 
 ; Day counter bit 8, the halt flag and the carry all live in the high register,
 ; packed where the hardware puts them rather than split into fields here.
