@@ -1,0 +1,21 @@
+; ============================================================================
+; x.1sav.rtc.rtc4513 - the Epson RTC-4513 on a Super Famicom SPC7110 board
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; the chip's registers belong to no one emulator.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+rtc-rtc4513 = {
+  0 => [16*16 nybble], ; registers - index 0 to F, as a read returns them
+  ? 1 => #6.1(int),    ; taken_at  - the producer's clock when it took them
+}
+
+; The flags share registers with the digits, in the bits the chip puts them
+; in: LOST beside the tens of seconds, PM beside the tens of hours, and the
+; control bits in D, E and F. None of them gets a field of its own.
+nybble = 0..15

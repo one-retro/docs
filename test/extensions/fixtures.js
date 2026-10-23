@@ -12,6 +12,13 @@ import { Float, Tag, map } from "../cbor.js";
 const DIR = "src/content/docs/specifications/extensions";
 const pattern = (length, seed = 1) => Buffer.from(Array.from({ length }, (_, i) => (i * 31 + seed) & 0xff));
 
+// The nybble chips carry one register per array element rather than bytes.
+const nybbles = (length, seed = 1) => Array.from({ length }, (_, i) => (i * 7 + seed) & 0xf);
+const only = (length, known) => Array.from({ length }, (_, i) => (known.includes(i) ? (i * 7 + 1) & 0xf : null));
+// A TC8521 alarm block: registers 0, 1, 9 and C read zero, A is 1 for 24-hour
+// mode and B the leap-year counter.
+const alarm = [0, 0, 0, 3, 7, 1, 2, 2, 2, 0, 1, 2, 0];
+
 export const extensions = {
   // Normative: these specifications own the shape, so the negatives here are
   // real conformance tests rather than documentation checks.
@@ -215,6 +222,13 @@ export const extensions = {
       // flag to agree with, which is the point of carrying the raw register.
       documented: map({ 0: pattern(7), 1: 0x40 }),
       "12-hour-mode": map({ 0: pattern(7), 1: 0x00 }),
+      // A WonderSwan cartridge with its alarm register as ares keeps it, here
+      // at the chip's power-on value. The chip reads the register back as all
+      // ones, so only a producer that saw the write holds it.
+      "with-alarm": map({ 0: pattern(7), 1: 0x40, 2: new Tag(1, 1044057600), 3: Buffer.from([0x00, 0x80]) }),
+      // A game that may have set an alarm, from a source that does not keep
+      // it. Absent would say the game never sets one.
+      "alarm-unknown": map({ 0: pattern(7), 1: 0x40, 3: null }),
     },
     invalid: {
       // The S-3511A latches seven BCD bytes: year, month, day, weekday, hour,
@@ -231,6 +245,10 @@ export const extensions = {
       // consumer writes back has to be what it read.
       "components-as-array": map({ 0: [0, 1, 2, 3, 4, 5, 6], 1: 0x40 }),
       "control-negative": map({ 0: pattern(7), 1: -1 }),
+      // The alarm is the two bytes a game writes, not a number assembled from
+      // them in an order a producer chose.
+      "alarm-as-integer": map({ 0: pattern(7), 1: 0x40, 3: 0x8000 }),
+      "alarm-too-long": map({ 0: pattern(7), 1: 0x40, 3: pattern(3) }),
       "not-a-map": "40",
     },
   },
@@ -303,6 +321,230 @@ export const extensions = {
       }),
       "registers-as-bytes": map({ 0: pattern(5), 1: [59, 30, 12, 0xc8, 0x01], 2: new Tag(1, 1044057600), 3: 4 }),
       "not-a-map": "1044057600",
+    },
+  },
+
+  // The Super Famicom's Sharp clock. Thirteen registers of four bits, the
+  // last a weekday the chip works out for itself.
+  "x.1sav.rtc.srtc": {
+    schema: `${DIR}/x.1sav.rtc.srtc.cddl`,
+    valid: {
+      // 1996-12-20 18:30:05, a Friday: digits ones first, the month in binary,
+      // and century 9 for 19xx.
+      documented: map({ 0: [5, 0, 0, 3, 8, 1, 0, 2, 12, 6, 9, 9, 5], 1: new Tag(1, 1044057600) }),
+      // Century 10 is 20xx. The chip spells both centuries, so the year needs
+      // no guess.
+      "twenty-first-century": map({ 0: [5, 0, 0, 3, 8, 1, 0, 2, 12, 6, 2, 10, 4], 1: new Tag(1, 1044057600) }),
+      // MiSTer keeps no anchor, and the key still says what the chip holds.
+      "without-anchor": map({ 0: [5, 0, 0, 3, 8, 1, 0, 2, 12, 6, 9, 9, 5] }),
+    },
+    invalid: {
+      // A game writes twelve digits and reads back thirteen. The weekday is
+      // the chip's, so a set of registers without it is a write, not a read.
+      "twelve-registers": map({ 0: [5, 0, 0, 3, 8, 1, 0, 2, 12, 6, 9, 9] }),
+      "fourteen-registers": map({ 0: [5, 0, 0, 3, 8, 1, 0, 2, 12, 6, 9, 9, 5, 0] }),
+      "register-too-wide": map({ 0: [5, 0, 0, 3, 8, 1, 0, 2, 16, 6, 9, 9, 5] }),
+      // One register per element. Packing two to a byte is how bsnes lays out
+      // its file, and the key belongs to no one emulator's layout.
+      "registers-as-bytes": map({ 0: pattern(13) }),
+      "without-registers": map({ 1: new Tag(1, 1044057600) }),
+      "anchor-untagged": map({ 0: [5, 0, 0, 3, 8, 1, 0, 2, 12, 6, 9, 9, 5], 1: 1044057600 }),
+      "not-a-map": [5, 0, 0, 3, 8, 1, 0, 2, 12, 6, 9, 9, 5],
+    },
+  },
+
+  // The Epson clock beside Tengai Makyou Zero's SPC7110. Sixteen registers,
+  // with the flags in the bits the chip gives them.
+  "x.1sav.rtc.rtc4513": {
+    schema: `${DIR}/x.1sav.rtc.rtc4513.cddl`,
+    valid: {
+      // 1995-12-29 23:59:50 with the calendar on (D = 2), interrupts masked
+      // (E = F) and 24-hour mode (F = 4), which is where MiSTer powers it up.
+      documented: map({ 0: [0, 5, 9, 5, 3, 2, 9, 2, 2, 1, 5, 9, 5, 2, 15, 4], 1: new Tag(1, 1044057600) }),
+      // 11:59 PM in 12-hour mode, after a battery failure: PM is bit 2 of the
+      // hours tens, LOST is bit 3 of the seconds tens, and 24/12 is clear.
+      "lost-and-12-hour": map({ 0: [0, 13, 9, 5, 1, 5, 9, 2, 2, 1, 5, 9, 5, 2, 15, 0] }),
+      // With CAL/HW clear the date registers are RAM, and any nybble fits.
+      "calendar-off": map({ 0: [0, 5, 9, 5, 3, 2, 15, 7, 15, 7, 15, 15, 5, 0, 15, 4] }),
+    },
+    invalid: {
+      "fifteen-registers": map({ 0: [0, 5, 9, 5, 3, 2, 9, 2, 2, 1, 5, 9, 5, 2, 15] }),
+      "seventeen-registers": map({ 0: [0, 5, 9, 5, 3, 2, 9, 2, 2, 1, 5, 9, 5, 2, 15, 4, 0] }),
+      "register-too-wide": map({ 0: [0, 5, 9, 5, 3, 2, 9, 2, 2, 1, 5, 9, 5, 2, 16, 4] }),
+      // Mesen2 and Snes9x write one register per byte and bsnes two. Either
+      // as a byte string would be one emulator's file, not the chip.
+      "registers-as-bytes": map({ 0: pattern(16) }),
+      "without-registers": map({ 1: new Tag(1, 1044057600) }),
+      // 24-hour mode is bit 2 of register F. A field beside it would be a
+      // second spelling of one value.
+      "hour24-as-its-own-key": map({ 0: [0, 5, 9, 5, 3, 2, 9, 2, 2, 1, 5, 9, 5, 2, 15, 4], 2: true }),
+      "anchor-as-float": map({
+        0: [0, 5, 9, 5, 3, 2, 9, 2, 2, 1, 5, 9, 5, 2, 15, 4],
+        1: new Tag(1, new Float(1044057600.5)),
+      }),
+      "not-a-map": [0, 5, 9, 5, 3, 2, 9, 2, 2, 1, 5, 9, 5, 2, 15, 4],
+    },
+  },
+
+  // Doubutsu no Mori's clock, read and written in eight-byte blocks over the
+  // Joybus. Key n is block n.
+  "x.1sav.rtc.joybus": {
+    schema: `${DIR}/x.1sav.rtc.joybus.cddl`,
+    valid: {
+      // 2001-04-14 12:34:56, a Saturday, with both blocks write-protected and
+      // the clock running. The hour carries bit 7, and century 1 is 20xx.
+      documented: map({
+        0: Buffer.from([0x03, 0, 0, 0, 0, 0, 0, 0]),
+        1: Buffer.alloc(8),
+        2: Buffer.from([0x56, 0x34, 0x92, 0x14, 0x06, 0x04, 0x01, 0x01]),
+        3: new Tag(1, 1044057600),
+      }),
+      "without-anchor": map({
+        0: Buffer.from([0x03, 0, 0, 0, 0, 0, 0, 0]),
+        1: Buffer.alloc(8),
+        2: Buffer.from([0x56, 0x34, 0x92, 0x14, 0x06, 0x04, 0x01, 0x01]),
+      }),
+    },
+    invalid: {
+      // Every block is eight bytes on the bus, whatever a game uses of it.
+      "time-block-short": map({
+        0: Buffer.from([0x03, 0, 0, 0, 0, 0, 0, 0]),
+        1: Buffer.alloc(8),
+        2: Buffer.from([0x56, 0x34, 0x92, 0x14, 0x06, 0x04, 0x01]),
+      }),
+      // The game ignores block 1, and the chip still holds it.
+      "without-ram-block": map({
+        0: Buffer.from([0x03, 0, 0, 0, 0, 0, 0, 0]),
+        2: Buffer.from([0x56, 0x34, 0x92, 0x14, 0x06, 0x04, 0x01, 0x01]),
+      }),
+      // Block 3 reads zero, so there is nothing to carry.
+      "block-3-carried": map({
+        0: Buffer.from([0x03, 0, 0, 0, 0, 0, 0, 0]),
+        1: Buffer.alloc(8),
+        2: Buffer.from([0x56, 0x34, 0x92, 0x14, 0x06, 0x04, 0x01, 0x01]),
+        4: Buffer.alloc(8),
+      }),
+      "time-as-array": map({
+        0: Buffer.from([0x03, 0, 0, 0, 0, 0, 0, 0]),
+        1: Buffer.alloc(8),
+        2: [0x56, 0x34, 0x92, 0x14, 0x06, 0x04, 0x01, 0x01],
+      }),
+      "anchor-untagged": map({
+        0: Buffer.from([0x03, 0, 0, 0, 0, 0, 0, 0]),
+        1: Buffer.alloc(8),
+        2: Buffer.from([0x56, 0x34, 0x92, 0x14, 0x06, 0x04, 0x01, 0x01]),
+        3: 1044057600,
+      }),
+      "not-a-map": pattern(24),
+    },
+  },
+
+  // The HuC-3's clock controller, as the 256-nybble window a game sees.
+  // Emulators keep anything from the counters to all of it, and an address a
+  // producer's source does not keep is null.
+  "x.1sav.rtc.huc3": {
+    schema: `${DIR}/x.1sav.rtc.huc3.cddl`,
+    valid: {
+      // Every address, as mGBA, gambatte and MAME keep it.
+      full: map({ 0: nybbles(256), 1: new Tag(1, 1044057600) }),
+      // As SameBoy keeps it: the minute and day counters and the event time.
+      "counters-and-event": map({
+        0: only(256, [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d]),
+      }),
+      // The key can say what little a producer has. It is `x.1sav.rtc` that
+      // has to be left out when the counters are missing.
+      "counters-unknown": map({ 0: only(256, [0x26, 0x27]) }),
+    },
+    invalid: {
+      "window-short": map({ 0: nybbles(255) }),
+      "window-long": map({ 0: nybbles(257) }),
+      "nybble-too-wide": map({ 0: [16, ...nybbles(255)] }),
+      // Two nybbles to a byte is mGBA's footer, not the window.
+      "window-as-bytes": map({ 0: pattern(128) }),
+      "without-window": map({ 1: new Tag(1, 1044057600) }),
+      "anchor-untagged": map({ 0: nybbles(256), 1: 1044057600 }),
+      "not-a-map": nybbles(256),
+    },
+  },
+
+  // The TAMA5's TC8521: four blocks of thirteen registers and the mode
+  // register, with null where a producer's source does not keep one.
+  "x.1sav.rtc.tc8521": {
+    schema: `${DIR}/x.1sav.rtc.tc8521.cddl`,
+    valid: {
+      // Every block and the mode, as mGBA keeps them. Mode 8 is the clock
+      // running with block 0 selected.
+      full: map({ 0: [nybbles(13, 1), alarm, nybbles(13, 3), nybbles(13, 4)], 1: 8, 2: new Tag(1, 1044057600) }),
+      // As ares keeps it: the time without its weekday, the 24-hour select and
+      // the leap-year counter, and nothing of the alarm, the RAM or the mode.
+      "time-and-settings": map({
+        0: [
+          [0, 3, 5, 4, 7, 1, null, 2, 2, 0, 1, 6, 9],
+          [0, 0, null, null, null, null, null, null, null, 0, 1, 1, 0],
+          Array(13).fill(null),
+          Array(13).fill(null),
+        ],
+        1: null,
+        2: new Tag(1, 1044057600),
+      }),
+    },
+    invalid: {
+      "three-blocks": map({ 0: [nybbles(13, 1), alarm, nybbles(13, 3)], 1: 8 }),
+      // D, E and F are common to every block. The mode is key 1, and the test
+      // and reset registers are write-only, so a block stops at C.
+      "block-with-common-registers": map({
+        0: [nybbles(16, 1), alarm, nybbles(13, 3), nybbles(13, 4)],
+        1: 8,
+      }),
+      "register-too-wide": map({ 0: [[16, ...nybbles(12, 1)], alarm, nybbles(13, 3), nybbles(13, 4)], 1: 8 }),
+      // The chip always has a mode register, so a producer that did not get it
+      // says so with null rather than by leaving the key out.
+      "without-mode": map({ 0: [nybbles(13, 1), alarm, nybbles(13, 3), nybbles(13, 4)] }),
+      "mode-too-wide": map({ 0: [nybbles(13, 1), alarm, nybbles(13, 3), nybbles(13, 4)], 1: 16 }),
+      "without-blocks": map({ 1: 8 }),
+      "block-null": map({ 0: [nybbles(13, 1), null, nybbles(13, 3), nybbles(13, 4)], 1: 8 }),
+      "not-a-map": [nybbles(13, 1), alarm, nybbles(13, 3), nybbles(13, 4)],
+    },
+  },
+
+  // The TPP1 homebrew mapper's clock: week, weekday and hour, minutes,
+  // seconds, live and latched, and the clock bits of MR4.
+  "x.1sav.rtc.tpp1": {
+    schema: `${DIR}/x.1sav.rtc.tpp1.cddl`,
+    valid: {
+      // Week 2, Wednesday at 14:30:15: RTCDH is weekday 3 in bits 5 to 7 and
+      // hour 14 below it. MR4 4 is the clock running.
+      documented: map({
+        0: Buffer.from([2, (3 << 5) | 14, 30, 15]),
+        1: Buffer.from([2, (3 << 5) | 14, 30, 15]),
+        2: 4,
+        3: new Tag(1, 1044057600),
+      }),
+      // SameBoy's save keeps the running registers and not the latched ones.
+      "latched-unknown": map({
+        0: Buffer.from([2, (3 << 5) | 14, 30, 15]),
+        1: null,
+        2: 4,
+        3: new Tag(1, 1044057600),
+      }),
+      // Stopped, after the week counter overflowed.
+      "stopped-and-overflowed": map({ 0: Buffer.from([0, 0, 0, 0]), 1: Buffer.from([0, 0, 0, 0]), 2: 8 }),
+    },
+    invalid: {
+      // The rumble speed shares MR4 and is not the clock's.
+      "rumble-bits-set": map({ 0: Buffer.from([2, (3 << 5) | 14, 30, 15]), 1: null, 2: 5 }),
+      "registers-too-long": map({ 0: Buffer.from([2, (3 << 5) | 14, 30, 15, 0]), 1: null, 2: 4 }),
+      "registers-as-array": map({ 0: [2, (3 << 5) | 14, 30, 15], 1: null, 2: 4 }),
+      // The chip always has a latched copy, so a producer that did not get it
+      // says so with null rather than by leaving the key out.
+      "without-latched": map({ 0: Buffer.from([2, (3 << 5) | 14, 30, 15]), 2: 4 }),
+      // Whether the clock runs is not derivable from the registers.
+      "without-status": map({ 0: Buffer.from([2, (3 << 5) | 14, 30, 15]), 1: null }),
+      // The running registers are what the reading comes from, so they are
+      // never unknown.
+      "live-null": map({ 0: null, 1: Buffer.from([2, (3 << 5) | 14, 30, 15]), 2: 4 }),
+      "anchor-untagged": map({ 0: Buffer.from([2, (3 << 5) | 14, 30, 15]), 1: null, 2: 4, 3: 1044057600 }),
+      "not-a-map": Buffer.from([2, (3 << 5) | 14, 30, 15]),
     },
   },
 

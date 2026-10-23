@@ -1,0 +1,20 @@
+; ============================================================================
+; x.1sav.rtc.huc3 - the clock in a Hudson HuC-3 Game Boy cartridge
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; the chip's memory belongs to no one emulator.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+rtc-huc3 = {
+  0 => [256*256 (nybble / null)], ; memory   - address 0x00 to 0xFF
+  ? 1 => #6.1(int),               ; taken_at - the producer's clock when it took it
+}
+
+; Null where the producer's source does not keep that address. Emulators keep
+; anything from the two counters to all 256 nybbles.
+nybble = 0..15

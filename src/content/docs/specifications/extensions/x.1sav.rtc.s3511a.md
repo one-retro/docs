@@ -1,15 +1,17 @@
 ---
 title: x.1sav.rtc.s3511a
-description: The latched state of the Seiko S-3511A clock in a GBA cartridge, for byte-exact round-tripping.
+description:
+  The latched state of the Seiko S-3511A clock in a GBA or WonderSwan cartridge, for byte-exact round-tripping.
 slug: specifications/extensions/x.1sav.rtc.s3511a
 ---
 
 **Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's bundle header
 · **Status:** normative schema, optional to carry
 
-The GBA's clock is a Seiko S-3511A on the cartridge. [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) carries the
-instant a consumer needs to display it. This key carries what the chip itself holds and the moment a producer took it.
-That is what a producer handing the cartridge back byte for byte needs.
+The GBA's clock is a Seiko S-3511A on the cartridge. A WonderSwan cartridge with a clock carries the same chip, behind
+its Bandai 2003 mapper. [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) carries the instant a consumer needs to
+display it. This key carries what the chip itself holds and the moment a producer took it. That is what a producer
+handing the cartridge back byte for byte needs.
 
 Every emulator that keeps this clock keeps the same values, so the representation belongs to no one of them. The name
 sits in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree) for the reason
@@ -34,6 +36,20 @@ keeps one **SHOULD** carry it. Without it, the file cannot be rebuilt byte for b
 Key 2 is on the producer's scale, which need not be UTC. MiSTer hands nearly all of its cores local standard time
 counted as though it were UTC, so its GBA core, saving in Pacific time, writes an anchor eight hours behind the instant.
 Key 2 is never the reading, and a consumer **MUST NOT** treat it as one or as the moment the save was written.
+
+Key 3 is the alarm register: two bytes, as a game last wrote them, holding an alarm hour and minute or an interrupt
+frequency. The chip reads it back as all ones, so only a producer that saw the write holds it. ares keeps it on both
+systems.
+
+Key 3 is absent when the game never sets the alarm, as Pokemon Ruby, Sapphire and Emerald never do. It is null when the
+game may have set it and the producer's source does not keep it. A producer that does not have the alarm **SHOULD**
+carry null, unless it knows the game never sets one.
+
+## Filling a null
+
+A consumer rebuilding the chip without key 3, or with key 3 null, **SHOULD** use 0x00 for byte 0 and 0x80 for byte 1.
+That is the alarm the chip holds at power-on. A game cannot read the alarm back, so it sees the difference only in when
+the chip interrupts it.
 
 ## The reading is the components
 
@@ -70,8 +86,9 @@ carrying this key and `x.1sav.rtc` puts both in the same place, since they descr
 
 ## When to set it
 
-Only for a GBA cartridge carrying this chip. Pokemon Ruby, Sapphire and Emerald use it, as do the Boktai games. A Game
-Boy cartridge keeps a different clock and takes [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/).
+Only for a cartridge carrying this chip. On the GBA, Pokemon Ruby, Sapphire and Emerald use it, as do the Boktai games.
+On the WonderSwan, Dokodemo Hamster 3 and Inuyasha: Kagome no Sengoku Nikki do. A Game Boy cartridge keeps a different
+clock, under one of the other keys [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#chip-keys) lists.
 
 This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
 [scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a

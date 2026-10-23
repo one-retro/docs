@@ -11,10 +11,15 @@
 ; ============================================================================
 
 rtc-s3511a = {
-  0 => bstr .size 7, ; components - latched BCD: year, month, day, weekday, hour, minute, second
-  1 => uint,         ; control    - the control register as read
-  ? 2 => #6.1(int),  ; taken_at   - the producer's clock when it took the components
+  0 => bstr .size 7,          ; components - latched BCD: year, month, day, weekday, hour, minute, second
+  1 => uint,                  ; control    - the control register as read
+  ? 2 => #6.1(int),           ; taken_at   - the producer's clock when it took the components
+  ? 3 => bstr .size 2 / null, ; alarm      - the alarm register, as last written
 }
+
+; The alarm is absent when the game never sets it, and null when the game may
+; have and the producer's source does not keep it. The chip reads the register
+; back as all ones, so only a producer that saw the write holds it.
 
 ; 24-hour mode is bit 6 of the control register and does not get a field of its
 ; own. Two spellings of one value let a bundle contradict itself, which the

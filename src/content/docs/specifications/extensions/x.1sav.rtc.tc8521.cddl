@@ -1,0 +1,24 @@
+; ============================================================================
+; x.1sav.rtc.tc8521 - the Toshiba TC8521 in a TAMA5 Game Boy cartridge
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; the chip's registers belong to no one emulator.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+rtc-tc8521 = {
+  0 => [4*4 block],   ; blocks   - 0 time, 1 alarm, 2 and 3 RAM
+  1 => nybble / null, ; mode     - register D: block select, alarm and timer enable
+  ? 2 => #6.1(int),   ; taken_at - the producer's clock when it took them
+}
+
+; Registers 0 to C of one block. A register here or in key 1 is null where
+; the producer's source does not keep it, since emulators keep anything from
+; the time alone to every block.
+block = [13*13 (nybble / null)]
+
+nybble = 0..15

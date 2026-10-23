@@ -1,0 +1,21 @@
+; ============================================================================
+; x.1sav.rtc.joybus - the clock an N64 cartridge answers on the Joybus
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; the chip's blocks belong to no one emulator.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+rtc-joybus = {
+  0 => bstr .size 8, ; control  - block 0: write protection and the stop bits
+  1 => bstr .size 8, ; ram      - block 1: battery-backed, free for the game
+  2 => bstr .size 8, ; time     - block 2: packed BCD, seconds to century
+  ? 3 => #6.1(int),  ; taken_at - the producer's clock when it took them
+}
+
+; Key n is block n, eight bytes each, as a read of that block returns them.
+; Block 3 always reads zero and is not carried.

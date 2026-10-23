@@ -1,0 +1,23 @@
+; ============================================================================
+; x.1sav.rtc.tpp1 - the clock of the TPP1 Game Boy mapper
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; the mapper's specification defines no save format of its own.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+rtc-tpp1 = {
+  0 => bstr .size 4,        ; live     - RTCW, RTCDH, RTCM, RTCS
+  1 => bstr .size 4 / null, ; latched  - the copy the game reads, in the same order
+  2 => 0 / 4 / 8 / 12,      ; status   - MR4 with the rumble bits clear
+  ? 3 => #6.1(int),         ; taken_at - the producer's clock when it took them
+}
+
+; The latched copy is null where the producer's source does not keep it.
+
+; MR4 bit 2 is set while the clock runs and bit 3 once the week counter has
+; overflowed. Bits 0 and 1 are the rumble speed, which is not the clock's.

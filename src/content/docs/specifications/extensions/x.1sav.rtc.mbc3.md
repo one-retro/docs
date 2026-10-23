@@ -58,7 +58,8 @@ carrying this key and `x.1sav.rtc` puts both in the same place, since they descr
 
 ## When to set it
 
-Only when the cartridge carries the clock, which on the Game Boy means MBC3 and nothing else.
+Only when the cartridge's MBC3 or MBC30 carries the clock. Other Game Boy clocks take the other keys
+[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#chip-keys) lists.
 
 This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
 [scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a
