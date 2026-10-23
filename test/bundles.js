@@ -519,7 +519,7 @@ export const valid = {
 };
 
 export const invalid = {
-  // This schema describes v0.4, so an integer key it does not list fails
+  // This schema describes v0.5, so an integer key it does not list fails
   // validation. A shipped decoder is deliberately looser: it ignores and
   // round-trips these, because the only thing they can be is a later minor
   // version's field. That difference is a decoder rule the schema cannot state.

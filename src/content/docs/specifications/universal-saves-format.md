@@ -4,11 +4,11 @@ description: A portable, self-describing CBOR container for retro console save f
 sidebar:
   label: Overview
   badge:
-    text: v0.4
+    text: v0.5
     variant: caution
 ---
 
-This is version 0.4 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
+This is version 0.5 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
 in place, under the same bundle tag.
 
 ## Changelog
@@ -18,6 +18,9 @@ moved. A version covers the format, the [common types](/specifications/common-ty
 [extension keys](/specifications/extensions/) these specifications own; a key belonging to a producer changes on that
 producer's schedule instead.
 
+- **0.5**, 2026-10-23. Breaking: an [`x.1sav.rtc.huc3`](/specifications/extensions/x.1sav.rtc.huc3/) value carries the
+  seconds its clock has counted into the minute, in required key 2. It is null where a producer's source does not keep
+  them. The HuC-3's day counter is four nybbles, so its reading takes address 0x16 too.
 - **0.4**, 2026-10-16. Breaking: a [`source`](/specifications/bundle/#source-map) names the core apart from the app that
   ran it. A core's registry slug moves from `app` to the new `core` key, beside `core_version`. `app` takes its slug
   from the new [Apps registry](/registries/apps/) instead. So an `app` of `"mgba"` written under 0.3 meant the mGBA
@@ -169,7 +172,7 @@ any operation that depends on knowing: walking the parts, restoring a save, rebu
 bundle is not the same as rejecting it, and only the second loses the bytes.
 
 The schema is the narrower of the two on purpose. It pins the four shapes this version defines, so validating against it
-says "this is a conforming 0.4 bundle" rather than "some decoder can read this", the same asymmetry
+says "this is a conforming 0.5 bundle" rather than "some decoder can read this", the same asymmetry
 [Additive integer keys](#additive-integer-keys) describes.
 
 A bundle names its shape and a decoder reads it; what the parts then mean is that shape's document, and

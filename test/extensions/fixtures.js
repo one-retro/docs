@@ -459,24 +459,38 @@ export const extensions = {
   "x.1sav.rtc.huc3": {
     schema: `${DIR}/x.1sav.rtc.huc3.cddl`,
     valid: {
-      // Every address, as mGBA, gambatte and MAME keep it.
-      full: map({ 0: nybbles(256), 1: new Tag(1, 1044057600) }),
-      // As SameBoy keeps it: the minute and day counters and the event time.
+      // Every address and the seconds, as MAME and Gambatte-Speedrun keep them.
+      full: map({ 0: nybbles(256), 1: new Tag(1, 1044057600), 2: 37 }),
+      // As SameBoy keeps it: the minute and day counters, the event time, and
+      // an anchor whose seconds past the minute are the clock's.
       "counters-and-event": map({
-        0: only(256, [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d]),
+        0: only(256, [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e]),
+        1: new Tag(1, 1044057642),
+        2: 42,
+      }),
+      // As MiSTer keeps it: the two counters, 16 bits of days, and the seconds.
+      "counters-and-seconds": map({
+        0: only(256, [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16]),
+        1: new Tag(1, 1044057600),
+        2: 59,
       }),
       // The key can say what little a producer has. It is `x.1sav.rtc` that
       // has to be left out when the counters are missing.
-      "counters-unknown": map({ 0: only(256, [0x26, 0x27]) }),
+      "counters-unknown": map({ 0: only(256, [0x26, 0x27]), 2: null }),
     },
     invalid: {
-      "window-short": map({ 0: nybbles(255) }),
-      "window-long": map({ 0: nybbles(257) }),
-      "nybble-too-wide": map({ 0: [16, ...nybbles(255)] }),
+      "window-short": map({ 0: nybbles(255), 2: 0 }),
+      "window-long": map({ 0: nybbles(257), 2: 0 }),
+      "nybble-too-wide": map({ 0: [16, ...nybbles(255)], 2: 0 }),
       // Two nybbles to a byte is mGBA's footer, not the window.
-      "window-as-bytes": map({ 0: pattern(128) }),
-      "without-window": map({ 1: new Tag(1, 1044057600) }),
-      "anchor-untagged": map({ 0: nybbles(256), 1: 1044057600 }),
+      "window-as-bytes": map({ 0: pattern(128), 2: 0 }),
+      "without-window": map({ 1: new Tag(1, 1044057600), 2: 0 }),
+      "anchor-untagged": map({ 0: nybbles(256), 1: 1044057600, 2: 0 }),
+      // The clock always counts seconds, so a producer that did not get them
+      // says so with null rather than by leaving the key out.
+      "without-seconds": map({ 0: nybbles(256), 1: new Tag(1, 1044057600) }),
+      // At 60 the minute counter has already moved on.
+      "seconds-past-the-minute": map({ 0: nybbles(256), 1: new Tag(1, 1044057600), 2: 60 }),
       "not-a-map": nybbles(256),
     },
   },
