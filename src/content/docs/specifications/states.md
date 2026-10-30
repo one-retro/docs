@@ -91,8 +91,9 @@ A state's parts are the state itself and what the emulator kept with it:
 - **A screenshot.** At most one, of kind `screenshot`: what the screen showed when the state was taken. The rules for
   the image are on [Screenshots](/specifications/screenshots/#the-image).
 - **An in-game save.** Where the emulator keeps the in-game save beside the core's data, as mGBA does, it is an ordinary
-  save part. It is the in-game save as it was when the state was taken. A consumer can lift it into a save bundle of its
-  own.
+  save part. It is the in-game save as it was when the state was taken, and holds the bytes the console wrote, as on a
+  save. A clock footer the emulator appended to it goes into the clock's [extension keys](#extension-keys) instead. A
+  consumer can lift it into a save bundle of its own.
 - **Anything else** the emulator's file holds is an `aux` part, named by `path` for where it sat. That is whatever
   neither the header nor an [extension key](#extension-keys) has a place for, such as RetroArch's achievement block.
 
@@ -113,11 +114,11 @@ what the header has a field for into the header, and what an extension key cover
 remaining bytes as parts. A consumer writing the state back for that emulator rebuilds the file from the bundle. The
 file need not come back byte for byte, as long as the emulator loads it.
 
-| Emulator    | Its file holds                                                                                                                     | In the bundle                                                                                      |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| RetroArch   | A `RASTATE` header around the core's memory block and an achievement block, sometimes compressed, and a PNG beside it              | The memory block is the state part, the achievement block an `aux` part and the PNG the screenshot |
-| mGBA        | The core's data, a screenshot, the in-game save, the cheats, the time it was taken and what took it, in a PNG or a file of its own | A state part carrying the cheats, a screenshot, an in-game save part, `taken_at` and `source`      |
-| DuckStation | A header holding a version, the game's title and serial, the disc's path and a screenshot, then the data, often compressed         | `format_version`, `game`, a screenshot, and the state part uncompressed                            |
+| Emulator    | Its file holds                                                                                                                     | In the bundle                                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| RetroArch   | A `RASTATE` header around the core's memory block and an achievement block, sometimes compressed, and a PNG beside it              | The memory block is the state part, the achievement block an `aux` part and the PNG the screenshot          |
+| mGBA        | The core's data, a screenshot, the in-game save, the cheats, the time it was taken and what took it, in a PNG or a file of its own | A state part carrying the cheats, a screenshot, an in-game save part and its clock, `taken_at` and `source` |
+| DuckStation | A header holding a version, the game's title and serial, the disc's path and a screenshot, then the data, often compressed         | `format_version`, `game`, a screenshot, and the state part uncompressed                                     |
 
 RetroArch's slot number is in its file's name, and `.state.auto` is the one with none. Those become the state part's
 `slot` and an `origin` of `auto`.
@@ -127,8 +128,8 @@ RetroArch's slot number is in its file's name, and `.state.auto` is the one with
 A state takes these extension keys:
 
 - [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/), and the chip key it lists for the cartridge's clock, on the
-  header as on a save. They are a reading of the clock inside the core's data, as it was when the state was taken; see
-  [On a state](/specifications/extensions/x.1sav.rtc/#on-a-state).
+  header as on a save. They are a reading of the cartridge's clock, taken from the core's data or from a footer on the
+  in-game save; see [On a state](/specifications/extensions/x.1sav.rtc/#on-a-state).
 - [`x.1sav.cheats.mgba`](/specifications/extensions/x.1sav.cheats.mgba/), on the state part. It is the cheat list mGBA
   keeps in its own states, and can turn back on when it loads one.
 

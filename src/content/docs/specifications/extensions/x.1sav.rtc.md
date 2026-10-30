@@ -22,7 +22,8 @@ and is omitted when a producer has nothing useful to say about it.
 ## The reading
 
 `reading` is the game's clock when the bundle was written, put on the Unix scale. On a [state](/specifications/states/),
-it is the clock when the state was taken. How depends on the kind of clock:
+it is the clock when the registers it comes from were taken, which can be before the state was; see
+[On a state](#on-a-state). How depends on the kind of clock:
 
 - A **counting clock** holds elapsed time. The reading is that many days, hours, minutes and seconds after
   1970-01-01T00:00:00Z. An [MBC3](/specifications/extensions/x.1sav.rtc.mbc3/) clock that has run for two minutes and
@@ -92,8 +93,15 @@ A state's clock sits inside the core's data, which is what the core loads. This 
 that clock. They let a consumer that cannot parse the core's data show the time. An in-game save lifted out of the state
 takes them with it. They never change what the state loads.
 
-On a state, a chip key's anchor is the host clock at the moment the emulator took the state. A producer that cannot read
-the clock out of the core's data omits both keys.
+A producer takes the registers from the core's data, or from a clock footer on the in-game save the emulator kept beside
+it. mGBA keeps a Game Boy cartridge's save that way, with the footer its save file carries. The footer becomes this key
+and the chip's key, as it does on a save, and the save part holds the save memory alone.
+
+A chip key's anchor is the host clock when the registers were taken. From the core's data, that is when the emulator
+took the state. From a footer, it is when the emulator last wrote the footer, which can be before the state was taken.
+The anchor and [`taken_at`](/specifications/bundle/#0-header-map) can then differ.
+
+A producer that can read the registers from neither omits both keys.
 
 ## When to set it
 
