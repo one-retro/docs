@@ -135,6 +135,27 @@ const SONIC = map({ 4: "Sonic Adventure", 5: "dreamcast" });
 const METAL_SLUG = map({ 3: "NGH-201", 4: "Metal Slug" });
 const FZERO = map({ 3: "GFZE8P", 4: "F-Zero GX" });
 
+// Save states and screenshots. A state is one core's snapshot of a running
+// game, so its header names that core and the ROM it was taken against, and its
+// parts are the core's own data, the screenshot, and whatever else the
+// emulator's container kept beside them.
+const EMERALD = map({ 1: ROM_HASHES, 3: "AGB-BPEE-USA", 4: "Pokemon Emerald" });
+const TAKEN_AT = new Tag(1, 1793000000);
+const PNG = pattern(1024, 59);
+const MGBA = map({ 4: "mgba" });
+
+const statePart = (options = {}) => part({ kind: "state", payload: pattern(4096, 61), ...options });
+const screenshot = (id, payload = PNG, type = "image/png") =>
+  part({ id, kind: "screenshot", payload, extra: new Map([[6, type]]) });
+
+const emeraldState = bundle(map({ 0: "state", 1: "gba", 2: EMERALD, 3: map({ 2: "mgba", 4: "mgba" }), 7: TAKEN_AT }), [
+  statePart({ id: 0, slot: 1 }),
+  screenshot(1),
+]);
+const emeraldScreenshot = bundle(map({ 0: "screenshot", 1: "gba", 2: EMERALD, 3: map({ 2: "mgba", 4: "mgba" }) }), [
+  screenshot(0, pattern(1024, 103)),
+]);
+
 export const valid = {
   // An empty header and one bare save. The floor of what a bundle is.
   minimal: bundle(map({ 0: "save" }), [part()]),
@@ -199,7 +220,7 @@ export const valid = {
   ]),
 
   // One console's storage read whole. A Sega CD carries internal backup RAM and
-  // a Backup RAM Cart at once; neither is one game's state, and the pair is not
+  // a Backup RAM Cart at once; neither is one game's save, and the pair is not
   // a collection, because both came off one system.
   device: bundle(map({ 0: "device", 1: "segacd" }), [
     nested(bundle(map({ 0: "save", 1: "segacd" }), [part({ payload: pattern(8192, 11) })]), {
@@ -232,7 +253,7 @@ export const valid = {
   // consumer cannot work out from the payload.
   binding: bundle(map({ 0: "save", 1: "wii" }), [part({ payload: pattern(512), binding: "device" })]),
 
-  // One game whose state spans a cartridge and a memory card, which is neither
+  // One game whose save spans a cartridge and a memory card, which is neither
   // a card (the bundle is not one) nor a collection (it has a system and a
   // game). Mixing a plain save part with a `bundle` part is what covers it.
   "cartridge-and-pak": bundle(map({ 0: "device", 1: "n64" }), [
@@ -253,7 +274,7 @@ export const valid = {
 
   // Every identification hint at once, plus a populated metadata slot. A real
   // producer emits the hashes it has already computed rather than all four;
-  // this is the upper bound, and the only fixture carrying a clock reading.
+  // this is the upper bound, and the only save fixture with a clock reading.
   "fully-identified": bundle(
     map({
       0: "save",
@@ -516,10 +537,127 @@ export const valid = {
     map({ 0: "save", 1: "gba", 2: map({ 3: "AGB-AXVE-USA", 4: "Pokemon Ruby", "x.example.revision": 1 }) }),
     [part()],
   ),
+
+  // A save state at its smallest: the core it loads into, and the core's own
+  // data. A state with no game, no time and no screenshot still loads where it
+  // was taken, so nothing else is required.
+  "state-minimal": bundle(map({ 0: "state", 3: MGBA }), [statePart()]),
+
+  // A RetroArch state in slot 3, with the screenshot RetroArch keeps beside it.
+  // The state part is the RASTATE file's memory block, unwrapped and
+  // decompressed. The achievement block is RetroArch's own and opaque, so it
+  // rides as an `aux` part named for the block it came from.
+  "state-retroarch": bundle(
+    map({
+      0: "state",
+      1: "gba",
+      2: EMERALD,
+      3: map({ 2: "retroarch", 3: "1.21.0", 4: "mgba", 5: "0.10.5" }),
+      7: TAKEN_AT,
+      8: map({ 4: map({ mgba_gb_model: "Autodetect", mgba_use_bios: "ON" }) }),
+    }),
+    [
+      statePart({ id: 0, slot: 3 }),
+      screenshot(1),
+      part({ id: 2, kind: "aux", path: "ACHV", payload: pattern(96, 67) }),
+    ],
+  ),
+
+  // mGBA's own state file is a PNG: its image is the screenshot, and its chunks
+  // carry the core's data and the in-game save beside it. Split, that is a state
+  // part, a screenshot, and an ordinary save part, which a consumer can lift
+  // into a save bundle of its own. The cartridge's clock stays inside the
+  // core's data, and the two clock keys are a reading of it, which that lifted
+  // save takes with it. The player's cheats ride on the state part, and stay
+  // behind when the save is lifted.
+  "state-with-in-game-save": bundle(
+    map({
+      0: "state",
+      1: "gba",
+      2: EMERALD,
+      3: map({ 2: "mgba", 3: "0.10.5", 4: "mgba", 5: "0.10.5" }),
+      7: TAKEN_AT,
+      "x.1sav.rtc": map({ 0: new Tag(1, 1793284200) }),
+      "x.1sav.rtc.s3511a": map({ 0: Buffer.from([0x26, 0x10, 0x29, 0x04, 0x14, 0x30, 0x00]), 1: 0x40, 2: TAKEN_AT }),
+    }),
+    [
+      statePart({
+        id: 0,
+        slot: 1,
+        extra: new Map([
+          ["x.1sav.cheats.mgba", [map({ 0: "Infinite money", 2: ["GSAv1"], 3: ["D8BAE4D9 4864DCE5"] })]],
+        ]),
+      }),
+      screenshot(1),
+      part({ id: 2, payload: pattern(131072, 71) }),
+    ],
+  ),
+
+  // The state an emulator writes on its own to resume from, as RetroArch's
+  // `.state.auto` is. Neither it nor its screenshot has a slot, which is fine:
+  // no two parts of one kind share an address, and these are two kinds.
+  "state-auto": bundle(
+    map({ 0: "state", 1: "snes", 3: map({ 2: "retroarch", 4: "snes9x" }), 7: TAKEN_AT, 9: "auto" }),
+    [statePart(), screenshot(1)],
+  ),
+
+  // A state the emulator kept so a player can take back a save: what slot 2
+  // held before it was overwritten. Without a slot, an undo state is the game
+  // just before a load.
+  "state-undo": bundle(map({ 0: "state", 1: "ps2", 3: map({ 2: "pcsx2", 4: "pcsx2" }), 9: "undo" }), [
+    statePart({ slot: 2 }),
+  ]),
+
+  // Everything a state can record about what it was taken with: the host's
+  // byte order and word size, the BIOS the machine booted, the machine's
+  // language setting and the core's options.
+  "state-taken-with": bundle(
+    map({
+      0: "state",
+      1: "dreamcast",
+      2: SONIC,
+      3: map({ 2: "retroarch", 4: "flycast" }),
+      7: TAKEN_AT,
+      8: map({
+        0: "little",
+        1: 64,
+        2: map({ "dc/dc_boot.bin": [new Tag(18542, pattern(20, 73))] }),
+        3: "ja",
+        4: map({ reicast_broadcast: "NTSC", reicast_region: "Japan" }),
+      }),
+    }),
+    [statePart()],
+  ),
+
+  // A DuckStation state lifted out of its file. The version DuckStation stamps
+  // in its own header goes in `format_version`, since the core's data no longer
+  // carries it. The producer could not tell which BIOS the machine booted,
+  // which null says; leaving the key out would say there was none.
+  "state-duckstation": bundle(
+    map({ 0: "state", 1: "psx", 3: map({ 2: "duckstation", 4: "duckstation" }), 8: map({ 2: null, 5: 72 }) }),
+    [statePart(), screenshot(1, pattern(2048, 79))],
+  ),
+
+  // A screenshot on its own, linked to its game and the emulator that took it.
+  // PPSSPP writes JPEG, and it stays JPEG: encoding it again could not get back
+  // what the first encode dropped.
+  screenshot: bundle(
+    map({ 0: "screenshot", 1: "psp", 2: map({ 4: "Lumines" }), 3: map({ 2: "ppsspp", 4: "ppsspp" }), 7: TAKEN_AT }),
+    [screenshot(0, pattern(4096, 83), "image/jpeg")],
+  ),
+
+  // One game's in-game save beside a state and a screenshot of it. Each stays a
+  // bundle of its own, so the in-game save's content hash does not move every
+  // time a state is taken, and a collection is what puts them in one file.
+  "collection-of-one-game": bundle(map({ 0: "collection" }), [
+    nested(oneFileSave("gba", EMERALD, pattern(131072, 71)), { id: 0, path: "Pokemon Emerald.sav", game: EMERALD }),
+    nested(emeraldState, { id: 1, path: "Pokemon Emerald.ss1", game: EMERALD }),
+    nested(emeraldScreenshot, { id: 2, path: "Pokemon Emerald-0.png", game: EMERALD }),
+  ]),
 };
 
 export const invalid = {
-  // This schema describes v0.5, so an integer key it does not list fails
+  // This schema describes v0.6, so an integer key it does not list fails
   // validation. A shipped decoder is deliberately looser: it ignores and
   // round-trips these, because the only thing they can be is a later minor
   // version's field. That difference is a decoder rule the schema cannot state.
@@ -562,11 +700,12 @@ export const invalid = {
   // its own empty form, and a bundle holding no part carries no save.
   "empty-parts": bundle(map({ 0: "save" }), []),
 
-  // A default written out, which would give one part several encodings. The
-  // schema catches these two; a spelled-out `role: "primary"` it cannot, since
-  // `primary` is a well-formed slug, so that one is pinned in layout.test.js.
+  // A default written out, which would give one part several encodings. Each
+  // of the four is written by leaving its key out.
   "path-spelled-empty": bundle(map({ 0: "save" }), [part({ extra: new Map([[3, ""]]) })]),
   "encoding-spelled-none": bundle(map({ 0: "save" }), [part({ extra: new Map([[7, "none"]]) })]),
+  "kind-spelled-save": bundle(map({ 0: "save" }), [part({ kind: "save" })]),
+  "role-spelled-primary": bundle(map({ 0: "save" }), [part({ role: "primary" })]),
 
   // The pre-coalescing spellings. `memcard_1` and `card_image` were valid when
   // the format ran two slug grammars; one grammar means one spelling, so they
@@ -651,7 +790,57 @@ export const invalid = {
   // Tag 1 admits a float and this format does not. Left open, one instant would
   // have two conforming encodings and the content hash would stop being a
   // function of what the bundle says.
-  "created-at-as-float": bundle(map({ 0: "save", 6: new Tag(1, new Float(1712345678.5)) }), [part()]),
+  "bundled-at-as-float": bundle(map({ 0: "save", 6: new Tag(1, new Float(1712345678.5)) }), [part()]),
+
+  // A state only loads into the core that took it, so its header has to say
+  // which: a core, or the app where nothing runs one.
+  "state-without-source": bundle(map({ 0: "state", 1: "gba" }), [statePart()]),
+  "state-source-without-core-or-app": bundle(map({ 0: "state", 1: "gba", 3: map({ 0: "emulator", 5: "0.10.5" }) }), [
+    statePart(),
+  ]),
+
+  // A state part and a screenshot part sit only in the shapes that hold them,
+  // so a consumer restoring an in-game save never meets either.
+  "state-part-in-a-save": bundle(map({ 0: "save", 1: "gba" }), [statePart()]),
+  "screenshot-part-in-a-save": bundle(map({ 0: "save", 1: "gba" }), [part({ id: 0 }), screenshot(1)]),
+
+  // A state part is the core's own data, which has no media type to name.
+  "state-part-with-content-type": bundle(map({ 0: "state", 3: MGBA }), [
+    statePart({ extra: new Map([[6, "application/octet-stream"]]) }),
+  ]),
+
+  // A screenshot names its image type, and the type is one every consumer can
+  // show. Anything else is encoded as PNG on the way in.
+  "screenshot-without-content-type": bundle(map({ 0: "screenshot" }), [part({ kind: "screenshot", payload: PNG })]),
+  "screenshot-as-webp": bundle(map({ 0: "screenshot" }), [screenshot(0, PNG, "image/webp")]),
+
+  // A screenshot bundle is one image. Two images are two bundles, which a
+  // collection can hold together.
+  "screenshot-with-two-images": bundle(map({ 0: "screenshot" }), [screenshot(0), screenshot(1, pattern(512, 89))]),
+  "screenshot-holding-a-save": bundle(map({ 0: "screenshot" }), [part()]),
+
+  // `taken_at` is when a state or a screenshot was taken, which an in-game save
+  // has no field for. `taken_with` and `origin` belong to a state alone.
+  "taken-at-on-a-save": bundle(map({ 0: "save", 1: "gba", 7: TAKEN_AT }), [part()]),
+  "taken-with-on-a-screenshot": bundle(map({ 0: "screenshot", 8: map({ 0: "little" }) }), [screenshot(0)]),
+  "origin-on-a-save": bundle(map({ 0: "save", 9: "auto" }), [part()]),
+
+  // An origin names a category everyone shares, so like a binding it is
+  // spec-owned, and a minted one is malformed.
+  "origin-reverse-dns": bundle(map({ 0: "state", 3: MGBA, 9: "io.mgba.rewind" }), [statePart()]),
+
+  // Each `taken_with` entry takes only its own values, so that one setting has
+  // one spelling. A byte order is little or big and a word size 32 or 64 bits.
+  // A format version is a number, never the text a file writes it as. A
+  // language tag is in BCP 47's own case, with the language in lower case.
+  "byte-order-unknown": bundle(map({ 0: "state", 3: MGBA, 8: map({ 0: "middle" }) }), [statePart()]),
+  "word-size-16": bundle(map({ 0: "state", 3: MGBA, 8: map({ 1: 16 }) }), [statePart()]),
+  "format-version-as-text": bundle(map({ 0: "state", 3: MGBA, 8: map({ 5: "72" }) }), [statePart()]),
+  "language-not-canonical": bundle(map({ 0: "state", 3: MGBA, 8: map({ 3: "EN-us" }) }), [statePart()]),
+
+  // Empty maps, which absence already encodes.
+  "empty-core-options": bundle(map({ 0: "state", 3: MGBA, 8: map({ 4: new Map() }) }), [statePart()]),
+  "empty-firmware": bundle(map({ 0: "state", 3: MGBA, 8: map({ 2: new Map() }) }), [statePart()]),
 
   // A digest has to match the length its algorithm tag implies, and the tag has
   // to be one of the four the shared type defines. Neither is recoverable by
@@ -817,6 +1006,20 @@ export const malformedStructure = {
     })(),
   ]),
 
+  // One bad part makes the whole bundle malformed, however deep it sits. The
+  // card and its first save are fine; the second save writes out a default,
+  // so the card is malformed too, and a decoder keeps neither save.
+  "nested-save-spelling-out-a-default": card("psx", "ps1-mc", 131072, [
+    nested(innerSave, { id: 0, role: "memcard-1", path: "BASLUS-00594", game: MGS, slot: 1 }),
+    nested(bundle(map({ 0: "save", 1: "psx", 2: FF7 }), [part({ role: "primary", payload: pattern(8192, 3) })]), {
+      id: 1,
+      role: "memcard-1",
+      path: "BASCUS-94163FF7-S01",
+      game: FF7,
+      slot: 2,
+    }),
+  ]),
+
   // A collection is the one shape that does not nest inside itself, which is
   // what keeps the chain of shapes from running forever.
   "collection-in-a-collection": bundle(map({ 0: "collection" }), [nested(valid.collection, { id: 0 })]),
@@ -839,4 +1042,23 @@ export const malformedStructure = {
   // That is a bundle a consumer cannot name a part in, or match against a
   // target, so it cannot act on it at all.
   "parts-share-an-address": bundle(map({ 0: "save" }), [part({ id: 0 }), part({ id: 1, payload: pattern(16, 19) })]),
+
+  // A state bundle holds exactly one state part. Without one there is nothing
+  // to load, and with two a consumer cannot tell which one the bundle is.
+  "state-without-a-state-part": bundle(map({ 0: "state", 3: MGBA }), [screenshot(0)]),
+  "state-with-two-state-parts": bundle(map({ 0: "state", 3: MGBA }), [
+    statePart({ id: 0, slot: 1 }),
+    statePart({ id: 1, slot: 2, payload: pattern(4096, 97) }),
+  ]),
+
+  // And at most one screenshot, since the screenshot is the state's picture.
+  "state-with-two-screenshots": bundle(map({ 0: "state", 3: MGBA }), [
+    statePart(),
+    screenshot(1),
+    screenshot(2, pattern(512, 101)),
+  ]),
+
+  // A state holds no nested bundle. A state and an in-game save in one file is
+  // a collection of two bundles.
+  "state-holding-a-bundle-part": bundle(map({ 0: "state", 3: MGBA }), [statePart(), nested(gbSave, { id: 1 })]),
 };

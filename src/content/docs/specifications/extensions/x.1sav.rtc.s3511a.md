@@ -1,7 +1,7 @@
 ---
 title: x.1sav.rtc.s3511a
 description:
-  The latched state of the Seiko S-3511A clock in a GBA or WonderSwan cartridge, for byte-exact round-tripping.
+  The latched registers of the Seiko S-3511A clock in a GBA or WonderSwan cartridge, for byte-exact round-tripping.
 slug: specifications/extensions/x.1sav.rtc.s3511a
 ---
 
@@ -74,15 +74,16 @@ out of the register.
 
 How an emulator keeps the clock running between the moments a game reads it, beyond the one moment key 2 records. One
 derives the current time from an offset against the host clock, another advances the components by the time since key 2,
-and neither is chip state. A schema every producer has to satisfy can only require what the chip itself holds, which is
-why key 2 is optional. An emulator with a model worth preserving carries it beside this key under a
+and neither is something the chip holds. A schema every producer has to satisfy can only require what the chip itself
+holds, which is why key 2 is optional. An emulator with a model worth preserving carries it beside this key under a
 [name of its own](/specifications/common-types/reverse-dns-name/).
 
 ## Where it goes
 
 Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes and nowhere else: the
-[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/). A producer
-carrying this key and `x.1sav.rtc` puts both in the same place, since they describe one clock.
+[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
+[`state`](/specifications/states/). A producer carrying this key and `x.1sav.rtc` puts both in the same place, since
+they describe one clock.
 
 ## When to set it
 

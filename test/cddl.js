@@ -62,7 +62,10 @@ export function harness(schema) {
     dir,
     cleanup: () => rmSync(dir, { recursive: true, force: true }),
     writeItem,
-    validate: (file) => spawnSync(cddl, [schema, "validate", file], { encoding: "utf8" }),
+    // A rejection prints every arm the tool tried, payload bytes and all, and a
+    // state bundle has enough arms to overrun spawnSync's 1 MiB default. The
+    // child is then killed and the status comes back null, not 1.
+    validate: (file) => spawnSync(cddl, [schema, "validate", file], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }),
     generate: () => spawnSync(cddl, [schema, "generate"], { encoding: "utf8" }),
   };
 }

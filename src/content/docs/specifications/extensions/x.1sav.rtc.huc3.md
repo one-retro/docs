@@ -65,8 +65,9 @@ counter's minutes after 1970-01-01T00:00:00Z, without key 2. A producer **MUST**
 ## Where it goes
 
 Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes and nowhere else: the
-[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/). A producer
-carrying this key and `x.1sav.rtc` puts both in the same place, since they describe one clock.
+[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
+[`state`](/specifications/states/). A producer carrying this key and `x.1sav.rtc` puts both in the same place, since
+they describe one clock.
 
 ## When to set it
 

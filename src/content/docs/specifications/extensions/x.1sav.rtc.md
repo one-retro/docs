@@ -21,7 +21,8 @@ and is omitted when a producer has nothing useful to say about it.
 
 ## The reading
 
-`reading` is the game's clock when the bundle was written, put on the Unix scale. How depends on the kind of clock:
+`reading` is the game's clock when the bundle was written, put on the Unix scale. On a [state](/specifications/states/),
+it is the clock when the state was taken. How depends on the kind of clock:
 
 - A **counting clock** holds elapsed time. The reading is that many days, hours, minutes and seconds after
   1970-01-01T00:00:00Z. An [MBC3](/specifications/extensions/x.1sav.rtc.mbc3/) clock that has run for two minutes and
@@ -31,8 +32,8 @@ and is omitted when a producer has nothing useful to say about it.
 
 A game may show its clock with an offset of its own, kept in save memory. The reading does not include it.
 
-A chip key may also carry an anchor: the host clock at the moment the producer took the chip's state. Each chip key's
-page says which of its keys holds it. The anchor is not the reading, and is not added to it.
+A chip key may also carry an anchor: the host clock at the moment the producer took the chip's registers. Each chip
+key's page says which of its keys holds it. The anchor is not the reading, and is not added to it.
 
 A producer that cannot compute the reading **MUST** omit the key rather than write the anchor in its place.
 
@@ -43,11 +44,11 @@ Each cartridge clock has a key of its own under this one, which carries what the
 Some chip keys allow null for a register. Null means the chip holds a value the producer's source did not keep. An
 absent key means there is no value at all, as when a producer keeps no anchor.
 
-A consumer that rebuilds a chip's state from its key needs a value for each null, and an anchor. Each chip key's page
-gives the value to use for a null. Where a chip key carries no anchor, a consumer **SHOULD** use the moment it rebuilds
-the state, so the clock resumes from the registers with no time passed. It **SHOULD NOT** use
-[`created_at`](/specifications/bundle/#0-header-map) instead, which is when the bundle was assembled and not when the
-producer took the state.
+A consumer that rebuilds a chip from its key needs a value for each null, and an anchor. Each chip key's page gives the
+value to use for a null. Where a chip key carries no anchor, a consumer **SHOULD** use the moment it rebuilds the chip.
+The clock then resumes from the registers with no time passed. It **SHOULD NOT** use
+[`bundled_at`](/specifications/bundle/#0-header-map) instead. That is when the bundle was assembled, not when the
+producer took the registers.
 
 | Key                                                                    | Clock            | Kind     | Carried by                                          |
 | ---------------------------------------------------------------------- | ---------------- | -------- | --------------------------------------------------- |
@@ -81,14 +82,23 @@ Read this key for the clock's value, and the chip's key to rebuild the bytes.
 
 ## Where it goes
 
-The [header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/), and
-nowhere else. The key **MUST NOT** sit on a [part](/specifications/bundle/#part-map), or on the header of a
-[card](/specifications/cards/) or a [collection](/specifications/collections/).
+The [header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
+[`state`](/specifications/states/), and nowhere else. The key **MUST NOT** sit on a
+[part](/specifications/bundle/#part-map), or on the header of any other shape.
+
+### On a state
+
+A state's clock sits inside the core's data, which is what the core loads. This key and the chip's key are a reading of
+that clock. They let a consumer that cannot parse the core's data show the time. An in-game save lifted out of the state
+takes them with it. They never change what the state loads.
+
+On a state, a chip key's anchor is the host clock at the moment the emulator took the state. A producer that cannot read
+the clock out of the core's data omits both keys.
 
 ## When to set it
 
-Only when the save carries a clock, which means its cartridge has one of the clocks [Chip keys](#chip-keys) lists. Most
-saves have no clock, and omit the key.
+Only when the game's cartridge has one of the clocks [Chip keys](#chip-keys) lists, and the save or the state carries
+it. Most games have no clock, and their bundles omit the key.
 
-The reading is not when the bundle was assembled. That is [`created_at`](/specifications/bundle/#0-header-map), and the
+The reading is not when the bundle was assembled. That is [`bundled_at`](/specifications/bundle/#0-header-map), and the
 two can differ by decades.

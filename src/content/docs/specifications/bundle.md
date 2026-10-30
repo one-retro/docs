@@ -33,19 +33,24 @@ parser or emulator attached. Keys are small unsigned integers, for a compact can
 everything else means. The rest is best-effort context, so a header of nothing but a `shape` is valid and describes a
 bundle whose parts are all a consumer knows about it.
 
-| Key | Name          | Type             | Req?          | Notes                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| --- | ------------- | ---------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | `shape`       | text             | **yes**       | Which of `"save"`, `"card"`, `"device"` or `"collection"` this bundle is, and so which document defines what its parts mean. Spec-owned and closed: a producer MUST NOT mint one. See [Shapes](/specifications/universal-saves-format/#shapes).                                                                                                                                                                                     |
-| 1   | `system`      | text             | on `"device"` | Required when `shape` is `"device"`, optional on a save or a card, and forbidden on a collection. A [slug](/specifications/common-types/slug/) from the [System Registry](/registries/systems/) naming the system **these bytes are a save for**: the one that reads them natively, whatever happened to write them (`"gb"`, `"snes"`, `"n64"`, `"3ds"`, ...). The note below says why it sits beside `game` rather than inside it. |
-| 2   | `game`        | map (hints)      | no            | Forbidden on a device and on a collection, which hold saves for many games rather than for one. Optional bag of game-identification clues. If absent or empty, the bundle is _unidentified_; consumers should store it as-is and let the user associate it later or use other means (e.g. filename).                                                                                                                                |
-| 3   | `source`      | map              | no            | Who assembled the bundle, and the default source for every part. See below.                                                                                                                                                                                                                                                                                                                                                         |
-| 4   | `card`        | map              | on `"card"`   | Required when `shape` is `"card"`, and forbidden otherwise. Carries the card's format, its capacity, and the bytes belonging to no save. See below.                                                                                                                                                                                                                                                                                 |
-| 5   | `description` | text             | no            | Free-form human-readable note about this bundle ("Right before the final boss", "100% completion run"). No length limit by spec; producers should keep it short enough to display in a list view.                                                                                                                                                                                                                                   |
-| 6   | `created_at`  | CBOR tag 1 (int) | no            | When the bundle was assembled, in whole epoch seconds. Tag 1 also admits a float, which this format forbids; see [One encoding per bundle](/specifications/universal-saves-format/#one-encoding-per-bundle).                                                                                                                                                                                                                        |
+| Key | Name          | Type             | Req?          | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --- | ------------- | ---------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | `shape`       | text             | **yes**       | Which of `"save"`, `"state"`, `"screenshot"`, `"card"`, `"device"` or `"collection"` this bundle is, and so which document defines what its parts mean. Spec-owned and closed: a producer MUST NOT mint one. See [Shapes](/specifications/universal-saves-format/#shapes).                                                                                                                                                                                 |
+| 1   | `system`      | text             | on `"device"` | Required when `shape` is `"device"`, optional on a save, a state, a screenshot or a card, and forbidden on a collection. A [slug](/specifications/common-types/slug/) from the [System Registry](/registries/systems/) naming the system **these bytes are a save for**: the one that reads them natively, whatever happened to write them (`"gb"`, `"snes"`, `"n64"`, `"3ds"`, ...). The note below says why it sits beside `game` rather than inside it. |
+| 2   | `game`        | map (hints)      | no            | Forbidden on a device and on a collection, which hold saves for many games rather than for one. Optional bag of game-identification clues. If absent or empty, the bundle is _unidentified_; consumers should store it as-is and let the user associate it later or use other means (e.g. filename).                                                                                                                                                       |
+| 3   | `source`      | map              | on `"state"`  | Who assembled the bundle, and the default source for every part. Required on a state, where it also says what the state loads into. See below.                                                                                                                                                                                                                                                                                                             |
+| 4   | `card`        | map              | on `"card"`   | Required when `shape` is `"card"`, and forbidden otherwise. Carries the card's format, its capacity, and the bytes belonging to no save. See below.                                                                                                                                                                                                                                                                                                        |
+| 5   | `description` | text             | no            | Free-form human-readable note about this bundle ("Right before the final boss", "100% completion run"). No length limit by spec; producers should keep it short enough to display in a list view.                                                                                                                                                                                                                                                          |
+| 6   | `bundled_at`  | CBOR tag 1 (int) | no            | When the bundle was assembled, in whole epoch seconds. Tag 1 also admits a float, which this format forbids; see [One encoding per bundle](/specifications/universal-saves-format/#one-encoding-per-bundle).                                                                                                                                                                                                                                               |
+| 7   | `taken_at`    | CBOR tag 1 (int) | no            | On a state or a screenshot only: when it was taken, in whole epoch seconds. Not `bundled_at`, which can come long after.                                                                                                                                                                                                                                                                                                                                   |
+| 8   | `taken_with`  | map              | no            | On a state only: what it was taken with, where that bears on loading it anywhere else. See below.                                                                                                                                                                                                                                                                                                                                                          |
+| 9   | `origin`      | text             | no            | On a state only: `"auto"` or `"undo"`, for a state the emulator made rather than the player. Absent means the player made it. A spec-owned [slug](/specifications/common-types/slug/); see [States](/specifications/states/#origin).                                                                                                                                                                                                                       |
 
 What a bundle's parts mean follows from its `shape`, and each shape has a document of its own that says so:
 
-- A [save](/specifications/saves/) carries one game's state.
+- A [save](/specifications/saves/) carries one game's in-game save.
+- A [state](/specifications/states/) carries one save state and the screenshot taken with it.
+- A [screenshot](/specifications/screenshots/) carries one image of a game's screen.
 - A [card](/specifications/cards/) carries one [`bundle` part](#nested-bundles) per save it holds.
 - A [device](/specifications/device/) carries one `bundle` part per component of a console's storage.
 - A [collection](/specifications/collections/) carries one `bundle` part per device, card or save.
@@ -207,6 +212,27 @@ selects which rebuild rules apply. Both are properties of the medium rather than
 [`system`](#two-systems-and-what-each-answers) gives, so a PS1 card read through a PS2 is `system: "psx"` and
 `format: "ps1-mc"` at once.
 
+#### `taken_with` (map)
+
+What a [state](/specifications/states/) was taken with, where that bears on loading it anywhere else. The map is
+optional, and so is every key in it. A key is null where the producer does not know the value, and absent where the
+value does not apply. A producer that records none of it leaves the map out. The map takes
+[extension keys](/specifications/universal-saves-format/#extensions), as the header does, for a condition none of its
+keys names.
+
+| Key | Name             | Type | Notes                                                                                                                                                                                                    |
+| --- | ---------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | `byte_order`     | text | `"little"` or `"big"`: the host's. Absent where the core's states do not depend on it.                                                                                                                   |
+| 1   | `word_size`      | uint | `32` or `64`: the host's, in bits. Absent where the core's states do not depend on it.                                                                                                                   |
+| 2   | `firmware`       | map  | Each file the machine booted, keyed by the path the core loads it from, to its [hash values](/specifications/common-types/hash-value/). Absent where the core ran without one.                           |
+| 3   | `language`       | text | The machine's language setting, as a BCP 47 tag: `"ja"`, `"en-US"`, `"zh-Hans"`. Absent where the system has no such setting.                                                                            |
+| 4   | `options`        | map  | The core's options, text to text, under the names the core gives them.                                                                                                                                   |
+| 5   | `format_version` | uint | The version the emulator stamps on its states outside the core's data, as DuckStation does in its file's header. Absent where the version sits inside the data, where the state part already carries it. |
+
+A language tag is written in the case [BCP 47](https://www.rfc-editor.org/rfc/rfc5646#section-2.1.1) gives it. The
+language is in lower case, a script in title case and a region in upper case. So one setting has one spelling. The tag
+stops at the region, which is as far as any console's language setting goes.
+
 ### [1] Parts (`array of Part`)
 
 A bundle holds at least one part. There is no upper limit. Most bundles hold a handful, but a producer that splits a
@@ -222,7 +248,9 @@ A part's `kind` (key 1) says what role its bytes play. It is absent on the commo
 
 | Kind         | Notes                                                                                                                                                                                                                                              |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| _(absent)_   | `save`. The vast majority of parts are save data, so the common case carries no kind at all.                                                                                                                                                       |
+| _(absent)_   | `save`: an in-game save. The vast majority of parts are save data, so the common case carries no kind at all.                                                                                                                                      |
+| `state`      | A save state's own data, as the core that took it loads it. Only in a [state](/specifications/states/), which holds exactly one; it names no `content_type`, since the data has no media type.                                                     |
+| `screenshot` | An image of the game's screen. Only in a [state](/specifications/states/), which holds at most one, or as the one part of a [screenshot](/specifications/screenshots/). `content_type` is required and is `image/png` or `image/jpeg`.             |
 | `card-image` | A complete memory-card image, kept whole instead of split into its saves (PS1 and PS2 memcards, N64 controller pak, GameCube memory card, Dreamcast VMU). Handled like a save; `content_type` optional, since these rarely have a registered type. |
 | `bundle`     | The payload is itself a complete `1SAV` bundle. This is how a card holds its saves. See [Nested bundles](#nested-bundles).                                                                                                                         |
 | `aux`        | Opaque binary: the format carries it and never reads it. This is also where an unrecognized kind lands, so it is the handling every kind a consumer has not heard of falls back to. `content_type` SHOULD be set.                                  |
@@ -236,12 +264,13 @@ parts for portability. Keeping the image alongside the split saves is how a prod
 
 `aux` is the escape hatch that keeps the vocabulary small. A producer with a blob the format has no name for carries it
 as `aux` with a `content_type`, rather than minting a kind. A name that only describes the bytes changes nothing about
-how a consumer handles them. And a consumer handles a minted kind it does not recognise as `aux` in the end anyway.
-Screenshots, box art and the container file a bundle was read from all belong here.
+how a consumer handles them. And a consumer handles a minted kind it does not recognise as `aux` in the end anyway. Box
+art and the container file a bundle was read from belong here. A screenshot has a kind of its own, because a consumer
+shows it rather than carrying it.
 
 ##### Minting a kind
 
-The four above are this spec's [slugs](/specifications/common-types/slug/); a producer with a kind of its own takes a
+The six above are this spec's [slugs](/specifications/common-types/slug/); a producer with a kind of its own takes a
 [reverse-DNS name](/specifications/common-types/reverse-dns-name/) instead. An unrecognized kind is handled as `aux`, so
 never drop a part because you don't know what it is.
 
@@ -268,14 +297,16 @@ The rules a decoder enforces:
   with.
 - **`sha256` is the inner bundle's identity.** A card is therefore a list of content hashes. That makes extracting a
   save a byte copy rather than a re-encode, and it lets two producers of the same save agree on what to call it.
+- **A malformed nested bundle makes its holder malformed.** So a decoder that finds one
+  [rejects the whole file](/specifications/universal-saves-format/#rejecting-a-malformed-bundle).
 - **Nothing is inherited.** An inner bundle does not read `system`, `game` or `source` from the enclosing header. It
   means the same thing sliced out as it does in place, which is the entire point.
 - **What a bundle may hold follows from its shape**, and decoders MUST enforce it. A
   [collection](/specifications/collections/) holds any shape but another collection. A [device](/specifications/device/)
-  holds cards and saves, a [card](/specifications/cards/) holds saves, and a [save](/specifications/saves/) holds no
-  nested bundle at all. Nothing in that chain leads back to itself. So a decoder that checks each nested bundle against
-  the shape of the one holding it terminates without counting levels. The depth is bounded without a limit being written
-  down.
+  holds cards and saves, and a [card](/specifications/cards/) holds saves. A [save](/specifications/saves/), a
+  [state](/specifications/states/) and a [screenshot](/specifications/screenshots/) hold no nested bundle at all.
+  Nothing in that chain leads back to itself. So a decoder that checks each nested bundle against the shape of the one
+  holding it terminates without counting levels. The depth is bounded without a limit being written down.
 - **A bundle's parts need not be all one thing.** A `bundle` part sits beside ordinary save parts in the same array
   whenever a producer has both. See [Shapes](/specifications/universal-saves-format/#shapes).
 - **The outer `game` and `system` are an index.** They repeat what the inner header says so a consumer can list a card's
@@ -308,7 +339,7 @@ card are the same shape to a validator. A save flattened into its container has 
 | 3   | `path`         | text        | no   | Where these bytes sat in the container they came from, as a relative path. Absent when the role is the whole address; `"title/00040000/data.bin"` for a 3DS extdata folder; on a card's [`bundle`](#nested-bundles) part, the name the card's directory holds for that save, which is what tells two saves of one game apart. Max 512 bytes. Forbidden: empty, leading `/`, `..` segments.                                                                                             |
 | 4   | `slot`         | uint        | no   | The index this part occupied in whatever container it came out of: a card's directory slot, an emulator's save-state slot. Display order, not an address. A writer that packs the parts into different slots has not done anything wrong.                                                                                                                                                                                                                                              |
 | 5   | `dirent`       | byte string | no   | That container's own directory entry for this part, verbatim. Fully opaque: this spec never says what a byte inside it means, which is what keeps a card-format parser out of the container. Its length is fixed by the card's [`format`](#card-map) on every format, `saturn-bup` included: that one keeps its entry at the head of the save's own first block rather than in a directory region, which changes where a reader finds those bytes and not whether they can be carried. |
-| 6   | `content_type` | text        | no   | Media type of the payload. No [kind](#part-kinds) requires it, but it is the only place the format says what a blob is, so set it whenever there is a registered type to name.                                                                                                                                                                                                                                                                                                         |
+| 6   | `content_type` | text        | no   | Media type of the payload. A `screenshot` requires it and a `state` has none to name. For any other [kind](#part-kinds) it is optional. It is the only place the format says what a blob is, so set it whenever there is a registered type to name.                                                                                                                                                                                                                                    |
 | 7   | `encoding`     | text        | no   | `"zstd"` when the payload is compressed. Absent means `"none"`, which MUST NOT be written out. Compression is per-part. A spec-owned [slug](/specifications/common-types/slug/) and the only one this version defines; another codec comes from a PR against this spec.                                                                                                                                                                                                                |
 | 8   | `size`         | uint        | some | **Uncompressed** byte length of the payload. Carried when the payload is `zstd` and never otherwise, since an uncompressed payload already states its own length.                                                                                                                                                                                                                                                                                                                      |
 | 9   | `sha256`       | tagged bstr | yes  | SHA-256 over the **uncompressed** payload, as a [hash value](/specifications/common-types/hash-value/): 32 bytes under tag `18540`. Only that tag is legal, so identity and dedup have one answer; the tag is there so a generic CBOR tool can name the digest without knowing this format.                                                                                                                                                                                            |
@@ -341,10 +372,11 @@ for one game may name it in the header instead, and that is the honest answer to
 
 Whether the parts then repeat it is the [index copy](#nested-bundles) question, not an identity question.
 
-No two parts in one bundle may agree on `role`, `path` and `slot` together. Those three are how a consumer names a part
-to a user and matches it against a target, so two parts a consumer cannot tell apart is a bundle it cannot act on. Where
-a container allows duplicate names, an N64 controller pak permits two notes with the same game code and note name, the
-producer MUST carry `slot` so the two stay distinct.
+No two parts of one kind in one bundle may agree on `role`, `path` and `slot` together. Those three are how a consumer
+names a part to a user and matches it against a target, so two parts a consumer cannot tell apart is a bundle it cannot
+act on. Parts of different [kinds](#part-kinds) never clash, so a state part and its screenshot need no `role`, `path`
+or `slot` at all. Where a container allows duplicate names, the producer MUST carry `slot`. An N64 controller pak
+permits two notes with the same game code and note name, and `slot` is what keeps them distinct.
 
 Every part carries its bytes inline, so a bundle always works on its own.
 

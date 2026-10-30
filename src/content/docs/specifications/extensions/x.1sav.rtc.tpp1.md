@@ -30,7 +30,7 @@ Key 0 is the clock as it runs and key 1 the latched copy the game reads. Key 1 i
 not keep the latched copy, as SameBoy's save does not.
 
 Key 2 is the MR4 register. Bit 2 is set while the clock runs, and bit 3 once the week counter has overflowed. Bits 0 and
-1 are the rumble speed, which is not clock state, so a producer clears them.
+1 are the rumble speed, which is not part of the clock, so a producer clears them.
 
 Key 3 is the anchor: the producer's clock at the moment it took the registers. It is the moment the producer advances
 the clock from when the save is next loaded. A producer that keeps one **SHOULD** carry it.
@@ -49,8 +49,9 @@ minutes and the seconds.
 ## Where it goes
 
 Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes and nowhere else: the
-[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/). A producer
-carrying this key and `x.1sav.rtc` puts both in the same place, since they describe one clock.
+[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
+[`state`](/specifications/states/). A producer carrying this key and `x.1sav.rtc` puts both in the same place, since
+they describe one clock.
 
 ## When to set it
 

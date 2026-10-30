@@ -21,7 +21,7 @@ What a writer has to regenerate to put those saves back on real hardware, and th
 | 3   | `source`      | no   | What read the card.                                                              |
 | 4   | `card`        | yes  | The card's [format, capacity and system area](/specifications/bundle/#card-map). |
 | 5   | `description` | no   | Free-form note.                                                                  |
-| 6   | `created_at`  | no   | When the dump was assembled.                                                     |
+| 6   | `bundled_at`  | no   | When the dump was assembled.                                                     |
 
 The header says nothing about any individual save. What a save is called, what it looks like and what game it is for are
 in that save's own header, inside its nested bundle, where they stay correct once the save is sliced out.

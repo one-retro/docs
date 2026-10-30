@@ -82,7 +82,7 @@ exactly the bytes the card allocated, so the count is the nested bundle's total 
 
 That division takes the block size from the format, which holds for every format here except `saturn-bup`. Its 64 is the
 console's internal memory and a backup cartridge carries its own, so a count derived this way for a cartridge is wrong.
-The table stands as written for 0.5. Settling it means keying the block size on
+The table stands as written for 0.6. Settling it means keying the block size on
 [`capacity`](/specifications/bundle/#card-map), which is required on every card map, rather than on the format alone. A
 cartridge dumped by itself is a card bundle with no [`role`](/registries/roles/) anywhere in it. So the medium cannot be
 read back off the role, as it can when a Saturn is read whole as a [device](/specifications/device/).

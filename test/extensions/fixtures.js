@@ -33,7 +33,7 @@ export const extensions = {
     invalid: {
       // The reading is the whole of what this key carries, so it is required.
       "without-reading": map({ 1: 500 }),
-      // Whole seconds only, for the reason `created_at` gives: tag 1 admits a
+      // Whole seconds only, for the reason `bundled_at` gives: tag 1 admits a
       // float, and allowing it would give one instant two encodings.
       "reading-as-float": map({ 0: new Tag(1, new Float(1044057600.5)) }),
       // The reading is tagged. A bare integer could be anything.
@@ -573,6 +573,41 @@ export const extensions = {
       "live-null": map({ 0: null, 1: Buffer.from([2, (3 << 5) | 14, 30, 15]), 2: 4 }),
       "anchor-untagged": map({ 0: Buffer.from([2, (3 << 5) | 14, 30, 15]), 1: null, 2: 4, 3: 1044057600 }),
       "not-a-map": Buffer.from([2, (3 << 5) | 14, 30, 15]),
+    },
+  },
+
+  // The cheat list mGBA keeps in its own states, as the sets its `.cheats`
+  // text describes. Every key defaults to absence, so a set is whatever of
+  // name, switch, directives and codes mGBA wrote for it.
+  "x.1sav.cheats.mgba": {
+    schema: `${DIR}/x.1sav.cheats.mgba.cddl`,
+    valid: {
+      // A GameShark set and a switched-off one after it, which starts from the
+      // first set's code type because mGBA carries it over.
+      "two-sets": [
+        map({ 0: "Infinite money", 2: ["GSAv1"], 3: ["D8BAE4D9 4864DCE5", "A86CDBA5 19BA49B3"] }),
+        map({ 0: "Walk through walls", 1: true, 3: ["509B0BE0 22C55B1E"] }),
+      ],
+      // A Game Boy set: no directives, since the Game Boy has none.
+      "game-boy": [map({ 0: "Infinite health", 3: ["010FD2C1"] })],
+      // A set the player named and has not filled yet.
+      "named-without-codes": [map({ 0: "New cheat" })],
+      // "# " and nothing after it, which mGBA writes for a set with no name.
+      "empty-set": [new Map()],
+    },
+    invalid: {
+      // An empty section is no section to mGBA, so the key is absent instead.
+      "empty-list": [],
+      // A name mGBA cannot tell from none is absent.
+      "empty-name": [map({ 0: "", 3: ["010FD2C1"] })],
+      // A set is on unless it says otherwise, and on is absence.
+      "enabled-written-out": [map({ 0: "Infinite health", 1: false, 3: ["010FD2C1"] })],
+      "empty-directives": [map({ 0: "Infinite money", 2: [], 3: ["D8BAE4D9 4864DCE5"] })],
+      "empty-codes": [map({ 0: "New cheat", 3: [] })],
+      "code-as-bytes": [map({ 3: [Buffer.from("010FD2C1")] })],
+      "unknown-key": [map({ 0: "Infinite health", 4: "nope" })],
+      // mGBA's text stays mGBA's. The key carries the sets it describes.
+      "as-text": "# Infinite health\n010FD2C1\n",
     },
   },
 

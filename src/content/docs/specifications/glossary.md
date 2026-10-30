@@ -3,8 +3,9 @@ title: Glossary
 description: The terms these specifications use, and where each one is actually defined.
 ---
 
-These specifications use a small vocabulary precisely. `bundle` and `save` are not synonyms, a `part` is not a file, and
-`producer`, `consumer` and `writer` are three different things that most normative rules are addressed to.
+These specifications use a small vocabulary precisely. `bundle` and `save` are not synonyms, a `save` is not a `state`,
+and a `part` is not a file. `producer`, `consumer` and `writer` are three different things, and most normative rules are
+addressed to one of them.
 
 Non-normative. Each entry points at the text that defines the term, and that text wins on a disagreement.
 
@@ -20,24 +21,32 @@ Non-normative. Each entry points at the text that defines the term, and that tex
   holds its cards. See [Nested bundles](/specifications/bundle/#nested-bundles).
 - **`bundle` part.** The part carrying a nested bundle, whose `sha256` is that bundle's content hash. Several extension
   keys turn on whether a part is this kind rather than an ordinary one.
-- **Shape.** Which of `save`, `card`, `device` or `collection` a bundle is, carried in the header and never inferred.
-  Each has a document of its own, and the vocabulary is closed.
-- **Save.** One game's state as a console wrote it, and the [`save` shape](/specifications/saves/). Inside a card, a
-  save is a nested bundle rather than a part.
+- **Shape.** Which of `save`, `state`, `screenshot`, `card`, `device` or `collection` a bundle is, carried in the header
+  and never inferred. Each has a document of its own, and the vocabulary is closed.
+- **Save.** An in-game save: what a game wrote to its medium, be that battery-backed RAM, flash, a memory card or a
+  console's own storage. Also the [`save` shape](/specifications/saves/). Inside a card, a save is a nested bundle
+  rather than a part.
+- **State.** A save state: an emulator's snapshot of the whole machine at one moment, which only the core that took it
+  loads. Also the [`state` shape](/specifications/states/).
+- **Screenshot.** An image of a game's screen. A state carries one as a `screenshot` part, and the
+  [`screenshot` shape](/specifications/screenshots/) carries one on its own.
 - **Card.** The [`card` shape](/specifications/cards/): one memory card, its saves nested one per part. The
   [`card` map](/specifications/bundle/#card-map) is required on it and forbidden elsewhere.
 - **Device.** The [`device` shape](/specifications/device/): one console's storage read whole, its components nested one
   per part and told apart by `role`. `system` is required, which is what separates it from a collection.
 - **Collection.** The [`collection` shape](/specifications/collections/): every part a `bundle` part, and no `system`,
   `game` or `card` of its own. It is how one file spans systems.
-- **Containment.** Which shapes a bundle may hold, which follows from its own: a collection holds any shape but a
-  collection, a device holds cards and saves, a card holds saves, and a save holds nothing nested. The chain never leads
-  back to itself, so how deep a file goes is a consequence of what is in it rather than a limit the spec sets.
+- **Containment.** Which shapes a bundle may hold, which follows from its own. A collection holds any shape but a
+  collection, a device holds cards and saves, and a card holds saves. A save, a state and a screenshot hold nothing
+  nested. The chain never leads back to itself, so what a file holds bounds how deep it goes.
+
+`save` and `state` never stand for each other. Where a sentence needs both, or could be read either way, it uses the
+long forms: in-game save and save state.
 
 ## Addressing a part
 
 - **Kind.** What a part's bytes play: absent for a save, or
-  [`bundle`, `card-image` or `aux`](/specifications/bundle/#part-kinds).
+  [`state`, `screenshot`, `bundle`, `card-image` or `aux`](/specifications/bundle/#part-kinds).
 - **Role.** Which socket the bytes came out of, not what medium they are on. A controller pak is a card that lives in a
   controller. Names come from the [Save Roles registry](/registries/roles/).
 - **Path.** Where the bytes sat in the container they came from, as a relative path. On a card's `bundle` part it is the
@@ -48,8 +57,8 @@ Non-normative. Each entry points at the text that defines the term, and that tex
 - **Index copy.** A value repeated on an outer part so a consumer can list a container without stepping into payloads.
   The inner header is authoritative and [wins on a mismatch](/specifications/bundle/#nested-bundles).
 
-`role`, `path` and `slot` together are [how a consumer names a part](/specifications/bundle/#part-map), and no two parts
-of one bundle may agree on all three.
+`role`, `path` and `slot` together are [how a consumer names a part](/specifications/bundle/#part-map). No two parts of
+one kind in a bundle agree on all three.
 
 ## Who does what
 

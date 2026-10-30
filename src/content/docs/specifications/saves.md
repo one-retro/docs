@@ -1,11 +1,11 @@
 ---
 title: Saves
-description: The `save` shape, which is one game's state and the only document a producer of saves has to read.
+description: The `save` shape, which is one game's in-game save and the only document a producer of saves has to read.
 ---
 
-A `save` bundle is one game's state as the medium stored it. It is the shape an emulator or a cartridge reader writes,
-and this is the only document such a producer needs: cards and collections are other shapes, with documents of their
-own.
+A `save` bundle is one game's in-game save, as the medium stored it. An emulator or a cartridge reader carrying in-game
+saves needs only this document. Cards and collections are other shapes, with documents of their own. A save state is a
+[state](/specifications/states/), never a save.
 
 ## Header
 
@@ -18,7 +18,7 @@ own.
 | 2   | `game`        | no   | Identification hints. Absent means unidentified, which is a valid save.      |
 | 3   | `source`      | no   | What produced it.                                                            |
 | 5   | `description` | no   | Free-form note.                                                              |
-| 6   | `created_at`  | no   | When the bundle was assembled, not when the player saved.                    |
+| 6   | `bundled_at`  | no   | When the bundle was assembled, not when the player saved.                    |
 
 `card` is forbidden. A save that came off a card is still a save; the card it came off is a
 [card bundle](/specifications/cards/) that holds it.
@@ -64,11 +64,11 @@ canonical CBOR meets it without doing anything special.
 
 Three cases need it, and a producer that does not meet them should not reach for it.
 
-- **Several sockets.** One game whose state spans two places on the same system: 3DS savedata in `sysnand` beside
+- **Several sockets.** One game's save spans two places on the same system. That covers 3DS savedata in `sysnand` beside
   extdata on `sd`, or an N64 cartridge save beside that game's note in a Controller Pak. [`role`](/registries/roles/)
   tells them apart.
 - **Several files.** A PS2 save is a directory and a 3DS extdata save is a folder. An arcade board is the same case in
-  different clothes: its state is battery-backed NVRAM and an EEPROM and sometimes a timekeeper chip, one part each.
+  different clothes: its save is battery-backed NVRAM and an EEPROM and sometimes a timekeeper chip, one part each.
   [`path`](/specifications/bundle/#part-map) tells those apart, carrying the name the dumping tool uses for the chip.
 - **Anything else binary.** An [`aux` part](/specifications/bundle/#part-kinds) with a `content_type`.
 
@@ -80,7 +80,7 @@ game's bytes.
 One system's software wrapping another's save is not a nesting either. A Wii Virtual Console save of an NES game is an
 `nes` save, the same as any other, and what wrapped it is [`source`](/specifications/bundle/#source-map) provenance.
 
-No two parts may agree on `role`, `path` and `slot` together, which is
+No two parts of one kind may agree on `role`, `path` and `slot` together, which is
 [how a consumer names one](/specifications/bundle/#part-map).
 
 ## Extension keys

@@ -33,7 +33,7 @@ entry-time = [
 
 ; The wall clock the console showed, as whole seconds on the Unix scale, reached
 ; by reading that wall clock as though it were UTC. Tag 1 for the reason
-; `created_at` gives in the format spec: it admits a float, and allowing one
+; `bundled_at` gives in the format spec: it admits a float, and allowing one
 ; would give a single reading two encodings. Directories count from wherever
 ; suits them, a GameCube entry from 2000-01-01 and a Saturn entry in minutes
 ; from 1980-01-01, and converting that once is the work this key exists to do.

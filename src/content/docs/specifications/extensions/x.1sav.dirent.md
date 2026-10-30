@@ -91,12 +91,12 @@ Only a format whose entry holds something a writer cannot get elsewhere gets one
 | `n64-cpak`   | not yet written                                                          | A company code and the note's own character encoding.                                                          |
 | `neogeo-mc`  | never                                                                    | Its 4 bytes are an NGH number and a sub-number, which are `path`, and a FAT index, which a writer regenerates. |
 | `saturn-bup` | not yet written                                                          | The comment's language byte, which nothing else carries.                                                       |
-| `ps1-mc`     | never                                                                    | Its frame holds a filename, a state byte and a block link: `path`, and two things a writer regenerates.        |
+| `ps1-mc`     | never                                                                    | Its frame holds a filename, an allocation byte and a block link: `path`, and two things a writer regenerates.  |
 
 ## When to set it
 
-Only when the producer read the entry. A producer that would be guessing omits the key, and **MUST NOT** substitute the
-time it performed the dump, which is [`created_at`](/specifications/bundle/#0-header-map) in the bundle header.
+Only when the producer read the entry. A producer that would be guessing omits the key. It **MUST NOT** substitute the
+time it performed the dump, which is [`bundled_at`](/specifications/bundle/#0-header-map) in the bundle header.
 
 The offset is a separate decision from the reading it follows. Not knowing the zone is a reason to write the one-element
 form, and no reason at all to drop the reading. That is what qualifying it separately buys. Before, a producer reading a

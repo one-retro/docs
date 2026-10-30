@@ -1,10 +1,10 @@
 ---
 title: Collections
-description: The `collection` shape, which is several cards and saves carried in one file.
+description: The `collection` shape, which is several bundles of any other shape carried in one file.
 ---
 
-A `collection` bundle is several cards and saves in one file. It is how one file spans systems, and it is the only shape
-with nothing of its own to say.
+A `collection` bundle is several bundles in one file: cards, saves, states, screenshots, devices. It is how one file
+spans systems, and it is the only shape with nothing of its own to say.
 
 ## Header
 
@@ -16,14 +16,14 @@ system, no single game and no card: each of those belongs to an entry.
 | 0   | `shape`       | yes  | `"collection"`.                    |
 | 3   | `source`      | no   | What assembled it.                 |
 | 5   | `description` | no   | Free-form note.                    |
-| 6   | `created_at`  | no   | When the collection was assembled. |
+| 6   | `bundled_at`  | no   | When the collection was assembled. |
 
 ## Parts
 
-Every part is a [`bundle` part](/specifications/bundle/#nested-bundles), one per entry, and each entry is a complete
-bundle of any shape but another collection: a [save](/specifications/saves/), a [card](/specifications/cards/) or a
-[device](/specifications/device/). A collection is the one shape that does not nest inside itself, which is what stops
-the format recursing without end.
+Every part is a [`bundle` part](/specifications/bundle/#nested-bundles), one per entry. Each entry is a complete bundle
+of any shape but another collection: a [save](/specifications/saves/), a [state](/specifications/states/), a
+[screenshot](/specifications/screenshots/), a [card](/specifications/cards/) or a [device](/specifications/device/). A
+collection is the one shape that does not nest inside itself, which is what stops the format recursing without end.
 
 ```text
 1SAV                                       shape "collection"
@@ -47,9 +47,9 @@ header wins on a mismatch.
 ## What a collection may hold
 
 Any shape but another collection, which is the one rule that keeps the format from recursing. A collection holds
-devices, cards and saves; a device holds cards and saves; a card holds saves; a save holds nothing nested. Follow that
-chain and it always ends, so [how deep a bundle goes](/specifications/bundle/#nested-bundles) is a consequence of the
-shapes in it rather than a number this spec has to fix.
+devices, cards, saves, states and screenshots. A device holds cards and saves, and a card holds saves. A save, a state
+and a screenshot hold nothing nested. Follow that chain and it always ends, so the shapes in a bundle bound
+[how deep it goes](/specifications/bundle/#nested-bundles).
 
 Two cards out of the same console are one collection of two card bundles. Two consoles' storage in one file is a
 collection of two [devices](/specifications/device/).

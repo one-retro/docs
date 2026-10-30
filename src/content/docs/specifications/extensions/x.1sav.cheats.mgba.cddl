@@ -1,0 +1,25 @@
+; ============================================================================
+; x.1sav.cheats.mgba - the cheats mGBA keeps in a state
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry. The cheat
+; list is mGBA's, but mGBA writes no bundles, so nobody would ever mint this
+; key under its own domain.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+; In mGBA's order. An empty list is absent: mGBA reads an empty cheat section
+; as no section at all, and leaves the player's cheats alone either way.
+cheats = [+ cheat-set]
+
+; Every key defaults to absence. A set mGBA wrote with no name, switched on,
+; with no directives and no codes is an empty map, and still a set.
+cheat-set = {
+  ? 0 => tstr .ne "",   ; name - what follows "#"
+  ? 1 => true,          ; disabled - the set is switched off
+  ? 2 => [+ tstr],      ; directives - what follows "!", such as "PARv3 raw"
+  ? 3 => [+ tstr],      ; codes - one per line, as mGBA kept them
+}

@@ -66,6 +66,8 @@ export default defineConfig({
                 { slug: "specifications/universal-saves-format" },
                 { slug: "specifications/bundle" },
                 { slug: "specifications/saves" },
+                { slug: "specifications/states" },
+                { slug: "specifications/screenshots" },
                 { slug: "specifications/cards" },
                 { slug: "specifications/device" },
                 { slug: "specifications/collections" },

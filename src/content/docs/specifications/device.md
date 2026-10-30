@@ -12,8 +12,8 @@ Several systems keep saves in more than one place at once:
 - A Sega CD has internal backup RAM and a Backup RAM Cart.
 - An MVS cabinet keeps its own backup RAM behind the card slot.
 
-None of those pairs is one game's state, so none is a [save](/specifications/saves/). None is a single card, so none is
-a [card](/specifications/cards/). And all of them came off one system, which is what a
+None of those pairs is one game's save, so none is a [save](/specifications/saves/). None is a single card, so none is a
+[card](/specifications/cards/). And all of them came off one system, which is what a
 [collection](/specifications/collections/) is not allowed to say.
 
 ## Header
@@ -26,7 +26,7 @@ a [card](/specifications/cards/). And all of them came off one system, which is 
 | 1   | `system`      | yes  | The system whose storage this is. A device is one. |
 | 3   | `source`      | no   | What read it.                                      |
 | 5   | `description` | no   | Free-form note.                                    |
-| 6   | `created_at`  | no   | When the dump was assembled.                       |
+| 6   | `bundled_at`  | no   | When the dump was assembled.                       |
 
 `game` is forbidden, because the components hold saves for many games rather than for one, and `card` is forbidden,
 because a device is not a card even when it holds one.
@@ -69,7 +69,7 @@ which wins. A consumer **MUST NOT** merge them silently: decline, or ask. Identi
 since two parts with the same [content hash](/specifications/bundle/#content-hash-and-file-hash) are the same component
 and either will do.
 
-A merged bundle is newly assembled, so its `created_at` is the time of the merge and its `source` is whatever performed
+A merged bundle is newly assembled, so its `bundled_at` is the time of the merge and its `source` is whatever performed
 it. What each component says about itself is untouched, because merging moves nested bundles whole and never opens one.
 
 Merging the _contents_ of two components is a different question and not one this format answers. Two dumps of one card

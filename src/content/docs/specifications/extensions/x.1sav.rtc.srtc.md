@@ -45,8 +45,9 @@ for every dating clock. The chip has no 12-hour mode, so the hours need no flag 
 ## Where it goes
 
 Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes and nowhere else: the
-[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/). A producer
-carrying this key and `x.1sav.rtc` puts both in the same place, since they describe one clock.
+[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
+[`state`](/specifications/states/). A producer carrying this key and `x.1sav.rtc` puts both in the same place, since
+they describe one clock.
 
 ## When to set it
 

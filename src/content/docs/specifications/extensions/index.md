@@ -37,16 +37,17 @@ the table.
 | Key                                                                      | Owner  | Applies to                      | Purpose                                                                   |
 | ------------------------------------------------------------------------ | ------ | ------------------------------- | ------------------------------------------------------------------------- |
 | [`com.1retro.forge`](/specifications/extensions/com.1retro.forge/)       | 1retro | header, part                    | What a Forge parser found, and which parser found it.                     |
+| [`x.1sav.cheats.mgba`](/specifications/extensions/x.1sav.cheats.mgba/)   | (spec) | state's state part              | The cheat list mGBA keeps in a state, set by set.                         |
 | [`x.1sav.dirent`](/specifications/extensions/x.1sav.dirent/)             | (spec) | card or save part               | When a card's directory dates a save and when it last wrote it.           |
 | [`x.1sav.dirent.gc-mc`](/specifications/extensions/x.1sav.dirent.gc-mc/) | (spec) | card part                       | A GameCube directory entry, field by field, for a writer that builds one. |
 | [`x.1sav.icon`](/specifications/extensions/x.1sav.icon/)                 | (spec) | save header                     | The image a console shows for a save, decoded to PNG.                     |
 | [`x.1sav.label`](/specifications/extensions/x.1sav.label/)               | (spec) | save header; card part as index | What a console calls a save, and what it says beneath that.               |
-| [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)                   | (spec) | save header                     | A clock reading normalized to a Unix instant.                             |
-| [`x.1sav.rtc.huc3`](/specifications/extensions/x.1sav.rtc.huc3/)         | (spec) | save header                     | The clock controller's memory in a HuC-3 Game Boy cartridge.              |
-| [`x.1sav.rtc.joybus`](/specifications/extensions/x.1sav.rtc.joybus/)     | (spec) | save header                     | The clock an N64 cartridge answers on the Joybus.                         |
-| [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/)         | (spec) | save header                     | The clock an MBC3 Game Boy cartridge keeps.                               |
-| [`x.1sav.rtc.rtc4513`](/specifications/extensions/x.1sav.rtc.rtc4513/)   | (spec) | save header                     | The Epson clock on a Super Famicom SPC7110 board.                         |
-| [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/)     | (spec) | save header                     | The latched state of the Seiko RTC in a GBA or WonderSwan cartridge.      |
-| [`x.1sav.rtc.srtc`](/specifications/extensions/x.1sav.rtc.srtc/)         | (spec) | save header                     | The Sharp clock in a Super Famicom cartridge.                             |
-| [`x.1sav.rtc.tc8521`](/specifications/extensions/x.1sav.rtc.tc8521/)     | (spec) | save header                     | The Toshiba clock in the TAMA5 Game Boy cartridge.                        |
-| [`x.1sav.rtc.tpp1`](/specifications/extensions/x.1sav.rtc.tpp1/)         | (spec) | save header                     | The clock of the TPP1 homebrew Game Boy mapper.                           |
+| [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)                   | (spec) | save or state header            | A clock reading normalized to a Unix instant.                             |
+| [`x.1sav.rtc.huc3`](/specifications/extensions/x.1sav.rtc.huc3/)         | (spec) | save or state header            | The clock controller's memory in a HuC-3 Game Boy cartridge.              |
+| [`x.1sav.rtc.joybus`](/specifications/extensions/x.1sav.rtc.joybus/)     | (spec) | save or state header            | The clock an N64 cartridge answers on the Joybus.                         |
+| [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/)         | (spec) | save or state header            | The clock an MBC3 Game Boy cartridge keeps.                               |
+| [`x.1sav.rtc.rtc4513`](/specifications/extensions/x.1sav.rtc.rtc4513/)   | (spec) | save or state header            | The Epson clock on a Super Famicom SPC7110 board.                         |
+| [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/)     | (spec) | save or state header            | The latched registers of the Seiko RTC in a GBA or WonderSwan cartridge.  |
+| [`x.1sav.rtc.srtc`](/specifications/extensions/x.1sav.rtc.srtc/)         | (spec) | save or state header            | The Sharp clock in a Super Famicom cartridge.                             |
+| [`x.1sav.rtc.tc8521`](/specifications/extensions/x.1sav.rtc.tc8521/)     | (spec) | save or state header            | The Toshiba clock in the TAMA5 Game Boy cartridge.                        |
+| [`x.1sav.rtc.tpp1`](/specifications/extensions/x.1sav.rtc.tpp1/)         | (spec) | save or state header            | The clock of the TPP1 homebrew Game Boy mapper.                           |

@@ -4,11 +4,11 @@ description: A portable, self-describing CBOR container for retro console save f
 sidebar:
   label: Overview
   badge:
-    text: v0.5
+    text: v0.6
     variant: caution
 ---
 
-This is version 0.5 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
+This is version 0.6 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
 in place, under the same bundle tag.
 
 ## Changelog
@@ -18,6 +18,9 @@ moved. A version covers the format, the [common types](/specifications/common-ty
 [extension keys](/specifications/extensions/) these specifications own; a key belonging to a producer changes on that
 producer's schedule instead.
 
+- **0.6**, 2026-10-29. Renamed: header key 6 is `bundled_at`, which was `created_at`. Nothing on the wire changes, and
+  every bundle stays valid. A decoder that finds anything [malformed](#rejecting-a-malformed-bundle) in a file now
+  rejects all of it, and keeps none of the parts it could read.
 - **0.5**, 2026-10-23. Breaking: an [`x.1sav.rtc.huc3`](/specifications/extensions/x.1sav.rtc.huc3/) value carries the
   seconds its clock has counted into the minute, in required key 2. It is null where a producer's source does not keep
   them. The HuC-3's day counter is four nybbles, so its reading takes address 0x16 too.
@@ -124,6 +127,20 @@ So this one offers one, everywhere:
 Each is a rule a producer follows and a decoder enforces. Breaking one is malformed rather than merely unusual, because
 a consumer that accepted both spellings would compute two content hashes for one save.
 
+### Rejecting a malformed bundle
+
+A bundle is malformed when anything in it breaks a rule of this specification, at any depth. A card holding one
+malformed save is a malformed card, however sound its other saves are.
+
+- A decoder that finds anything malformed **MUST** reject the whole file, the outermost bundle included.
+- It **MUST NOT** keep the parts it could read and drop the one it could not.
+
+Whatever it kept would be a bundle its producer never wrote, still under that producer's `source`.
+
+What a decoder does not recognise is not malformed. An integer key or a shape from a later version is round-tripped, as
+the sections below say. A [kind](/specifications/bundle/#part-kinds) the decoder does not know is read as `aux`. Every
+extension value is round-tripped too, since the format never looks inside one.
+
 ### Additive integer keys
 
 Integer keys belong to this specification, in every map it defines. Text keys belong to producers; that is the
@@ -152,12 +169,14 @@ never seen. Each field in [Bundle](/specifications/bundle/) says which kind it h
 
 ## Shapes
 
-[`shape`](/specifications/bundle/#0-header-map) names one of four, and each has a document that defines what its parts
+[`shape`](/specifications/bundle/#0-header-map) names one of six, and each has a document that defines what its parts
 mean:
 
 | Shape                                        | The bundle is                     | Its parts are                                           |
 | -------------------------------------------- | --------------------------------- | ------------------------------------------------------- |
-| [`save`](/specifications/saves/)             | one game's state                  | the regions or files that state is made of              |
+| [`save`](/specifications/saves/)             | one game's in-game save           | the regions or files that save is made of               |
+| [`state`](/specifications/states/)           | one save state                    | the core's data, its screenshot, what the emulator kept |
+| [`screenshot`](/specifications/screenshots/) | one image of a game's screen      | the image                                               |
 | [`card`](/specifications/cards/)             | one memory card                   | one `bundle` part per save, and the card's own          |
 | [`device`](/specifications/device/)          | one console's storage, read whole | one `bundle` part per component, each with a `role`     |
 | [`collection`](/specifications/collections/) | several bundles in one file       | one `bundle` part per entry, any shape but a collection |
@@ -171,8 +190,8 @@ it does for an integer key a later version assigned. It **MUST NOT** guess what 
 any operation that depends on knowing: walking the parts, restoring a save, rebuilding a card. Refusing to act on a
 bundle is not the same as rejecting it, and only the second loses the bytes.
 
-The schema is the narrower of the two on purpose. It pins the four shapes this version defines, so validating against it
-says "this is a conforming 0.5 bundle" rather than "some decoder can read this", the same asymmetry
+The schema is the narrower of the two on purpose. It pins the six shapes this version defines, so validating against it
+says "this is a conforming 0.6 bundle" rather than "some decoder can read this", the same asymmetry
 [Additive integer keys](#additive-integer-keys) describes.
 
 A bundle names its shape and a decoder reads it; what the parts then mean is that shape's document, and

@@ -1,6 +1,6 @@
 ; ============================================================================
 ; 1SAV - Universal Saves Format, v1
-; Spec version 0.5: not yet stabilized, expect breaking changes.
+; Spec version 0.6: not yet stabilized, expect breaking changes.
 ;
 ; CDDL per RFC 8610. This file is the shape of a bundle and nothing else.
 ; Why the shape is what it is:  /specifications/universal-saves-format/
@@ -13,19 +13,21 @@
 ; ---- File framing ----------------------------------------------------------
 saves-file = #6.827539798(bundle)   ; tag reads "1SAV" from byte 1 of the file
 
+; A state and a screenshot hold parts no other shape may, so each pairs its
+; header with parts of its own. The other four shapes share one part rule.
 bundle = [
   header,           ; [0] header
   parts,            ; [1] parts
-]
+] / state-bundle / screenshot-bundle
 
 ; Integer keys belong to the spec; text keys belong to producers. This schema
-; describes v0.5 exactly, so an integer key it does not list fails validation,
+; describes v0.6 exactly, so an integer key it does not list fails validation,
 ; and so does a `shape` it does not list. A decoder is looser on purpose: it
 ; parses and round-trips both, since each is a later minor version's. See the
 ; spec.
 
 ; ---- [0] Header ------------------------------------------------------------
-; `shape` says which document governs the bundle, and the four arms below are
+; `shape` says which document governs the bundle, and the six arms below are
 ; what each one allows. They are disjoint on key 0, so a decoder reads the shape
 ; and knows the rest without trying the arms in turn, and key 0 encodes first
 ; under canonical ordering, so the shape leads the bundle. The vocabulary is
@@ -36,7 +38,7 @@ bundle = [
 ; entirely that producer's: any CBOR value, of any shape, never inspected here.
 header = save-header / card-header / device-header / collection-header
 
-; One game's state, as the medium stored it.
+; One game's in-game save, as the medium stored it.
 save-header = {
     0 => "save",
   ? 1 => system-slug, ; system      (gb | snes | n64 | 3ds | ...)
@@ -70,12 +72,74 @@ collection-header = {
   common-header,
 }
 
+; One save state: an emulator's snapshot of a running game, which only the core
+; that took it loads. So `source` is required, and has to name that core, or the
+; app where nothing runs one.
+state-bundle = [state-header, state-parts]
+
+state-header = {
+    0 => "state",
+    3 => state-source,  ; source      (what the state loads into)
+  ? 1 => system-slug,
+  ? 2 => game,        ; game        (the ROM the state was taken against)
+  ? 7 => epoch-time,  ; taken_at
+  ? 8 => taken-with,  ; taken_with
+  ? 9 => origin,      ; origin      (absent means the player made it)
+  bundle-notes,
+}
+
+state-source = source .and (names-core / names-app)
+names-core = { 4 => any, * any => any }
+names-app = { 2 => any, * any => any }
+
+; One screenshot, on its own. Its only part is the image.
+screenshot-bundle = [screenshot-header, [screenshot-part]]
+
+screenshot-header = {
+    0 => "screenshot",
+  ? 1 => system-slug,
+  ? 2 => game,
+  ? 7 => epoch-time,  ; taken_at
+  common-header,
+}
+
 common-header = (
   ? 3 => source,      ; source      (bundle producer; default for all parts)
+  bundle-notes,
+)
+
+bundle-notes = (
   ? 5 => tstr,        ; description (free-form human note)
-  ? 6 => epoch-time,  ; created_at
+  ? 6 => epoch-time,  ; bundled_at
   * reverse-dns => any,   ; extension keys, e.g. "x.1sav.rtc"
 )
+
+; What a state was taken with, where that bears on loading it anywhere else.
+; Every entry is optional, null where the producer does not know it, and absent
+; where it does not apply.
+taken-with = {
+  ? 0 => byte-order / null,     ; byte_order     (the host's)
+  ? 1 => word-size / null,      ; word_size      (the host's, in bits)
+  ? 2 => firmware / null,       ; firmware       (what the machine booted)
+  ? 3 => language-tag / null,   ; language       (the machine's setting)
+  ? 4 => core-options / null,   ; options        (the core's, as it names them)
+  ? 5 => uint / null,           ; format_version (stamped outside the core's data)
+  * reverse-dns => any,         ; extension keys, flat as in the header
+}
+
+byte-order = "little" / "big"
+word-size = 32 / 64
+
+; Each file by the path the core loads it from, and its hash values.
+firmware = { + path => rom-hashes }
+
+; BCP 47, in its canonical case: a language, then a script, then a region.
+language-tag = tstr .regexp "[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?"
+
+core-options = { + tstr => tstr }
+
+; Spec-owned, like a binding: who made the state, when it was not the player.
+origin = slug                 ; auto | undo
 
 
 ; `system` here is the game's, not the medium's: which system's release these
@@ -129,8 +193,8 @@ parts = [+ part]
 
 part = {
   0 => uint,          ; id
-  ? 1 => kind,        ; kind     (absent means "save"; conditions everything below)
-  ? 2 => role,        ; role     (absent means "primary")
+  ? 1 => part-kind,   ; kind     (absent means "save"; conditions everything below)
+  ? 2 => part-role,   ; role     (absent means "primary")
   ? 3 => path,        ; path     (absent means the role is the whole address)
   ? 4 => uint,        ; slot     (index in the container this part came from)
   ? 5 => bstr,        ; dirent   (that container's directory entry, verbatim)
@@ -155,7 +219,41 @@ part = {
 compressed = ( 7 => encoding, 8 => uint, 9 => sha256-hash, -1 => bstr )
 embedded   = ( 9 => sha256-hash, -1 => bstr )
 
-kind = slug / reverse-dns     ; card-image | bundle | aux, or a minted name
+kind = slug / reverse-dns     ; card-image | bundle | aux | state | screenshot, or a minted name
+
+; "save" is the default, written by leaving key 1 out. A state part and a
+; screenshot part each have rules of their own, below, and sit only in the
+; shapes that hold them.
+part-kind = (kind .ne "save") .and not-its-own-rule
+not-its-own-rule = (tstr .ne "state") .and (tstr .ne "screenshot")
+
+; "primary" is the default, written by leaving key 2 out.
+part-role = role .ne "primary"
+
+; A state's parts: the state part, at most one screenshot, an in-game save its
+; emulator keeps beside the core's data, and `aux` parts for the rest of its
+; container. That exactly one is the state is prose, since CDDL cannot count
+; the members of an array that match one arm.
+state-parts = [+ (state-part / screenshot-part / part)]
+
+state-part = {
+  0 => uint,          ; id
+  1 => "state",       ; kind
+  ? 4 => uint,        ; slot     (the number the emulator gave it)
+  ( compressed // embedded ),
+  * reverse-dns => any,   ; extension keys, flat as in the header
+}
+
+; `content_type` is required, since it is what says how to show the image.
+screenshot-part = {
+  0 => uint,          ; id
+  1 => "screenshot",  ; kind
+  6 => image-type,    ; content_type
+  ( compressed // embedded ),
+  * reverse-dns => any,   ; extension keys, flat as in the header
+}
+
+image-type = "image/png" / "image/jpeg"
 
 ; Spec-owned, like a card format: a binding names a category everyone shares,
 ; so minting into it would split the category rather than extend it.

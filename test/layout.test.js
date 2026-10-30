@@ -125,18 +125,18 @@ describe("negative payload key", () => {
 
 // One logical bundle has one encoding, or the content hash stops being a
 // function of what the bundle says. CDDL catches most of this; these are the
-// rules it cannot reach, because "at least one of these optional keys" and
-// "any slug except this one" are both beyond what a schema can say.
+// rules the schema leaves out, or cannot reach. "At least one of these
+// optional keys" is beyond what it can say, and it never sees inside a nested
+// bundle's bytes.
 describe("one encoding per bundle", () => {
   const everyBundle = function* (b, depth = 0) {
     yield { bundle: b, depth };
     for (const { bundle: inner, depth: d } of everyPart(b)) if (inner) yield { bundle: inner, depth: d };
   };
 
-  // Absence is the only encoding of each of these. Three of the four are
-  // catchable by the schema; `role` is not, because `primary` is a well-formed
-  // slug and XSD regular expressions have no negative lookahead, so this test
-  // is the only thing standing between the rule and a bundle that breaks it.
+  // Absence is the only encoding of each of these. The schema catches all four
+  // on a bundle's own parts, but a nested bundle is bytes to it, so this walks
+  // every depth the schema cannot.
   const DEFAULTS = [
     [2, "primary", "role"],
     [3, "", "path"],
@@ -158,7 +158,7 @@ describe("one encoding per bundle", () => {
     for (const [name, fixture] of Object.entries(valid)) {
       for (const { bundle: b } of everyBundle(fixture)) {
         const header = b.value[0];
-        for (const key of [2, 4]) {
+        for (const key of [2, 4, 8]) {
           const m = header.get(key);
           if (m !== undefined) assert.ok(m.size > 0, `${name}: header key ${key} is present but empty`);
         }
