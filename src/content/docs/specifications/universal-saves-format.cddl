@@ -13,12 +13,13 @@
 ; ---- File framing ----------------------------------------------------------
 saves-file = #6.827539798(bundle)   ; tag reads "1SAV" from byte 1 of the file
 
-; A state and a screenshot hold parts no other shape may, so each pairs its
-; header with parts of its own. The other four shapes share one part rule.
+; A card, a state and a screenshot each hold a part no other shape may, so each
+; pairs its header with parts of its own. The other three shapes share one part
+; rule.
 bundle = [
   header,           ; [0] header
   parts,            ; [1] parts
-] / state-bundle / screenshot-bundle
+] / card-bundle / state-bundle / screenshot-bundle
 
 ; Integer keys belong to the spec; text keys belong to producers. This schema
 ; describes v0.6 exactly, so an integer key it does not list fails validation,
@@ -36,7 +37,7 @@ bundle = [
 ;
 ; `* reverse-dns => any` admits a producer's own keys. What sits under one is
 ; entirely that producer's: any CBOR value, of any shape, never inspected here.
-header = save-header / card-header / device-header / collection-header
+header = save-header / device-header / collection-header
 
 ; One game's in-game save, as the medium stored it.
 save-header = {
@@ -47,7 +48,10 @@ save-header = {
 }
 
 ; One memory card. The `card` map is what makes it one, so it is required here
-; and admitted nowhere else.
+; and admitted nowhere else. Its parts are its saves, the entries on it that
+; belong to no game, and anything kept beside them.
+card-bundle = [card-header, card-parts]
+
 card-header = {
     0 => "card",
     4 => card,        ; card        (format, capacity, system area)
@@ -219,16 +223,39 @@ part = {
 compressed = ( 7 => encoding, 8 => uint, 9 => sha256-hash, -1 => bstr )
 embedded   = ( 9 => sha256-hash, -1 => bstr )
 
-kind = slug / reverse-dns     ; card-image | bundle | aux | state | screenshot, or a minted name
+kind = slug / reverse-dns     ; card-image | bundle | system | aux | state | screenshot, or a minted name
 
-; "save" is the default, written by leaving key 1 out. A state part and a
-; screenshot part each have rules of their own, below, and sit only in the
-; shapes that hold them.
+; "save" is the default, written by leaving key 1 out. A state part, a
+; screenshot part and a system part each have rules of their own, below, and sit
+; only in the shapes that hold them.
 part-kind = (kind .ne "save") .and not-its-own-rule
-not-its-own-rule = (tstr .ne "state") .and (tstr .ne "screenshot")
+not-its-own-rule = (tstr .ne "state") .and ((tstr .ne "screenshot") .and (tstr .ne "system"))
 
 ; "primary" is the default, written by leaving key 2 out.
 part-role = role .ne "primary"
+
+; A card's parts: a `bundle` part per save, a `system` part per entry on the
+; card that belongs to no game, and whatever is kept beside them.
+card-parts = [+ (system-part / part)]
+
+; A file or directory on the card that belongs to the card or the console. Its
+; `path` is required, since it is the whole of where the entry goes, and it
+; names no `game`, since it belongs to none. That a file's directory has a
+; `system` part of its own, before the file's, is prose: CDDL cannot compare
+; one part with another.
+system-part = {
+  0 => uint,          ; id
+  1 => "system",      ; kind
+  3 => path,          ; path     (where on the card the entry sits)
+  ? 2 => part-role,   ; role
+  ? 4 => uint,        ; slot
+  ? 5 => bstr,        ; dirent   (the entry, verbatim)
+  ? 6 => tstr,        ; content_type
+  ? 10 => source,     ; source
+  ? 13 => binding,    ; binding
+  ( compressed // embedded ),
+  * reverse-dns => any,   ; extension keys, flat as in the header
+}
 
 ; A state's parts: the state part, at most one screenshot, an in-game save its
 ; emulator keeps beside the core's data, and `aux` parts for the rest of its

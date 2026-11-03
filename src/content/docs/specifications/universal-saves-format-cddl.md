@@ -34,10 +34,11 @@ together. A validator therefore rejects an uppercase role, a name written with a
 arm a value was _meant_ to be in. Each part default fails validation when spelled out. `"save"` as a `kind` and
 `"primary"` as a `role` are excluded with `.ne`, `path` has a minimum size of 1, and `encoding` admits only `"zstd"`.
 
-A state and a screenshot each pair their header with parts of their own. That is how the schema keeps a `state` or a
-`screenshot` part out of every other shape. The general part takes any `kind` but those two and `save`. A screenshot
-part has to carry an image type, and a screenshot bundle holds that one part and nothing else. A state's `source` has to
-name a `core` or an `app`, which `.and` checks against the plain `source` map.
+A card, a state and a screenshot each pair their header with parts of their own. That is how the schema keeps a
+`system`, `state` or `screenshot` part out of every other shape. The general part takes any `kind` but those three and
+`save`. A system part has to carry a `path`, and carries no `game`. A screenshot part has to carry an image type, and a
+screenshot bundle holds that one part and nothing else. A state's `source` has to name a `core` or an `app`, which
+`.and` checks against the plain `source` map.
 
 A part is written as a choice of two forms, which is what makes `size` checkable. `size` is present when the payload is
 compressed, and absent when it is uncompressed and therefore states its own length. The arms are ordered
@@ -52,6 +53,7 @@ Other constraints are not expressible in CDDL and remain prose-only in
 - `path` avoiding a leading `/` and `..` segments.
 - No two parts of one kind agreeing on `role`, `path` and `slot` at once.
 - A state holding exactly one `state` part and at most one `screenshot`.
+- A `system` part for a file's directory, ahead of the file's own.
 - A `game` map and a `taken_with` map holding at least one key.
 
 CDDL can require a key but not "at least one of these optional keys", which is why the last of those stays prose. The

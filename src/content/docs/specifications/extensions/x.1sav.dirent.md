@@ -53,8 +53,9 @@ than in a directory region.
 
 ## Where it goes
 
-The part that stands for one entry in a directory, which is two places and no others. One is a
-[card](/specifications/cards/)'s [`bundle` part](/specifications/bundle/#nested-bundles) holding a save. The other is a
+The part that stands for one entry in a directory, which is three places and no others. One is a
+[card](/specifications/cards/)'s [`bundle` part](/specifications/bundle/#nested-bundles) holding a save. Another is a
+card's [`system` part](/specifications/cards/#system-entries), for an entry that belongs to no game. The third is a
 [save](/specifications/saves/)'s own part where the save is a directory, as a PS2 save's files are. These times are the
 directory's record and do not survive the save being sliced out, which is why they sit beside the raw `dirent` bytes
 rather than in the save's own header.

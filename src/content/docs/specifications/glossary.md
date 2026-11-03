@@ -46,11 +46,12 @@ long forms: in-game save and save state.
 ## Addressing a part
 
 - **Kind.** What a part's bytes play: absent for a save, or
-  [`state`, `screenshot`, `bundle`, `card-image` or `aux`](/specifications/bundle/#part-kinds).
+  [`state`, `screenshot`, `bundle`, `system`, `card-image` or `aux`](/specifications/bundle/#part-kinds).
 - **Role.** Which socket the bytes came out of, not what medium they are on. A controller pak is a card that lives in a
   controller. Names come from the [Save Roles registry](/registries/roles/).
 - **Path.** Where the bytes sat in the container they came from, as a relative path. On a card's `bundle` part it is the
-  name the card's directory holds, which is what tells two saves of one game apart.
+  name the card's directory holds, which is what tells two saves of one game apart. On a `system` part it is required,
+  and says where on the card the entry sits.
 - **Slot.** A part's index in the container it came from, carried where a container lets two entries share a name.
 - **`dirent`.** The container's directory entry for a part, carried verbatim as bytes. The format never says what a byte
   in one means: it is input for a writer, not a description of the save.
@@ -90,7 +91,10 @@ Most normative rules name one of these three, and which one is the whole meaning
   [Per-format facts](/specifications/memory-cards/#per-format-facts).
 - **Capacity.** The size of a card's data area, which is neither the room left for saves nor the length of a dump. See
   [Capacity](/specifications/memory-cards/#capacity-and-out-of-band-bytes).
-- **System area.** Card-level bytes belonging to no save, carried on the `card` map rather than on any part.
+- **System area.** Bytes at a fixed place on a card that belong to no save, carried on the `card` map rather than on any
+  part.
+- **System entry.** A file or directory on a card that belongs to the card or the console rather than to any game,
+  carried as a [`system` part](/specifications/cards/#system-entries).
 
 ## Names
 

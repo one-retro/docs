@@ -166,6 +166,38 @@ export const valid = {
   "ps1-card": ps1Card,
   "ps2-card": ps2Card,
 
+  // A PS2 card holding the console's network settings beside a game's save.
+  // The settings are no game's, so they are not a save: the directory is one
+  // `system` part with an empty payload, and each file in it another, after it.
+  "card-system-entries": card("ps2", "ps2-mc", 8388608, [
+    nested(ffxSave, { id: 0, role: "memcard-1", path: "BASLUS-20312", game: FFX, slot: 2, dirent: pattern(512, 3) }),
+    part({
+      id: 1,
+      kind: "system",
+      role: "memcard-1",
+      path: "BWNETCNF",
+      slot: 3,
+      dirent: pattern(512, 7),
+      payload: Buffer.alloc(0),
+    }),
+    part({
+      id: 2,
+      kind: "system",
+      role: "memcard-1",
+      path: "BWNETCNF/icon.sys",
+      dirent: pattern(512, 8),
+      payload: pattern(964, 9),
+    }),
+    part({
+      id: 3,
+      kind: "system",
+      role: "memcard-1",
+      path: "BWNETCNF/BWNETCNF",
+      dirent: pattern(512, 10),
+      payload: pattern(5120, 11),
+    }),
+  ]),
+
   // A card-image kept alongside the split saves, which the spec allows so a
   // producer can hold on to the deleted-save residue and free-block contents
   // that splitting drops.
@@ -819,6 +851,17 @@ export const invalid = {
   "screenshot-with-two-images": bundle(map({ 0: "screenshot" }), [screenshot(0), screenshot(1, pattern(512, 89))]),
   "screenshot-holding-a-save": bundle(map({ 0: "screenshot" }), [part()]),
 
+  // A `system` part is an entry on a card that belongs to no game, so it sits on
+  // a card and nowhere else, says where on the card it goes, and names no game.
+  "system-part-in-a-save": bundle(map({ 0: "save", 1: "ps2" }), [
+    part({ id: 0 }),
+    part({ id: 1, kind: "system", path: "BWNETCNF/BWNETCNF", payload: pattern(64, 103) }),
+  ]),
+  "system-part-without-path": card("ps2", "ps2-mc", 8388608, [part({ kind: "system", payload: pattern(64, 107) })]),
+  "system-part-naming-a-game": card("ps2", "ps2-mc", 8388608, [
+    part({ kind: "system", path: "BASLUS-20312/icon.sys", game: FFX, payload: pattern(964, 109) }),
+  ]),
+
   // `taken_at` is when a state or a screenshot was taken, which an in-game save
   // has no field for. `taken_with` and `origin` belong to a state alone.
   "taken-at-on-a-save": bundle(map({ 0: "save", 1: "gba", 7: TAKEN_AT }), [part()]),
@@ -1061,4 +1104,15 @@ export const malformedStructure = {
   // A state holds no nested bundle. A state and an in-game save in one file is
   // a collection of two bundles.
   "state-holding-a-bundle-part": bundle(map({ 0: "state", 3: MGBA }), [statePart(), nested(gbSave, { id: 1 })]),
+
+  // A `system` file sits in a directory that has a `system` part of its own,
+  // ahead of the file's, so a writer has made the directory before it reaches
+  // the file. Here the directory is missing, and then it comes too late.
+  "system-file-without-its-directory": card("ps2", "ps2-mc", 8388608, [
+    part({ kind: "system", path: "BWNETCNF/icon.sys", dirent: pattern(512, 8), payload: pattern(964, 9) }),
+  ]),
+  "system-file-before-its-directory": card("ps2", "ps2-mc", 8388608, [
+    part({ id: 0, kind: "system", path: "BWNETCNF/icon.sys", dirent: pattern(512, 8), payload: pattern(964, 9) }),
+    part({ id: 1, kind: "system", path: "BWNETCNF", dirent: pattern(512, 7), payload: Buffer.alloc(0) }),
+  ]),
 };

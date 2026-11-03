@@ -91,7 +91,9 @@ read back off the role, as it can when a Saturn is read whole as a [device](/spe
 
 Everything structural: block chains, the FAT or BAT and its mirrors, every checksum, the header block, directory
 ordering, and ECC where the medium has it. `dirent` plus the payload is sufficient input for every format here, which is
-what `.mcs`, `.psu`, `.note` and `.gci` each demonstrate in production, since none of them carries more than that.
+what `.mcs`, `.psu`, `.note` and `.gci` each demonstrate in production, since none of them carries more than that. A
+[`system` part](/specifications/cards/#system-entries) is rebuilt the same way as a save, from its `dirent` and its
+payload, at the place its `path` names.
 
 Three cases need more:
 
@@ -115,9 +117,46 @@ only its contents. It holds an N64 controller pak's 32-byte label, a Neo Geo car
 Dreamcast VMU's custom colour and icon shape. None of it belongs to any save, so splitting a card would otherwise drop
 it, and keeping it would otherwise mean keeping a whole `card-image` for a few dozen bytes.
 
-What `system_area` does not cover is the residue of deleted saves, whose payload blocks a card keeps intact long after
-the directory stops pointing at them, and the contents of free blocks. Neither belongs to any save, so neither survives
-a split, and a producer that wants them keeps a `card-image` too. That is the whole of what splitting a card costs.
+Whole files and directories that belong to no game are not `system_area` either. They are entries in the card's
+filesystem rather than bytes at a fixed place, and they travel as [`system` parts](#entries-belonging-to-no-game).
+
+What neither covers is the residue of deleted saves, whose payload blocks a card keeps intact long after the directory
+stops pointing at them, and the contents of free blocks. Neither belongs to any save, so neither survives a split, and a
+producer that wants them keeps a `card-image` too. That is the whole of what splitting a card costs.
+
+## Entries belonging to no game
+
+Some consoles keep data of their own in the card's filesystem, as ordinary files and directories beside the saves. They
+belong to no game, so none is a save. Each entry is a [`system` part](/specifications/cards/#system-entries) instead: a
+directory's part first, with an empty payload, then a part per file in it, its `path` the directory's name and its own
+joined by `/`. A writer lays each one down where its `path` says, after the directory it sits in.
+
+A producer classifies an entry by the tables below, never by a name failing to look like a game's. An entry this page
+does not list is a save, even one no game wrote, such as a homebrew loader's folder. Where nothing identifies it, it is
+[unidentified](/specifications/bundle/#0-header-map).
+
+### PS2
+
+The PS2 keeps these in the root, beside the game save directories. `?` is the console's region as the browser names it:
+`I` for Japan, `A` for North America and the rest of Asia, `E` for Europe, `C` for China.
+
+| Directory          | What writes it                                                                                                                         | What it holds                                                                                                                        |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `B?DATA-SYSTEM`    | The browser, each time it boots a disc. Listed as "Your System Configuration", and marked hidden from games.                           | `history`, which drives the start-up animation, `history.old`, `icon.sys`, and on a Chinese console `_SCE8`.                         |
+| `B?EXEC-SYSTEM`    | A system update, which the boot ROM looks for at start-up and runs. Free McBoot installs itself here too.                              | `osdXXX.elf` or `osdmain.elf`, by ROM version.                                                                                       |
+| `B?EXEC-DVDPLAYER` | The DVD player a utility disc installs onto the card.                                                                                  | `dvdplayer.elf`, `dvdplayer.id` and a `.ver` file.                                                                                   |
+| `BWNETCNF`         | Sony's network configuration library, from the Network Adaptor Start-up Disc or a game's own network setup. It takes no region letter. | `BWNETCNF`, a 964-byte `icon.sys`, a 33,688-byte `SYS_NET.ICO`, and an `ifcNNN.dat`, `devNNN.dat` or `netNNN.dat` per configuration. |
+| `BWLINUX`          | Linux for PlayStation 2, whose memory-card filesystem keeps to this one directory.                                                     | Whatever the kit writes.                                                                                                             |
+
+The region letters, the browser's history and the update folders follow ps2homebrew's
+[OSD-Initialization-Libraries](https://github.com/ps2homebrew/OSD-Initialization-Libraries/tree/0af6484eb7883b9fc4bb0ba92f0d19a528ac9106/osd/common),
+which reimplements the browser. The network settings are as ps2sdk's
+[`netcnf`](https://github.com/ps2dev/ps2sdk/blob/f1ca58a468ead937155ab818d9a38e52c8adf861/iop/network/netcnf/src/netcnf.c#L1081-L1260)
+writes them, and `BWLINUX` is the kernel's
+[`PS2MC_BASEDIR`](https://github.com/rickgaiser/linux-2.4.17-ps2/blob/69d1691010e92b14133758864c1433042de028cf/include/linux/ps2/mcio.h#L17).
+
+A card no game has saved to yet commonly holds `B?DATA-SYSTEM` and nothing else, since booting a disc writes it. That
+card is still split: its `system` parts are its parts, and it needs no `card-image`.
 
 ## Several saves for the same game
 
@@ -144,6 +183,9 @@ covers 3DS extdata.
 The directory has a directory entry of its own, carrying its mode bits and timestamps, and it belongs to no file. That
 one rides on the outer `bundle` part, alongside the slot. `.psu` is laid out the same way, with the directory's entry
 first and `.` and `..` behind it.
+
+Not every directory in a PS2's root is a save. The console's own are [`system` parts](#entries-belonging-to-no-game),
+flat rather than nested, since no game's save is in them.
 
 ## Worked example: a PS1 card
 
