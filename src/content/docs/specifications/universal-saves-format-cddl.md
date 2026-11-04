@@ -18,7 +18,7 @@ and `game`, admitted by `* reverse-dns => any`, and the resolver names keying `g
 reverse-DNS name matches no rule and fails. What sits _under_ an extension key is `any` and is never checked, which is
 deliberate rather than a gap; so is a `game_id` value, which is whatever form its catalog publishes.
 
-This schema describes v0.6 exactly, so an integer key it does not list fails validation. A shipped decoder is
+This schema describes v0.7 exactly, so an integer key it does not list fails validation. A shipped decoder is
 deliberately looser. It ignores and round-trips an integer key it does not recognize, since the only thing such a key
 can be is a later minor version's field; see
 [Additive integer keys](/specifications/universal-saves-format/#additive-integer-keys). A schema for one version cannot
@@ -54,6 +54,9 @@ Other constraints are not expressible in CDDL and remain prose-only in
 - No two parts of one kind agreeing on `role`, `path` and `slot` at once.
 - A state holding exactly one `state` part and at most one `screenshot`.
 - A `system` part for a file's directory, ahead of the file's own.
+- A `dirent` as long as its card's format makes one.
+- A Neo Geo card's `system_area` being its 64-byte header block.
+- A Neo Geo save's `path` spelled from its NGH and sub-number, and an N64 note's from its pak's character table.
 - A `game` map and a `taken_with` map holding at least one key.
 
 CDDL can require a key but not "at least one of these optional keys", which is why the last of those stays prose. The

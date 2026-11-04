@@ -135,6 +135,32 @@ const SONIC = map({ 4: "Sonic Adventure", 5: "dreamcast" });
 const METAL_SLUG = map({ 3: "NGH-201", 4: "Metal Slug" });
 const FZERO = map({ 3: "GFZE8P", 4: "F-Zero GX" });
 
+// A Neo Geo card holding one save and an N64 pak holding one note, for the
+// cases that change one thing about either.
+const neogeoCard = (entry = {}, systemArea = pattern(64, 79)) =>
+  bundle(map({ 0: "card", 1: "neogeo", 4: map({ 0: "neogeo-mc", 1: 2048, 2: systemArea }) }), [
+    nested(oneFileSave("neogeo", METAL_SLUG, pattern(64, 83)), {
+      id: 0,
+      role: "neogeo-card",
+      path: "0201-0",
+      game: METAL_SLUG,
+      slot: 0,
+      dirent: Buffer.from([0x00, 0x02, 0x01, 0x05]),
+      ...entry,
+    }),
+  ]);
+const n64Pak = (path) =>
+  bundle(map({ 0: "card", 1: "n64", 4: map({ 0: "n64-cpak", 1: 32768, 2: pattern(32, 9) }) }), [
+    nested(oneFileSave("n64", MK64, pattern(256, 41)), {
+      id: 0,
+      role: "controller-pak-1",
+      path,
+      game: MK64,
+      slot: 1,
+      dirent: pattern(32, 3),
+    }),
+  ]);
+
 // Save states and screenshots. A state is one core's snapshot of a running
 // game, so its header names that core and the ROM it was taken against, and its
 // parts are the core's own data, the screenshot, and whatever else the
@@ -439,6 +465,10 @@ export const valid = {
     }),
   ]),
 
+  // An N64 note can carry an extension beside its 16-byte name. `path` joins
+  // the two with a dot, each decoded through the pak's own character table.
+  "n64-note-with-extension": n64Pak("MARIOKART64.A"),
+
   // A GameCube Memory Card 59: 64 blocks of 8192 bytes, named for the 59 left
   // once the header, the directory and the block allocation table have taken
   // theirs, and `capacity` is all 64 of them. Taken from a real `.gci`, which
@@ -691,7 +721,7 @@ export const valid = {
 };
 
 export const invalid = {
-  // This schema describes v0.6, so an integer key it does not list fails
+  // This schema describes v0.7, so an integer key it does not list fails
   // validation. A shipped decoder is deliberately looser: it ignores and
   // round-trips these, because the only thing they can be is a later minor
   // version's field. That difference is a decoder rule the schema cannot state.
@@ -1117,4 +1147,28 @@ export const malformedStructure = {
     part({ id: 0, kind: "system", path: "BWNETCNF/icon.sys", dirent: pattern(512, 8), payload: pattern(964, 9) }),
     part({ id: 1, kind: "system", path: "BWNETCNF", dirent: pattern(512, 7), payload: Buffer.alloc(0) }),
   ]),
+
+  // A Neo Geo save's `path` is its NGH number in four lowercase hex digits, a
+  // dash, then its sub-number in one more. Sub-number 10 is `a` and NGH 201 is
+  // `0201`, so neither of these is how a producer spells them.
+  "neogeo-path-uppercase": neogeoCard({ path: "0201-A", dirent: Buffer.from([0x0a, 0x02, 0x01, 0x05]) }),
+  "neogeo-path-unpadded": neogeoCard({ path: "201-0" }),
+
+  // A `dirent` is as long as its card's format makes it, and a Neo Geo entry
+  // is four bytes. This one stops at three.
+  "dirent-wrong-length": neogeoCard({ dirent: Buffer.from([0x00, 0x02, 0x01]) }),
+
+  // A Neo Geo card's `system_area` is its whole 64-byte header block, which
+  // carries the cardholder username and the card's region. The username alone
+  // is 16 bytes and leaves the region behind.
+  "neogeo-system-area-only-the-username": neogeoCard({}, pattern(16, 79)),
+
+  // An N64 note's `path` is its name decoded through the pak's character
+  // table, which has no lowercase letters. So this spelling cannot have come
+  // from a note, and a producer leaves `path` out rather than invent one.
+  "n64-path-outside-the-table": n64Pak("MarioKart64"),
+
+  // A note's name is 16 bytes, so its spelling runs to 16 characters at most
+  // before any extension. This one has 17 and no extension.
+  "n64-path-longer-than-a-note-name": n64Pak("MARIOKART64DELUXE"),
 };

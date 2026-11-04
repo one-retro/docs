@@ -88,7 +88,7 @@ exactly the bytes the card allocated, so the count is the nested bundle's total 
 
 That division takes the block size from the format, which holds for every format here except `saturn-bup`. Its 64 is the
 console's internal memory and a backup cartridge carries its own, so a count derived this way for a cartridge is wrong.
-The table stands as written for 0.6. Settling it means keying the block size on
+The table stands as written for 0.7. Settling it means keying the block size on
 [`capacity`](/specifications/bundle/#card-map), which is required on every card map, rather than on the format alone. A
 cartridge dumped by itself is a card bundle with no [`role`](/registries/roles/) anywhere in it. So the medium cannot be
 read back off the role, as it can when a Saturn is read whole as a [device](/specifications/device/).
@@ -186,11 +186,38 @@ Two details of that naming are worth having, because they are what `path` and `s
   filename always carries the disc-1 code so every disc reads the same saves. A `serial` taken from a card filename is
   the save's product code, not necessarily the code of the disc that wrote it.
 
+## Spelling a name as `path`
+
+`path` is the name a card's directory holds for a save. On most formats that name is text already: a PS1 or PS2
+directory's name, a GameCube or VMU file's. Two formats hold something else, so this page spells it for them.
+
 A Neo Geo game numbers its saves itself, with a sub-number from 0 to 15 beside its NGH number. The card holds both as
 numbers rather than text, so `path` spells them: the NGH number in four hex digits, a dash, then the sub-number in one
 hex digit. Metal Slug's first save is `0201-0`.
 
 - A producer **MUST** spell a Neo Geo save's `path` that way, in lowercase.
+
+An N64 note has a 16-byte name and a 4-byte extension, both in the pak's own character set. `path` is the name decoded
+through the table below, up to its first NUL. Where the extension's first byte is not NUL, a `.` and the decoded
+extension follow, again up to its first NUL. A note named `GAME` with the extension `A` is `GAME.A`.
+
+- A producer **MUST** spell an N64 note's `path` that way.
+- A producer **MUST** omit `path` from a note whose name or extension holds a byte the table leaves empty, or whose
+  spelling `path` forbids.
+
+| Bytes         | Characters                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| `0x0F`        | space                                                                                    |
+| `0x10`–`0x19` | `0`–`9`                                                                                  |
+| `0x1A`–`0x33` | `A`–`Z`                                                                                  |
+| `0x34`–`0x41` | `! " # ' * + , - . / : = ? @`                                                            |
+| `0x42`–`0x44` | 。゛゜                                                                                   |
+| `0x45`–`0x4F` | ァィゥェォッャュョヲン                                                                   |
+| `0x50`–`0x7B` | アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワ |
+| `0x7C`–`0x94` | ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ                                       |
+
+`0x00` is NUL, which pads both fields. The bytes from `0x01` to `0x0E` and from `0x95` up have no character. The table
+is the one [N64brew](https://n64brew.dev/wiki/Controller_Pak/Filesystem) documents.
 
 ## Saves made of several files
 
@@ -319,7 +346,7 @@ arrangement once per save, and nothing has to infer where one save ends and the 
 
 ## Worked example: an N64 cartridge and its Controller Pak
 
-Mario Kart 64 keeps progress in the cartridge's battery SRAM and its ghosts in a Controller Pak. Dumping both gives two
+Mario Kart 64 keeps progress in the cartridge's EEPROM and its ghosts in a Controller Pak. Dumping both gives two
 storage components rather than one game's bytes, so the bundle is a [device](/specifications/device/): the pak holds
 notes for games the cartridge knows nothing about, and neither component is inside the other.
 
@@ -348,7 +375,7 @@ The cartridge's payload is a plain save, one part and nothing else:
 }
 
 [1] parts:
-  { 0: 0, 9: 18540(h'…'), -1: h'…512 bytes of SRAM…' }
+  { 0: 0, 9: 18540(h'…'), -1: h'…512 bytes of EEPROM…' }
 ```
 
 The pak's is a card, one nested save per note, laid out like any other card:

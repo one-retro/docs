@@ -4,11 +4,11 @@ description: A portable, self-describing CBOR container for retro console save f
 sidebar:
   label: Overview
   badge:
-    text: v0.6
+    text: v0.7
     variant: caution
 ---
 
-This is version 0.6 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
+This is version 0.7 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
 in place, under the same bundle tag.
 
 ## Changelog
@@ -18,6 +18,11 @@ moved. A version covers the format, the [common types](/specifications/common-ty
 [extension keys](/specifications/extensions/) these specifications own; a key belonging to a producer changes on that
 producer's schedule instead.
 
+- **0.7**, 2026-11-03. Breaking: a Neo Geo card's
+  [`system_area`](/specifications/memory-cards/#what-splitting-a-card-drops) is its whole 64-byte header block, where it
+  was the 16-byte username. A Neo Geo save's `path` is spelled from its NGH and sub-number, and an N64 note's through
+  its pak's character table, as [Spelling a name](/specifications/memory-cards/#spelling-a-name-as-path) says. A
+  payload's bytes are in the order the console's hardware [addresses them](/specifications/bundle/#byte-order).
 - **0.6**, 2026-10-29. Renamed: header key 6 is `bundled_at`, which was `created_at`. Nothing on the wire changes, and
   every bundle stays valid. A decoder that finds anything [malformed](#rejecting-a-malformed-bundle) in a file now
   rejects all of it, and keeps none of the parts it could read.
@@ -191,7 +196,7 @@ any operation that depends on knowing: walking the parts, restoring a save, rebu
 bundle is not the same as rejecting it, and only the second loses the bytes.
 
 The schema is the narrower of the two on purpose. It pins the six shapes this version defines, so validating against it
-says "this is a conforming 0.6 bundle" rather than "some decoder can read this", the same asymmetry
+says "this is a conforming 0.7 bundle" rather than "some decoder can read this", the same asymmetry
 [Additive integer keys](#additive-integer-keys) describes.
 
 A bundle names its shape and a decoder reads it; what the parts then mean is that shape's document, and
