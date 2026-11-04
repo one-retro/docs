@@ -52,6 +52,24 @@ A component with a directory is a `card`; a flat one is a `save`, carrying no `g
 Those are the only two, since a device holds no device and no collection. No two parts may share a `role`, which is the
 ordinary [addressing rule](/specifications/bundle/#part-map) and here is the whole of what keeps two components apart.
 
+The MiSTer NeoGeo core keeps one of those pairs in a single save file per game. The file holds an MVS cabinet's 64 KiB
+of backup RAM, then 8 KiB for the card in its slot. For a cartridge game the card is the first 2 KiB of those 8 KiB,
+which is all the core addresses. Its `capacity` is 2048, whatever its header claims. MiSTer keeps the whole file as
+16-bit words, low byte first, so every pair of bytes is swapped: in the RAM, on the card, and in a cartridge's RAM. A
+producer swaps each pair back, as [byte order](/specifications/bundle/#byte-order) requires, and a consumer rebuilding
+the file swaps them again.
+
+MiSTer reads a save file that does not exist yet as all `0xFF`. Outside MVS mode nothing writes the RAM, and in MVS mode
+the BIOS sets up all of it. So where every byte of the RAM is `0xFF`, the file is just the card. Otherwise it is a
+device of two components, `internal` and `neogeo-card`, and that device written back is the one file. The BIOS records
+the game in the RAM by its NGH number and its title, so the RAM is a `save` that names that game. A consumer rebuilding
+the file from a card alone fills the rest with `0xFF`, as MiSTer does. The core lays out a Neo Geo CD file the same way,
+with the RAM unused and the CD's own 8 KiB where the card would be. That file is a `card` of format `neogeo-mc`, with a
+`capacity` of 8192 and a `system` of `neogeo-cd`.
+
+Two MVS games, Jockey Grand Prix and V-Liner, keep RAM of their own on the cartridge. Their file holds that RAM where
+the card would be, and holds no card at all. It is a device of `internal` and `cartridge`.
+
 A device is also where a dump lands that holds one game's storage across two components rather than a whole console's.
 An N64 cartridge save beside the whole Controller Pak is a device: the pak is a card of its own, holding notes for games
 the cartridge knows nothing about. Carry only that game's note instead and there is no device, just a

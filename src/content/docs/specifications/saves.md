@@ -29,7 +29,9 @@ not in a payload belongs here, because the header is what survives the bundle be
 ## Parts
 
 One part, and that part is the save. Its payload is the bytes the console wrote, its `sha256` is the digest of those
-bytes, and every other part key is absent: `kind` defaults to `save`, `role` to `primary`, `path` to nothing.
+bytes, and every other part key is absent: `kind` defaults to `save`, `role` to `primary`, `path` to nothing. The bytes
+are in the order the console's hardware addresses them, whatever order the file they came from keeps; see
+[Byte order](/specifications/bundle/#byte-order).
 
 A consumer **MAY** refuse a save bundle with more than one part. A producer that writes one part is therefore the
 producer most consumers can read, and an emulator writing a cartridge save has no reason to write more.

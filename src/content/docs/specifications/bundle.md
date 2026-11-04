@@ -398,6 +398,19 @@ outgrows what it expected. Both follow the reasoning for
 inflate, and a small payload can claim to expand without limit. Nothing obliges a consumer to read a part, so declining
 one is always available and is the answer to a payload it cannot afford.
 
+#### Byte order
+
+A part that holds a medium's bytes holds them in the order the console's hardware addresses them. That covers a `save`
+part, a `card-image` and a `system` part. Where a console reads its save memory in words, each word's bytes are in the
+console's own order: high byte first on a 68000, low byte first on a little-endian CPU. The hardware's order needs no
+word width to define it, so this spec names none.
+
+- A producer **MUST** put a payload's bytes in that order where the file it read keeps another.
+
+Some tools keep save memory in their host's order instead, and [MiSTer's NeoGeo core](/specifications/device/#parts) is
+one. A consumer rebuilding such a tool's file puts the bytes back in the file's order. A `state` part follows a rule of
+its own: it is the core's data as the core loads it, in the order [`taken_with`](#taken_with-map) records.
+
 #### Bound payloads
 
 Every console from roughly the Wii onward encrypts or signs its saves against the hardware that wrote them, binding the

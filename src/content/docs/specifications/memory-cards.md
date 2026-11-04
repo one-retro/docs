@@ -60,6 +60,12 @@ The split follows what a writer does. ECC is regenerated on write, like every ot
 payload never carries it and `capacity` never counts it. A `card-image` keeps it, because keeping the card byte for byte
 is the only reason that part exists.
 
+- A writer **MUST NOT** write a `card-image` onto a medium with a smaller `capacity` than its card's.
+
+A 2 KiB Neo Geo card shows what goes wrong, because it wraps every address past its end back to its start. An 8 KiB
+card's header still promises room past that line. Once the first 2 KiB fill, the BIOS places the next save there, and it
+lands on the header.
+
 ## Why there are no block positions
 
 Because no console addresses a save by block, and every tool that moves saves between cards throws that field away:
@@ -90,8 +96,9 @@ read back off the role, as it can when a Saturn is read whole as a [device](/spe
 ## What a writer regenerates
 
 Everything structural: block chains, the FAT or BAT and its mirrors, every checksum, the header block, directory
-ordering, and ECC where the medium has it. `dirent` plus the payload is sufficient input for every format here, which is
-what `.mcs`, `.psu`, `.note` and `.gci` each demonstrate in production, since none of them carries more than that. A
+ordering, and ECC where the medium has it. A writer builds them for the medium it writes to, whatever `capacity` the
+saves' card had. `dirent` plus the payload is sufficient input for every format here, which is what `.mcs`, `.psu`,
+`.note` and `.gci` each demonstrate in production, since none of them carries more than that. A
 [`system` part](/specifications/cards/#system-entries) is rebuilt the same way as a save, from its `dirent` and its
 payload, at the place its `path` names.
 
@@ -107,15 +114,20 @@ Three cases need more:
   dirent's type byte distinguishes them (`0xCC` for a mini-game, `0x33` for data), so a writer can tell without
   understanding the payload.
 
-Neo Geo needs contiguity too, and stores no length of its own, so a writer allocates a run of the save's size rather
-than following a chain.
-
 ## What splitting a card drops
 
 [`system_area`](/specifications/bundle/#card-map) is what a writer needs to rebuild a card's own identity rather than
-only its contents. It holds an N64 controller pak's 32-byte label, a Neo Geo card's 16-byte cardholder username, or a
-Dreamcast VMU's custom colour and icon shape. None of it belongs to any save, so splitting a card would otherwise drop
-it, and keeping it would otherwise mean keeping a whole `card-image` for a few dozen bytes.
+only its contents. It holds an N64 controller pak's 32-byte label, a Neo Geo card's 64-byte header block, or a Dreamcast
+VMU's custom colour and icon shape. None of it belongs to any save, so splitting a card would otherwise drop it, and
+keeping it would otherwise mean keeping a whole `card-image` for a few dozen bytes.
+
+The Neo Geo header carries the cardholder's username and whether one is set. It also carries the region of the console
+that formatted the card, at `0x30`. It holds structural fields too, which a writer rebuilds in place.
+
+- A writer **MUST** regenerate a Neo Geo header's card size, both FAT checksums and its `NEO-GEO` magic.
+
+The size is the field that bites. One copied from a larger card promises room the medium does not have, as
+[capacity](#capacity-and-out-of-band-bytes) shows.
 
 Whole files and directories that belong to no game are not `system_area` either. They are entries in the card's
 filesystem rather than bytes at a fixed place, and they travel as [`system` parts](#entries-belonging-to-no-game).
@@ -173,6 +185,12 @@ Two details of that naming are worth having, because they are what `path` and `s
 - **All three US discs share one save name.** The discs are `SCUS-94163`, `SCUS-94164` and `SCUS-94165`, but the save
   filename always carries the disc-1 code so every disc reads the same saves. A `serial` taken from a card filename is
   the save's product code, not necessarily the code of the disc that wrote it.
+
+A Neo Geo game numbers its saves itself, with a sub-number from 0 to 15 beside its NGH number. The card holds both as
+numbers rather than text, so `path` spells them: the NGH number in four hex digits, a dash, then the sub-number in one
+hex digit. Metal Slug's first save is `0201-0`.
+
+- A producer **MUST** spell a Neo Geo save's `path` that way, in lowercase.
 
 ## Saves made of several files
 

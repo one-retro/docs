@@ -413,27 +413,29 @@ export const valid = {
   ]),
 
   // A Neo Geo memory card: the smallest card here, 2 KiB of 64-byte blocks
-  // behind a 4-byte directory entry. Nothing on this card has a name, because
-  // the entry holds the game's NGH number and a sub-number instead, so no
-  // entry carries a `path` and the two saves for one game are told apart by
-  // `slot` alone. That is the uniqueness rule at its limit: `role` and `path`
-  // agree, and `slot` is the only thing left that can separate them.
-  // `system_area` is the cardholder username, which belongs to the card rather
+  // behind a 4-byte directory entry. The entry holds no name, only a
+  // sub-number, the game's NGH number and the save's first block, so `path`
+  // spells the first two: `0201-0` is Metal Slug's save 0. The blocks are
+  // after the five the card reserves for itself. `system_area` is the card's
+  // 64-byte header block, which carries the cardholder username and the
+  // region of the console that formatted it, belonging to the card rather
   // than to anything saved on it.
-  "neogeo-card": bundle(map({ 0: "card", 1: "neogeo", 4: map({ 0: "neogeo-mc", 1: 2048, 2: pattern(16, 79) }) }), [
+  "neogeo-card": bundle(map({ 0: "card", 1: "neogeo", 4: map({ 0: "neogeo-mc", 1: 2048, 2: pattern(64, 79) }) }), [
     nested(oneFileSave("neogeo", METAL_SLUG, pattern(64, 83)), {
       id: 0,
       role: "neogeo-card",
+      path: "0201-0",
       game: METAL_SLUG,
-      slot: 1,
-      dirent: pattern(4, 83),
+      slot: 0,
+      dirent: Buffer.from([0x00, 0x02, 0x01, 0x05]),
     }),
     nested(oneFileSave("neogeo", METAL_SLUG, pattern(128, 89)), {
       id: 1,
       role: "neogeo-card",
+      path: "0201-1",
       game: METAL_SLUG,
-      slot: 2,
-      dirent: pattern(4, 89),
+      slot: 1,
+      dirent: Buffer.from([0x01, 0x02, 0x01, 0x06]),
     }),
   ]),
 
