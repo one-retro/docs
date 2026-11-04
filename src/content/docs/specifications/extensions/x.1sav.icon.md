@@ -47,7 +47,8 @@ from `slot` and `path`; inside the save's own bundle it joins that bundle's
 - **Native pixel data.** Decode it, or omit the key.
 - **A PS2 save's icon.** `icon.sys` and the `.ico` files it names are already parts inside the save's bundle, each with
   its own `path`, `slot` and `dirent`, and a `.ico` is a 3D model rather than a picture.
-- **Screenshots and box art.** An [`aux` part](/specifications/bundle/#part-kinds) with a `content_type`.
+- **Screenshots.** A [screenshot](/specifications/screenshots/) bundle of their own.
+- **Box art.** An [`aux` part](/specifications/bundle/#part-kinds) with a `content_type`.
 - **The icon's native format, palette or animation flags.** The format's own key, such as
   [`x.1sav.dirent.gc-mc`](/specifications/extensions/x.1sav.dirent.gc-mc/).
 
