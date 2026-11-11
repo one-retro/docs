@@ -133,7 +133,8 @@ the bundle, and serves as the default source for every part. On a part (key 10) 
 bytes, for bundles whose saves don't all come from the same place; a part without its own `source` inherits the
 header's. Provenance belongs to each save, not just to the file around it: a bundle can hold one save read from a real
 cartridge and another exported by an emulator, each carrying its own part-level `source`. All keys optional; consumers
-use this for display and provenance, never for game matching.
+use this for display and provenance, never for game matching. `utc_offset` is the one key a consumer acts on, to put a
+clock back.
 
 | Key | Name               | Type | Notes                                                                                                                                                                                                                                                                                                                         |
 | --- | ------------------ | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -145,6 +146,7 @@ use this for display and provenance, never for game matching.
 | 5   | `core_version`     | text | Version of `core`, in whatever scheme that core uses. A libretro core reports it as `library_version`.                                                                                                                                                                                                                        |
 | 6   | `platform`         | text | The operating system or firmware `app` ran on: a handheld firmware such as muOS, or a general-purpose system such as Windows. Either a slug from the [Platforms registry](/registries/platforms/) (`"muos"`), or, for a platform with no entry, a reverse-DNS name.                                                           |
 | 7   | `platform_version` | text | Version of `platform`, in whatever scheme that platform uses.                                                                                                                                                                                                                                                                 |
+| 8   | `utc_offset`       | int  | Seconds east of UTC of the scale this producer's clock anchors are on, so an anchor minus this is the instant. Absent unless the producer knows that scale is not UTC. See [The scale of a clock's anchor](#the-scale-of-a-clocks-anchor).                                                                                    |
 
 `platform`, `app` and `core` are three fields because each comes apart from the others.
 
@@ -180,6 +182,25 @@ entry, so a save from that build carries no `core`.
 A producer that writes a reverse-DNS name and is later listed switches to the slug. Bundles written before keep the name
 they were written with and round-trip unchanged, the same way an [`x` name](/registries/vendors/) stays assigned after a
 vendor acquires a domain.
+
+##### The scale of a clock's anchor
+
+A [clock chip key](/specifications/extensions/x.1sav.rtc/#chip-keys) carries an anchor: the producer's clock when it
+took the chip's registers. That clock is the producer's, and need not run on UTC. MiSTer hands nearly every core local
+standard time counted as though it were UTC, so a MiSTer in Pacific time stamps a Game Boy save eight hours behind the
+instant, in summer as in winter. An emulator advances the chip from the anchor by its own clock, so a clock moved
+between two producers on different scales gains or loses the difference.
+
+`utc_offset` closes that gap, in seconds east of UTC, in the range real zones occupy, -12:00 through +14:00. A producer
+whose anchors are not on UTC **SHOULD** carry it when it knows the offset. A tool running on a MiSTer knows it from the
+device's own zone. It **MUST NOT** write 0 for a scale it does not know, since zero claims UTC, and it **MUST NOT**
+carry the key at all for a producer whose anchors are on UTC, which is nearly every emulator. Absent means the anchors
+are taken as UTC, as consumers have always taken them.
+
+A consumer rebuilding a clock for a producer on another scale moves the anchor by the difference between the two
+offsets. One rebuilding it for a producer on the same scale changes nothing, so a MiSTer's file goes back to a MiSTer
+byte for byte. The offset is a fact about the producer, which is why it sits here and not in each chip key: every anchor
+a producer writes is on the same scale.
 
 `device_kind` values. The list is spec-owned, so a new category comes from a PR against this spec rather than from a
 producer. `app`, `core` and `platform` above are the opposite case: they name somebody's software, so its owner mints a
@@ -406,6 +427,17 @@ console's own order: high byte first on a 68000, low byte first on a little-endi
 word width to define it, so this spec names none.
 
 - A producer **MUST** put a payload's bytes in that order where the file it read keeps another.
+
+The payload is the medium's bytes and nothing else. Much of a Mega Drive cartridge's SRAM sits on the odd byte lane of
+the 16-bit bus alone, so its bytes are every other address. Genesis Plus GX, PicoDrive and clownmdemu keep a copy of the
+whole address window, with the even lane filled; MiSTer and BlastEm keep the SRAM's bytes one after another, and the
+payload is those. A file can also pad a chip out: gpSP pads every GBA save to 128 KiB, and VBA Next keeps an EEPROM 128
+KiB into its file. The payload is the chip.
+
+- A producer **MUST NOT** carry another lane's bytes, or a file's padding, in a payload where it can tell them from the
+  medium's. It tells them apart by the cartridge, as its header declares it, or by a layout only one reading fits.
+- A consumer writing a file for such a tool lays the payload out the way that tool keeps it, and pads it the way that
+  tool pads it. MiSTer's GBA core reads a 4 Kbit EEPROM only from a file of 8 KiB, which is the size it writes.
 
 Some tools keep save memory in their host's order instead, and [MiSTer's NeoGeo core](/specifications/device/#parts) is
 one. A consumer rebuilding such a tool's file puts the bytes back in the file's order. A `state` part follows a rule of

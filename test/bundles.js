@@ -563,6 +563,14 @@ export const valid = {
     ],
   ),
 
+  // A MiSTer stamps a clock's anchor in local standard time counted as though it
+  // were UTC, and says how far that is from UTC: Pacific time, eight hours west,
+  // a negative integer on the wire.
+  "source-utc-offset": bundle(
+    map({ 0: "save", 1: "gbc", 3: map({ 0: "emulator", 2: "mister", 4: "gameboy-mister", 8: -28800 }) }),
+    [part({ payload: pattern(32768, 19) })],
+  ),
+
   // Catalog ids, keyed by resolver name. A producer aligned with several
   // catalogs records one entry each, and the id is whatever form that catalog
   // publishes: an integer for one, a string for the next.
@@ -721,7 +729,7 @@ export const valid = {
 };
 
 export const invalid = {
-  // This schema describes v0.7, so an integer key it does not list fails
+  // This schema describes v0.8, so an integer key it does not list fails
   // validation. A shipped decoder is deliberately looser: it ignores and
   // round-trips these, because the only thing they can be is a later minor
   // version's field. That difference is a decoder rule the schema cannot state.
@@ -817,6 +825,10 @@ export const invalid = {
   // The same for a platform written the way it writes its own name. `muOS` is
   // a display name, not a slug, and has no dot to be a minted one.
   "platform-as-display-name": bundle(map({ 0: "save", 1: "gba", 3: map({ 2: "retroarch", 6: "muOS" }) }), [part()]),
+
+  // An offset is the span real zones occupy, -12:00 through +14:00. A day east is
+  // no zone at all, and one a consumer would move a clock by.
+  "utc-offset-out-of-range": bundle(map({ 0: "save", 1: "gbc", 3: map({ 2: "mister", 8: 86400 }) }), [part()]),
 
   // Same for a role. A socket is hardware and belongs to nobody, and a private
   // name for one could not be matched against a target by anything but its

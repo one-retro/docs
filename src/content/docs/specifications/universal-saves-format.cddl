@@ -1,6 +1,6 @@
 ; ============================================================================
 ; 1SAV - Universal Saves Format, v1
-; Spec version 0.7: not yet stabilized, expect breaking changes.
+; Spec version 0.8: not yet stabilized, expect breaking changes.
 ;
 ; CDDL per RFC 8610. This file is the shape of a bundle and nothing else.
 ; Why the shape is what it is:  /specifications/universal-saves-format/
@@ -22,7 +22,7 @@ bundle = [
 ] / card-bundle / state-bundle / screenshot-bundle
 
 ; Integer keys belong to the spec; text keys belong to producers. This schema
-; describes v0.7 exactly, so an integer key it does not list fails validation,
+; describes v0.8 exactly, so an integer key it does not list fails validation,
 ; and so does a `shape` it does not list. A decoder is looser on purpose: it
 ; parses and round-trips both, since each is a later minor version's. See the
 ; spec.
@@ -184,7 +184,11 @@ source = {
   ? 5 => tstr,        ; core_version
   ? 6 => platform,    ; platform    (platform slug "muos", or a minted name)
   ? 7 => tstr,        ; platform_version
+  ? 8 => utc-offset,  ; utc_offset  (seconds east of UTC of the scale its clock anchors are on)
 }
+
+; The range is the span real zones occupy, -12:00 through +14:00.
+utc-offset = -43200..50400
 
 card = {
   0 => card-format,   ; format      (ps1-mc | ps2-mc | n64-cpak | gc-mc | neogeo-mc | vmu | saturn-bup)

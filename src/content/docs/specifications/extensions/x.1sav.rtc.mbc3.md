@@ -40,8 +40,9 @@ any moment are the time since then. A producer reading such a source takes the c
 carries that moment as key 2.
 
 Key 2 is on the producer's own scale, as [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/)'s key 2
-is, and need not be UTC. MiSTer's Gameboy core writes local standard time counted as though it were UTC. The
-[reading](/specifications/extensions/x.1sav.rtc/#the-reading) is the counters alone, never key 2. Key 3 is how many
+is, and need not be UTC. MiSTer's Gameboy core writes local standard time counted as though it were UTC, and the
+bundle's `source` says how far that is from UTC in [`utc_offset`](/specifications/bundle/#the-scale-of-a-clocks-anchor).
+The [reading](/specifications/extensions/x.1sav.rtc/#the-reading) is the counters alone, never key 2. Key 3 is how many
 bytes the timestamp occupied in the footer.
 
 ## Why the timestamp width is carried

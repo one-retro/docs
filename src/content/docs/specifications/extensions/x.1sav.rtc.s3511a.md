@@ -35,7 +35,9 @@ keeps one **SHOULD** carry it. Without it, the file cannot be rebuilt byte for b
 
 Key 2 is on the producer's scale, which need not be UTC. MiSTer hands nearly all of its cores local standard time
 counted as though it were UTC, so its GBA core, saving in Pacific time, writes an anchor eight hours behind the instant.
-Key 2 is never the reading, and a consumer **MUST NOT** treat it as one or as the moment the save was written.
+The bundle's `source` says how far the scale is from UTC in
+[`utc_offset`](/specifications/bundle/#the-scale-of-a-clocks-anchor). Key 2 is never the reading, and a consumer **MUST
+NOT** treat it as one or as the moment the save was written.
 
 Key 3 is the alarm register: two bytes, as a game last wrote them, holding an alarm hour and minute or an interrupt
 frequency. The chip reads it back as all ones, so only a producer that saw the write holds it. ares keeps it on both

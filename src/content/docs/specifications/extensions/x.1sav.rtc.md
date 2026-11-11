@@ -34,7 +34,9 @@ it is the clock when the registers it comes from were taken, which can be before
 A game may show its clock with an offset of its own, kept in save memory. The reading does not include it.
 
 A chip key may also carry an anchor: the host clock at the moment the producer took the chip's registers. Each chip
-key's page says which of its keys holds it. The anchor is not the reading, and is not added to it.
+key's page says which of its keys holds it. The anchor is not the reading, and is not added to it. It is on the
+producer's scale, which need not be UTC, and the bundle's `source` relates that scale to UTC in
+[`utc_offset`](/specifications/bundle/#the-scale-of-a-clocks-anchor).
 
 A producer that cannot compute the reading **MUST** omit the key rather than write the anchor in its place.
 
