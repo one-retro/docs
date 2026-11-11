@@ -62,6 +62,7 @@ The list is **non-normative** and first-come; to add a system, open a PR with a 
 | `pcengine`         | TurboGrafx-16        | `pce`                |
 | `pcenginecd`       | TurboGrafx-CD        | `pcecd`              |
 | `pcfx`             | PC-FX                |                      |
+| `pico-8`           | PICO-8               | `pico8`, `p8`        |
 | `ps2`              | PlayStation 2        | `playstation2`       |
 | `ps3`              | PlayStation 3        | `playstation3`       |
 | `psp`              | PlayStation Portable |                      |

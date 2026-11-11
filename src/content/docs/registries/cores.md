@@ -93,34 +93,35 @@ slug.
 
 ## Game Boy family
 
-| Slug                    | Core                  | Kind       | Systems            | Also seen as                  |
-| ----------------------- | --------------------- | ---------- | ------------------ | ----------------------------- |
-| `beetle-gba`            | Beetle GBA            | `libretro` | `gba`              |                               |
-| `boytacean`             | Boytacean             | `libretro` | `gb`, `gbc`        |                               |
-| `budude2-gb`            | budude2.GB            | `openfpga` | `gb`               | `budude2.GB_Analogizer`       |
-| `budude2-gbc`           | budude2.GBC           | `openfpga` | `gbc`              | `budude2.GBC_Analogizer`      |
-| `doublecherrygb`        | DoubleCherryGB        | `libretro` | `gb`, `gbc`        |                               |
-| `emux-gb`               | emux (gb)             | `libretro` | `gb`, `gbc`        |                               |
-| `fixgb`                 | fixGB                 | `libretro` | `gb`, `gbc`        |                               |
-| `gambatte`              | Gambatte              | `libretro` | `gb`, `gbc`        |                               |
-| `gameboy-mister`        | Gameboy_MiSTer        | `mister`   | `gb`, `gbc`        | `GAMEBOY`, `GAMEBOY2P`, `GBC` |
-| `gba-mister`            | GBA_MiSTer            | `mister`   | `gba`              | `GBA`, `GBA2P`                |
-| `gearboy`               | Gearboy               | `libretro` | `gb`, `gbc`        |                               |
-| `gpsp`                  | gpSP                  | `libretro` | `gba`              |                               |
-| `irogb`                 | IroGB                 | `libretro` | `gb`, `gbc`        |                               |
-| `mgba`                  | mGBA                  | `libretro` | `gba`, `gbc`, `gb` |                               |
-| `mincer-ray-gba`        | mincer_ray.GBA        | `openfpga` | `gba`              |                               |
-| `sameboy`               | SameBoy               | `libretro` | `gb`, `gbc`        |                               |
-| `sgb-mister`            | SGB_MiSTer            | `mister`   | `gb`               | `SGB`                         |
-| `skyemu`                | SkyEmu                | `libretro` | `gb`, `gba`, `nds` |                               |
-| `spiritualized-gb`      | Spiritualized.GB      | `openfpga` | `gb`               |                               |
-| `spiritualized-gba`     | Spiritualized.GBA     | `openfpga` | `gba`              |                               |
-| `spiritualized-gbc`     | Spiritualized.GBC     | `openfpga` | `gbc`              |                               |
-| `spiritualized-supergb` | Spiritualized.SuperGB | `openfpga` | `gb`               |                               |
-| `tempgba`               | TempGBA               | `libretro` | `gba`              |                               |
-| `tgb-dual`              | TGB Dual              | `libretro` | `gb`, `gbc`        |                               |
-| `vba-m`                 | VBA-M                 | `libretro` | `gba`, `gbc`, `gb` |                               |
-| `vba-next`              | VBA Next              | `libretro` | `gba`              |                               |
+| Slug                    | Core                  | Kind         | Systems            | Also seen as                  |
+| ----------------------- | --------------------- | ------------ | ------------------ | ----------------------------- |
+| `beetle-gba`            | Beetle GBA            | `libretro`   | `gba`              |                               |
+| `bgb`                   | BGB                   | `standalone` | `gb`, `gbc`        |                               |
+| `boytacean`             | Boytacean             | `libretro`   | `gb`, `gbc`        |                               |
+| `budude2-gb`            | budude2.GB            | `openfpga`   | `gb`               | `budude2.GB_Analogizer`       |
+| `budude2-gbc`           | budude2.GBC           | `openfpga`   | `gbc`              | `budude2.GBC_Analogizer`      |
+| `doublecherrygb`        | DoubleCherryGB        | `libretro`   | `gb`, `gbc`        |                               |
+| `emux-gb`               | emux (gb)             | `libretro`   | `gb`, `gbc`        |                               |
+| `fixgb`                 | fixGB                 | `libretro`   | `gb`, `gbc`        |                               |
+| `gambatte`              | Gambatte              | `libretro`   | `gb`, `gbc`        |                               |
+| `gameboy-mister`        | Gameboy_MiSTer        | `mister`     | `gb`, `gbc`        | `GAMEBOY`, `GAMEBOY2P`, `GBC` |
+| `gba-mister`            | GBA_MiSTer            | `mister`     | `gba`              | `GBA`, `GBA2P`                |
+| `gearboy`               | Gearboy               | `libretro`   | `gb`, `gbc`        |                               |
+| `gpsp`                  | gpSP                  | `libretro`   | `gba`              |                               |
+| `irogb`                 | IroGB                 | `libretro`   | `gb`, `gbc`        |                               |
+| `mgba`                  | mGBA                  | `libretro`   | `gba`, `gbc`, `gb` |                               |
+| `mincer-ray-gba`        | mincer_ray.GBA        | `openfpga`   | `gba`              |                               |
+| `sameboy`               | SameBoy               | `libretro`   | `gb`, `gbc`        |                               |
+| `sgb-mister`            | SGB_MiSTer            | `mister`     | `gb`               | `SGB`                         |
+| `skyemu`                | SkyEmu                | `libretro`   | `gb`, `gba`, `nds` |                               |
+| `spiritualized-gb`      | Spiritualized.GB      | `openfpga`   | `gb`               |                               |
+| `spiritualized-gba`     | Spiritualized.GBA     | `openfpga`   | `gba`              |                               |
+| `spiritualized-gbc`     | Spiritualized.GBC     | `openfpga`   | `gbc`              |                               |
+| `spiritualized-supergb` | Spiritualized.SuperGB | `openfpga`   | `gb`               |                               |
+| `tempgba`               | TempGBA               | `libretro`   | `gba`              |                               |
+| `tgb-dual`              | TGB Dual              | `libretro`   | `gb`, `gbc`        |                               |
+| `vba-m`                 | VBA-M                 | `libretro`   | `gba`, `gbc`, `gb` |                               |
+| `vba-next`              | VBA Next              | `libretro`   | `gba`              |                               |
 
 ## Nintendo 64
 
