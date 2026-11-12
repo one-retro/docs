@@ -18,11 +18,13 @@ moved. A version covers the format, the [common types](/specifications/common-ty
 [extension keys](/specifications/extensions/) these specifications own; a key belonging to a producer changes on that
 producer's schedule instead.
 
-- **0.8**, 2026-11-10. A [`source`](/specifications/bundle/#source-map) can say how far the scale its clock anchors are
-  on is from UTC, in new key 8, [`utc_offset`](/specifications/bundle/#the-scale-of-a-clocks-anchor). A decoder that
-  does not know the key round-trips it, as it does any integer key a later version assigns. A payload is the medium's
-  bytes [and nothing else](/specifications/bundle/#byte-order): not the other byte lane of a 16-bit bus, and not the
-  padding a file adds past the chip.
+- **0.8**, 2026-11-10. Breaking: a medium addressed only in whole words, such as a serial EEPROM, holds each word
+  [most significant byte first](/specifications/bundle/#byte-order), as every order this spec chooses is. Under 0.7 an
+  MBC7's or a GBA EEPROM's payload followed the CPU and was low byte first. A payload is the medium's bytes
+  [and nothing else](/specifications/bundle/#byte-order): not the other byte lane of a 16-bit bus, and not the padding a
+  file adds past the chip. A [`source`](/specifications/bundle/#source-map) can say how far the scale its clock anchors
+  are on is from UTC, in new key 8, [`utc_offset`](/specifications/bundle/#the-scale-of-a-clocks-anchor). A decoder that
+  does not know the key round-trips it, as it does any integer key a later version assigns.
 - **0.7**, 2026-11-03. Breaking: a Neo Geo card's
   [`system_area`](/specifications/memory-cards/#what-splitting-a-card-drops) is its whole 64-byte header block, where it
   was the 16-byte username. A Neo Geo save's `path` is spelled from its NGH and sub-number, and an N64 note's through
@@ -136,6 +138,16 @@ So this one offers one, everywhere:
 
 Each is a rule a producer follows and a decoder enforces. Breaking one is malformed rather than merely unusual, because
 a consumer that accepted both spellings would compute two content hashes for one save.
+
+### Byte order
+
+Wherever this spec chooses the order of a value's bytes, it is most significant byte first, network order. A
+[`crc32`](/specifications/common-types/hash-value/) value is in that order, and so is each word of a medium addressed
+only in whole words, such as a serial EEPROM. CBOR's own integers already are.
+
+Bytes a console addresses one at a time are not the spec's to order. They keep the order the hardware addresses them in,
+whatever numbers a game has written into them. [Byte order](/specifications/bundle/#byte-order) says how that applies to
+a payload.
 
 ### Rejecting a malformed bundle
 

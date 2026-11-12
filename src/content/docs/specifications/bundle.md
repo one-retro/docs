@@ -422,11 +422,20 @@ one is always available and is the answer to a payload it cannot afford.
 #### Byte order
 
 A part that holds a medium's bytes holds them in the order the console's hardware addresses them. That covers a `save`
-part, a `card-image` and a `system` part. Where a console reads its save memory in words, each word's bytes are in the
-console's own order: high byte first on a 68000, low byte first on a little-endian CPU. The hardware's order needs no
-word width to define it, so this spec names none.
+part, a `card-image` and a `system` part. Memory the console addresses a byte at a time, which is most save memory,
+keeps that order whatever its words are: on a 68000 that puts each word's high byte first, because the 68000 keeps it at
+the lower address. Some media are addressed only in whole words, and the hardware gives their bytes no order. There the
+order is this spec's to choose, and like [every order it chooses](/specifications/universal-saves-format/#byte-order) it
+is most significant byte first, network order. That is also the order a serial EEPROM shifts a word out in, a bit at a
+time. A Game Boy MBC7's 93LC56 sends each 16-bit word high bit first, so its payload holds each word's high byte first,
+though the CPU reading it is little-endian; a GBA's EEPROM is the same, eight bytes at a time. Most significant byte
+first reads the same whatever width the words are taken to be, so this spec names none.
 
-- A producer **MUST** put a payload's bytes in that order where the file it read keeps another.
+- A producer **MUST** put a payload's bytes in that order where the file it read keeps another. SameBoy, Gearboy and
+  Epilogue's GB Operator keep an MBC7's words least significant byte first, and SkyEmu keeps a GBA EEPROM's eight-byte
+  blocks back to front.
+- The order is the medium's, never the game's. A game that writes a little-endian number into memory addressed a byte at
+  a time has written bytes, and they stay as it wrote them.
 
 The payload is the medium's bytes and nothing else. Much of a Mega Drive cartridge's SRAM sits on the odd byte lane of
 the 16-bit bus alone, so its bytes are every other address. Genesis Plus GX, PicoDrive and clownmdemu keep a copy of the
