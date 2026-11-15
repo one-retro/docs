@@ -119,6 +119,16 @@ and not a catalog's key. To list a new resolver here, open a PR against this spe
 their tags, their ordering and their comparison rules all live. A producer emits every hash it has already computed and
 computes none it doesn't need: a consumer matching against a catalog only needs one hash the catalog also carries.
 
+An N64 ROM circulates in three byte orders: big-endian as a `.z64` file holds it, in swapped 16-bit words as `.v64`, and
+in reversed 32-bit words as `.n64`. Each order hashes differently, and No-Intro catalogs the big-endian one.
+
+- A producer **MUST** hash an N64 ROM in big-endian order, whatever order the file it read keeps.
+
+A 64DD disk's retail dump is 0x3DEC800 bytes, its blocks in [block order](/specifications/saves/#a-64dd-disk), and
+No-Intro catalogs that form. MAME's image of the same disk is laid out another way.
+
+- A producer **MUST** hash a 64DD disk in the form of its retail dump.
+
 `game` also takes [extension keys](/specifications/universal-saves-format/#extensions), flat beside its integer keys as
 on the header and a part. That is where a clue goes that none of the six names, such as the revision byte a ROM header
 carries beside its serial, which tells apart two releases that share one. A consumer matching against a catalog skips an
@@ -167,7 +177,7 @@ registry lists **MUST** hold that slug. A field naming software with no entry **
 software's owner minted, or be left out. Each piece of software has exactly one spelling either way: RetroArch is
 `retroarch` because it is listed, never `com.libretro.retroarch`, and mGBA is `mgba` in both fields, never `io.mgba`,
 though both hold their domains. Left to taste, two producers would describe one piece of software two ways, and `source`
-sits in the header where that changes the [content hash](#content-hash-and-file-hash).
+sits in the header where that changes the [content hash](#content-hash).
 
 The slug is also the string a consumer already has. A core's slug derives mechanically from the `saves/<core>/` folder
 it writes to. The app is whichever install that folder sits in, and the platform is whatever that install runs on.
@@ -225,7 +235,7 @@ splitting a card drops.
 | Key | Name          | Type | Req? | Notes                                                                                                                                                                                                                                                                                                                                                                |
 | --- | ------------- | ---- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0   | `format`      | text | yes  | `ps1-mc` \| `ps2-mc` \| `n64-cpak` \| `gc-mc` \| `neogeo-mc` \| `vmu` \| `saturn-bup`. A spec-owned [slug](/specifications/common-types/slug/); a new format comes from a PR against this spec. A consumer that does not recognise one **MUST NOT** attempt to write the card, since it cannot rebuild what it cannot read; round-trip the bundle unchanged instead. |
-| 1   | `capacity`    | uint | yes  | The size of the card's **data area** in bytes, the blocks the filesystem keeps for itself included and any out-of-band area excluded. Neither the room left for saves nor the length of a dump, which a [`card-image`](#part-kinds) reports in its own `size`. See [Capacity](/specifications/memory-cards/#capacity-and-out-of-band-bytes).                         |
+| 1   | `capacity`    | uint | yes  | The size of the card's **data area** in bytes, the blocks the filesystem keeps for itself included and any out-of-band area excluded. Neither the room left for saves nor the length of a dump, which a [`card-image`](#part-kinds)'s payload gives by its own length. See [Capacity](/specifications/memory-cards/#capacity-and-out-of-band-bytes).                 |
 | 2   | `system_area` | bstr | no   | The card-level bytes that belong to no save, verbatim and opaque: bytes at a fixed place on the medium, such as a pak's label. A whole file or directory belonging to no game is a [`system` part](#part-kinds) instead.                                                                                                                                             |
 
 `format` and [`system`](#0-header-map) answer different questions. `system` decides which emulators can load these bytes
@@ -304,7 +314,7 @@ the bytes changes no behaviour, and describing the bytes is [`content_type`](#pa
 #### Nested bundles
 
 A `bundle` part's payload is a complete `1SAV` bundle, carried as an ordinary byte string. Nothing about the outer part
-changes: `sha256` is its hash, and `encoding` compresses it like any other blob.
+changes: `sha256` is the hash of those bytes, as it is for any other payload.
 
 This is how a [card](/specifications/cards/) holds its saves and a [collection](/specifications/collections/) holds its
 cards, and each of those pages draws its own arrangement.
@@ -315,10 +325,6 @@ for the same game, carrying byte-identical `game` maps that only their nesting, 
 
 The rules a decoder enforces:
 
-- **Nested bundles are normalized.** Every inner part MUST be uncompressed with its payload embedded, so an inner
-  bundle's [file hash and content hash](#content-hash-and-file-hash) are the same value. Compression belongs on the
-  outer part, where it does not change `sha256` and compresses better anyway for having the whole inner bundle to work
-  with.
 - **`sha256` is the inner bundle's identity.** A card is therefore a list of content hashes. That makes extracting a
   save a byte copy rather than a re-encode, and it lets two producers of the same save agree on what to call it.
 - **A malformed nested bundle makes its holder malformed.** So a decoder that finds one
@@ -352,7 +358,7 @@ a different thing from flattening one.
 
 No decoder can check this, which is why it sits outside the list above: three files of one save and three saves of one
 card are the same shape to a validator. A save flattened into its container has no bundle to hash, and so no
-[content hash](#content-hash-and-file-hash) to carry, slice out or compare against a copy.
+[content hash](#content-hash) to carry, slice out or compare against a copy.
 
 #### `Part` (map)
 
@@ -365,25 +371,24 @@ card are the same shape to a validator. A save flattened into its container has 
 | 4   | `slot`         | uint        | no   | The index this part occupied in whatever container it came out of: a card's directory slot, an emulator's save-state slot. Display order, not an address. A writer that packs the parts into different slots has not done anything wrong.                                                                                                                                                                                                                                              |
 | 5   | `dirent`       | byte string | no   | That container's own directory entry for this part, verbatim. Fully opaque: this spec never says what a byte inside it means, which is what keeps a card-format parser out of the container. Its length is fixed by the card's [`format`](#card-map) on every format, `saturn-bup` included: that one keeps its entry at the head of the save's own first block rather than in a directory region, which changes where a reader finds those bytes and not whether they can be carried. |
 | 6   | `content_type` | text        | no   | Media type of the payload. A `screenshot` requires it and a `state` has none to name. For any other [kind](#part-kinds) it is optional. It is the only place the format says what a blob is, so set it whenever there is a registered type to name.                                                                                                                                                                                                                                    |
-| 7   | `encoding`     | text        | no   | `"zstd"` when the payload is compressed. Absent means `"none"`, which MUST NOT be written out. Compression is per-part. A spec-owned [slug](/specifications/common-types/slug/) and the only one this version defines; another codec comes from a PR against this spec.                                                                                                                                                                                                                |
-| 8   | `size`         | uint        | some | **Uncompressed** byte length of the payload. Carried when the payload is `zstd` and never otherwise, since an uncompressed payload already states its own length.                                                                                                                                                                                                                                                                                                                      |
-| 9   | `sha256`       | tagged bstr | yes  | SHA-256 over the **uncompressed** payload, as a [hash value](/specifications/common-types/hash-value/): 32 bytes under tag `18540`. Only that tag is legal, so identity and dedup have one answer; the tag is there so a generic CBOR tool can name the digest without knowing this format.                                                                                                                                                                                            |
+| 9   | `sha256`       | tagged bstr | yes  | SHA-256 over the payload, as a [hash value](/specifications/common-types/hash-value/): 32 bytes under tag `18540`. Only that tag is legal, so identity and dedup have one answer; the tag is there so a generic CBOR tool can name the digest without knowing this format.                                                                                                                                                                                                             |
 | 10  | `source`       | map         | no   | Who produced this part's bytes, when that differs from the bundle's [`source`](#source-map). Same shape as the header map. Absent means the header's source applies.                                                                                                                                                                                                                                                                                                                   |
 | 11  | `game`         | map         | no   | Which game this part's bytes belong to, when that differs from the bundle's [`game`](#game-hints-map). Same shape as the header map. Absent means the header's game applies, except on a `system` part, which belongs to no game. A `system` part **MUST NOT** carry one.                                                                                                                                                                                                              |
 | 12  | `system`       | text        | no   | [Index copy](#nested-bundles) of a nested bundle's [`system`](#0-header-map). Meaningless on a part that is not a `bundle`.                                                                                                                                                                                                                                                                                                                                                            |
 | 13  | `binding`      | text        | no   | Present when this payload is bound to the console, account or medium it came from, so it will not restore anywhere else. `device` \| `account` \| `device-account` \| `medium`. A spec-owned [slug](/specifications/common-types/slug/); a new one comes from a PR against this spec. Absent means the bytes are portable. See [Bound payloads](#bound-payloads).                                                                                                                      |
-| -1  | `payload`      | bstr        | yes  | The payload bytes, compressed when `encoding` says so. Negative, so the whole unsigned range stays free for later minor versions; see [Additive integer keys](/specifications/universal-saves-format/#additive-integer-keys).                                                                                                                                                                                                                                                          |
+| -1  | `payload`      | bstr        | yes  | The payload bytes. Negative, so the whole unsigned range stays free for later minor versions; see [Additive integer keys](/specifications/universal-saves-format/#additive-integer-keys).                                                                                                                                                                                                                                                                                              |
 
 Keys are grouped so that a decoder reading them in order builds meaning as it goes. `kind` comes first because it
 conditions everything after it: whether the payload is another bundle, whether `system` means anything, how `game`
-should be read. Then where the bytes came from, then what they are, then how to read them, in the order that work
-happens: inflate, allocate, verify. Refinements of the header come last, since they change nothing about the decoding.
+should be read. Then where the bytes came from, then what they are, then the digest that verifies them. Refinements of
+the header come last, since they change nothing about the decoding.
 
 Two limits are worth knowing. The payload lands after every unsigned key because it sits at
 [-1](/specifications/universal-saves-format/#additive-integer-keys) and not because of where the others are numbered, so
 that property survives any later assignment. And extension keys are text, which sorts after `-1`, so a producer's own
 data arrives _after_ the bytes it describes. Anything a consumer needs in order to read the payload belongs in an
-integer key rather than an extension.
+integer key rather than an extension. [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) is not that: the bytes read
+the same without it, and a decoder checks their length against the chip once both have arrived.
 
 `slot` and `dirent` describe a part's place in the container it came from, and they apply at both nesting levels. On a
 card's [`bundle`](#nested-bundles) part they carry the save's own directory entry. Inside that nested bundle they carry
@@ -403,21 +408,8 @@ act on. Parts of different [kinds](#part-kinds) never clash, so a state part and
 or `slot` at all. Where a container allows duplicate names, the producer MUST carry `slot`. An N64 controller pak
 permits two notes with the same game code and note name, and `slot` is what keeps them distinct.
 
-Every part carries its bytes inline, so a bundle always works on its own.
-
-Between them, `encoding` and `size` give a part one of two forms:
-
-| Form         | `size`  | `encoding` | `payload`   |
-| ------------ | ------- | ---------- | ----------- |
-| Uncompressed | absent  | absent     | byte string |
-| Compressed   | present | `"zstd"`   | byte string |
-
-`size` is what a producer says the payload will come to, not a promise that it will. A consumer **MAY** decline to
-decompress a part whose `size` is larger than it is willing to handle. A consumer **MAY** abandon a decompression that
-outgrows what it expected. Both follow the reasoning for
-[rejecting a bundle with more parts than it wants](#1-parts-array-of-part). The number costs an attacker nothing to
-inflate, and a small payload can claim to expand without limit. Nothing obliges a consumer to read a part, so declining
-one is always available and is the answer to a payload it cannot afford.
+Every part carries its bytes inline and uncompressed, so a bundle always works on its own. Keys 7 and 8 are
+[retired](/specifications/universal-saves-format/#additive-integer-keys).
 
 #### Byte order
 
@@ -449,8 +441,10 @@ KiB into its file. The payload is the chip.
   tool pads it. MiSTer's GBA core reads a 4 Kbit EEPROM only from a file of 8 KiB, which is the size it writes.
 
 Some tools keep save memory in their host's order instead, and [MiSTer's NeoGeo core](/specifications/device/#parts) is
-one. A consumer rebuilding such a tool's file puts the bytes back in the file's order. A `state` part follows a rule of
-its own: it is the core's data as the core loads it, in the order [`taken_with`](#taken_with-map) records.
+one. mupen64plus and Project64 keep an N64 cartridge's SRAM and FlashRAM that way, and
+[`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) gives the form each of its chips takes. A consumer rebuilding
+such a tool's file puts the bytes back in the file's order. A `state` part follows a rule of its own: it is the core's
+data as the core loads it, in the order [`taken_with`](#taken_with-map) records.
 
 #### Bound payloads
 
@@ -487,13 +481,14 @@ The rules:
 - `binding` belongs on the part holding the bound bytes. On a card, that is a part inside the nested bundle, not the
   `bundle` part wrapping it.
 - Two consoles writing the same save produce different bound bytes, so they produce different `sha256` values and
-  different [content hashes](#content-hash-and-file-hash). Bound saves do not deduplicate across devices, and cannot.
+  different [content hashes](#content-hash). Bound saves do not deduplicate across devices, and cannot.
 
 ### Layout consequences
 
 The two-element shape pins `parts` to position [1], which encodes after the header [0]. That is the whole of the layout
 this format guarantees. Where a key sits inside a part is not part of that guarantee. `payload` at [-1](#part-map) does
-sort after every unsigned key, so a blob lands at its part's tail in practice, but nothing may depend on that.
+sort after every unsigned key, so a blob lands after its part's integer keys in practice, but nothing may depend on
+that.
 
 - **Cheap identification**: the header occupies a small head region (typically <2 KiB), so a consumer that only needs to
   know what a bundle is reads the front and stops. Listing what a card or a
@@ -507,37 +502,27 @@ sort after every unsigned key, so a blob lands at its part's tail in practice, b
 - **Payloads are contiguous and length-prefixed**: every payload is a definite-length byte string at a known offset. A
   decoder can mmap the file and hand out payload slices without copying, and never has to hold a blob in memory to parse
   the parts around it.
-- **In-place blob streaming on encode**: a writer can serialize the head, then stream each part's bytes directly into
-  the output without holding them in memory. A `zstd` part is the exception, since a CBOR byte string is length-prefixed
-  and the compressed length is only known once compression finishes.
+- **In-place blob streaming on encode**: an encoder can serialize the head, then stream each part's bytes directly into
+  the output without holding them in memory.
 
-### Content hash and file hash
+### Content hash
 
-A bundle has two hashes, and they answer different questions.
-
-The **file hash** is the SHA-256 of the bytes on disk (bundle tag + array, as encoded). It identifies this exact file,
-and it is what an integrity check compares.
-
-The **content hash** is the SHA-256 of the bundle's _normalized_ encoding: the same logical bundle, canonically encoded,
-with every part uncompressed and every payload embedded. It is a pure function of what the bundle says, so two producers
-that build the same logical bundle agree on it. That is the identifier a content-addressable store keys on, and the
-value a [`bundle`](#nested-bundles) part's `sha256` holds.
-
-They are the same value for an uncompressed bundle, which is every bundle nested inside another. They differ only where
-a part is compressed, and that is the whole reason they are defined separately. `zstd` output depends on the
-implementation, its version and the level, and this format pins none of them. So two encoders building the same logical
-bundle produce different files and the same content hash.
+A bundle's **content hash** is the SHA-256 of its bytes: the bundle tag and the array, as encoded. A bundle has
+[one encoding](/specifications/universal-saves-format/#one-encoding-per-bundle), so the hash is a pure function of what
+it says, and two producers that build the same logical bundle agree on it. It is what an integrity check compares, the
+identifier a content-addressable store keys on, and the value a [`bundle`](#nested-bundles) part's `sha256` holds.
 
 #### What a content hash does not answer
 
-Both hashes are over bytes, and identical bytes are a stronger claim than identical save. Two honest dumps of one
+A content hash is over bytes, and identical bytes are a stronger claim than identical save. Two honest dumps of one
 cartridge can differ in length or padding, and two consoles produce different [bound](#bound-payloads) bytes for the
 same progress, so one save can arrive under two content hashes.
 
-The format has no canonical byte form for a save and does not try to acquire one. Deciding that a 64 KB dump and its 32
-KB half are the same save takes exactly the per-system parsing this container keeps out. The content hash answers "are
-these the same bytes", which is what a store needs to deduplicate safely. A producer that wants "is this the same
-playthrough" builds that on top.
+Beyond [byte order](#byte-order) and an N64 cartridge's
+[normal form](/specifications/extensions/x.1sav.n64/#the-payload), the format has no canonical byte form for a save and
+does not try to acquire one. Deciding that a 64 KB dump and its 32 KB half are the same save takes exactly the
+per-system parsing this container keeps out. The content hash answers "are these the same bytes", which is what a store
+needs to deduplicate safely. A producer that wants "is this the same playthrough" builds that on top.
 
 ## Appendix A: CDDL schema
 

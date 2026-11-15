@@ -90,7 +90,8 @@ export function corpus(spec) {
   //
   //   schema        the CDDL rejects it
   //   determinism   RFC 8949 4.2, plus NFC text and the ordering rules on top
-  //   structure     needs a look inside a payload, or a comparison across parts
+  //   structure     needs a look inside a payload or an extension value, or a
+  //                 comparison across parts
   //
   // Only the first is checkable by a validator. Everything in the other two
   // validates against the schema and is malformed anyway, so an implementation

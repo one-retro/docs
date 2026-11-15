@@ -155,6 +155,80 @@ export const extensions = {
     },
   },
 
+  // The write half of `x.1sav.dirent` for a Controller Pak note: the 32-byte
+  // entry as fields, less the start page the allocator owns.
+  "x.1sav.dirent.n64-cpak": {
+    schema: `${DIR}/x.1sav.dirent.n64-cpak.cddl`,
+    valid: {
+      // Mario Kart 64's note, as libdragon and most official saves write the
+      // status and reserved bytes.
+      full: map({
+        0: Buffer.from("NKTE"),
+        1: Buffer.from("01"),
+        2: 0x02,
+        3: 0x03,
+        4: 0,
+        5: Buffer.alloc(4),
+        6: Buffer.from([0x26, 0x1a, 0x2b, 0x22, 0x28, 0x24, 0x1a, 0x2b, 0x2d, 0x16, 0x14, 0, 0, 0, 0, 0]),
+      }),
+    },
+    invalid: {
+      // Every field but the start page is in the entry, so none is optional.
+      "without-game-code": map({ 1: Buffer.from("01"), 2: 2, 3: 3, 4: 0, 5: Buffer.alloc(4), 6: Buffer.alloc(16) }),
+      // The codes are bytes, since the pak takes whatever a game writes.
+      "game-code-as-text": map({
+        0: "NKTE",
+        1: Buffer.from("01"),
+        2: 2,
+        3: 3,
+        4: 0,
+        5: Buffer.alloc(4),
+        6: Buffer.alloc(16),
+      }),
+      // The name and extension keep their padding, so each is its full width.
+      "name-unpadded": map({
+        0: Buffer.from("NKTE"),
+        1: Buffer.from("01"),
+        2: 2,
+        3: 3,
+        4: 0,
+        5: Buffer.alloc(4),
+        6: Buffer.alloc(11),
+      }),
+      "extension-too-long": map({
+        0: Buffer.from("NKTE"),
+        1: Buffer.from("01"),
+        2: 2,
+        3: 3,
+        4: 0,
+        5: Buffer.alloc(5),
+        6: Buffer.alloc(16),
+      }),
+      // One byte each, as the entry has them.
+      "status-too-wide": map({
+        0: Buffer.from("NKTE"),
+        1: Buffer.from("01"),
+        2: 256,
+        3: 3,
+        4: 0,
+        5: Buffer.alloc(4),
+        6: Buffer.alloc(16),
+      }),
+      // The start page is the allocator's, so it is not carried.
+      "start-page-carried": map({
+        0: Buffer.from("NKTE"),
+        1: Buffer.from("01"),
+        2: 2,
+        3: 3,
+        4: 0,
+        5: Buffer.alloc(4),
+        6: Buffer.alloc(16),
+        7: 5,
+      }),
+      "not-a-map": Buffer.alloc(32),
+    },
+  },
+
   // What the console calls a save, on the nested bundle's header because the
   // text travels with the save when it is sliced out.
   "x.1sav.label": {
@@ -210,6 +284,35 @@ export const extensions = {
       "banner-as-text": map({ 0: [[pattern(64)]], 1: "banner.png" }),
       "unknown-key": map({ 0: [[pattern(64)]], 2: "nope" }),
       "not-a-map": pattern(64),
+    },
+  },
+
+  // Which chip an N64 cartridge saves to. The one key a decoder checks, since
+  // the chip fixes how long the payload beside it is.
+  "x.1sav.n64": {
+    schema: `${DIR}/x.1sav.n64.cddl`,
+    valid: {
+      "eeprom-4k": map({ 0: "eeprom-4k" }),
+      "eeprom-16k": map({ 0: "eeprom-16k" }),
+      "sram-256k": map({ 0: "sram-256k" }),
+      "sram-768k": map({ 0: "sram-768k" }),
+      "flash-1m": map({ 0: "flash-1m" }),
+      // No retail cartridge has it, but a homebrew ROM's header can ask for it.
+      "sram-1m": map({ 0: "sram-1m" }),
+    },
+    invalid: {
+      // The chip is the whole of what the key says, so it is required.
+      empty: map({}),
+      // The names count kilobits, as the chips are sold. A name counting the
+      // payload's bytes is no chip the page lists.
+      "chip-named-by-bytes": map({ 0: "sram-32k" }),
+      "chip-uppercase": map({ 0: "EEPROM-4K" }),
+      // The number a homebrew ROM header gives the chip is not its name.
+      "chip-as-number": map({ 0: 1 }),
+      // The byte order is not the producer's to choose: the payload is in the
+      // console's order whatever file it came from.
+      "word-order-carried": map({ 0: "sram-256k", 1: "swapped" }),
+      "not-a-map": "eeprom-4k",
     },
   },
 

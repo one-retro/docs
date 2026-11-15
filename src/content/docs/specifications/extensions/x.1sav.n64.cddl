@@ -1,0 +1,29 @@
+; ============================================================================
+; x.1sav.n64 - the save chip an N64 cartridge carries
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; which chip a game saves to is the cartridge's, not any emulator's.
+;
+; Unlike every other key, this one is checked as part of the bundle. The chip
+; fixes how long the payload beside it is, and an `n64` bundle's `cartridge`
+; save part has to carry it. The page says where.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; Like the format's schema, it describes one version exactly, so an integer
+; key it does not list fails here and is round-tripped by a decoder.
+; ============================================================================
+
+n64 = {
+  0 => chip, ; chip - the save memory the cartridge has
+}
+
+; Each name fixes the payload's length, in bytes.
+chip = "eeprom-4k"  ;    512
+     / "eeprom-16k" ;   2048
+     / "sram-256k"  ;  32768
+     / "sram-768k"  ;  98304, three banks of 32 KiB
+     / "flash-1m"   ; 131072
+     / "sram-1m"    ; 131072, homebrew only

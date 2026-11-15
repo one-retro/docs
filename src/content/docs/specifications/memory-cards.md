@@ -22,7 +22,7 @@ original card byte for byte, and it is not meant to be. A producer that wants by
 | ------------ | -------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ps1-mc`     | 128      | 8192  | The 128 is one directory frame, and a block is 64 of them.                                                                                                                                                                                         |
 | `ps2-mc`     | 512      | 1024  | One entry for the save's directory, one per file inside it. A block is a cluster of two 512-byte pages.                                                                                                                                            |
-| `n64-cpak`   | 32       | 256   | The pak's own word for a block is a page.                                                                                                                                                                                                          |
+| `n64-cpak`   | 32       | 256   | The pak's own word for a block is a page. A pak of several banks is one filesystem whose notes can span banks, so its `capacity` is 32768 times its bank count. Its ID block records that count, and a writer sets it from `capacity`.             |
 | `gc-mc`      | 64       | 8192  |                                                                                                                                                                                                                                                    |
 | `vmu`        | 32       | 512   |                                                                                                                                                                                                                                                    |
 | `neogeo-mc`  | 4        | 64    | Cards run from 2 KiB to 16 KiB and every one of them uses the same block. A Neo Geo CD takes no card: it keeps an 8 KiB one in the console.                                                                                                        |
@@ -53,7 +53,7 @@ It is not necessarily the length of a dump either, because some media carry an o
 filesystem. PS2 is the case that bites. An 8 MB PS2 card holds 8388608 bytes of data, and a raw dump from a hardware
 reader is 8650752 bytes, because every 512-byte page carries 16 further bytes of spare area holding ECC. So `capacity`
 on a PS2 card is 8388608, and a byte-exact [`card-image`](/specifications/bundle/#part-kinds) part of the same card is
-8650752 bytes, and the two are _supposed_ to disagree. Read the image's length off its own `size`; never derive it from
+8650752 bytes, and the two are _supposed_ to disagree. Read the image's length off its own payload; never derive it from
 `capacity`.
 
 The split follows what a writer does. ECC is regenerated on write, like every other structural field below, so a save's
@@ -88,7 +88,7 @@ exactly the bytes the card allocated, so the count is the nested bundle's total 
 
 That division takes the block size from the format, which holds for every format here except `saturn-bup`. Its 64 is the
 console's internal memory and a backup cartridge carries its own, so a count derived this way for a cartridge is wrong.
-The table stands as written for 0.8. Settling it means keying the block size on
+The table stands as written for 0.9. Settling it means keying the block size on
 [`capacity`](/specifications/bundle/#card-map), which is required on every card map, rather than on the format alone. A
 cartridge dumped by itself is a card bundle with no [`role`](/registries/roles/) anywhere in it. So the medium cannot be
 read back off the role, as it can when a Saturn is read whole as a [device](/specifications/device/).
@@ -261,9 +261,9 @@ Three saves on a 128 KiB card, two of them for the same game. The Final Fantasy 
 
 Each payload is a complete bundle holding one part, the save's 8192 bytes, plus the inner bundle's own framing. The two
 Final Fantasy VII entries differ from the Metal Gear Solid one by a single byte, because their game names differ by a
-character. The header carries no `game`, because none of the three describes the card. Each nested bundle's `size`
-covers every block the save occupied, so a save spanning two blocks is one part of 16384 bytes, and the fact that its
-two blocks were not adjacent is not recorded.
+character. The header carries no `game`, because none of the three describes the card. Each inner payload covers every
+block the save occupied, so a save spanning two blocks is one part of 16384 bytes, and the fact that its two blocks were
+not adjacent is not recorded.
 
 Inside the first payload:
 
@@ -364,7 +364,7 @@ notes for games the cartridge knows nothing about, and neither component is insi
   { 0: 1, 1: "bundle", 2: "controller-pak-1", 9: 18540(h'…'), 12: "n64", -1: h'DA31534156…' }
 ```
 
-The cartridge's payload is a plain save, one part and nothing else:
+The cartridge's payload is a plain save of one part, which holds the cartridge's 4 Kbit EEPROM:
 
 ```text
 [0] header:
@@ -375,8 +375,11 @@ The cartridge's payload is a plain save, one part and nothing else:
 }
 
 [1] parts:
-  { 0: 0, 9: 18540(h'…'), -1: h'…512 bytes of EEPROM…' }
+  { 0: 0, 2: "cartridge", 9: 18540(h'…'), -1: h'…512 bytes of EEPROM…', "x.1sav.n64": { 0: "eeprom-4k" } }
 ```
+
+The part has the role `cartridge` though the save has no other part, so it means the same lifted out of the device.
+[`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) names the chip, which fixes the payload at 512 bytes.
 
 The pak's is a card, one nested save per note, laid out like any other card:
 
@@ -397,7 +400,8 @@ The device header carries no `game`, because the pak's other notes are not Mario
 `game` and `system` only as an [index](/specifications/bundle/#nested-bundles) of what each component holds.
 
 Carry only that game's note instead of the whole pak and there is no device at all. The cartridge save and the note are
-two ordinary parts of one [save](/specifications/saves/), told apart by `role`, with nothing nested. Which of the two a
-producer writes depends on what it read, not on what the game is.
+two ordinary parts of one [save](/specifications/saves/), told apart by `role`, with nothing nested. The cartridge's
+part carries `x.1sav.n64` there too. Which of the two a producer writes depends on what it read, not on what the game
+is.
 
 This arrangement is the `cartridge-and-pak` case in the conformance corpus.

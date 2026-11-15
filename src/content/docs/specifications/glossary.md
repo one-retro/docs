@@ -75,13 +75,10 @@ Most normative rules name one of these three, and which one is the whole meaning
 
 ## Payloads and integrity
 
-- **Content hash.** The SHA-256 of a bundle's normalized encoding: uncompressed, every payload embedded. A pure function
-  of what the bundle says, and a nested save's identity. See
-  [Content hash and file hash](/specifications/bundle/#content-hash-and-file-hash).
-- **File hash.** The SHA-256 of the bytes on disk. It identifies one exact file, and equals the content hash only for a
-  bundle that is uncompressed.
-- **Normalized.** Of a nested bundle: uncompressed with every payload embedded, which is required so that its file hash
-  and content hash are the same value.
+- **Content hash.** The SHA-256 of a bundle's bytes. A bundle has one encoding, so it is a pure function of what the
+  bundle says, and a nested save's identity. See [Content hash](/specifications/bundle/#content-hash).
+- **Normal form.** How an N64 cartridge's save memory sits in a payload: the whole chip, in the order the console reads
+  it. See [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/#the-payload).
 - **Bound payload.** A payload tied to the console that wrote it, which a consumer
   [must not present as restorable](/specifications/bundle/#bound-payloads) anywhere else.
 

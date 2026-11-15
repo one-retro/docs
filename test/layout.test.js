@@ -134,13 +134,12 @@ describe("one encoding per bundle", () => {
     for (const { bundle: inner, depth: d } of everyPart(b)) if (inner) yield { bundle: inner, depth: d };
   };
 
-  // Absence is the only encoding of each of these. The schema catches all four
+  // Absence is the only encoding of each of these. The schema catches all three
   // on a bundle's own parts, but a nested bundle is bytes to it, so this walks
   // every depth the schema cannot.
   const DEFAULTS = [
     [2, "primary", "role"],
     [3, "", "path"],
-    [7, "none", "encoding"],
     [KIND, "save", "kind"],
   ];
   it("never spells out a default", () => {
@@ -174,24 +173,11 @@ describe("one encoding per bundle", () => {
 });
 
 describe("fixtures", () => {
-  // Both fields cover the *uncompressed* payload, so this only holds where the
-  // stored bytes are the payload. A `zstd` part is supposed to match neither,
-  // which is why it is skipped rather than accommodated.
-  it("hashes every uncompressed part payload with its own sha256", () => {
+  it("hashes every part payload with its own sha256", () => {
     for (const [name, fixture] of Object.entries(valid)) {
       for (const { part: p } of everyPart(fixture)) {
-        if (p.get(7) !== undefined) continue;
         assert.ok(sha256(p.get(PAYLOAD)).equals(p.get(SHA256).value), `${name}: part ${p.get(0)} sha256 matches`);
-        assert.equal(p.get(8), undefined, `${name}: part ${p.get(0)} carries a derivable size`);
       }
     }
-  });
-
-  it("keeps a compressed part's stored bytes distinct from its uncompressed size", () => {
-    const compressed = [...everyPart(valid["compressed-and-aux"])].filter(({ part: p }) => p.get(7) === "zstd");
-    assert.equal(compressed.length, 1, "the fixture carries a zstd part");
-    const p = compressed[0].part;
-    assert.notEqual(p.get(8), p.get(PAYLOAD).length, "size is the uncompressed length, not the stored one");
-    assert.ok(!sha256(p.get(PAYLOAD)).equals(p.get(SHA256).value), "sha256 is over the uncompressed bytes");
   });
 });

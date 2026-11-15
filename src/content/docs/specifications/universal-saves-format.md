@@ -4,11 +4,11 @@ description: A portable, self-describing CBOR container for retro console save f
 sidebar:
   label: Overview
   badge:
-    text: v0.8
+    text: v0.9
     variant: caution
 ---
 
-This is version 0.8 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
+This is version 0.9 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
 in place, under the same bundle tag.
 
 ## Changelog
@@ -18,6 +18,17 @@ moved. A version covers the format, the [common types](/specifications/common-ty
 [extension keys](/specifications/extensions/) these specifications own; a key belonging to a producer changes on that
 producer's schedule instead.
 
+- **0.9**, 2026-11-14. Breaking: an N64 cartridge's save memory sits on a save part with the role `cartridge`, in a
+  bundle naming `n64`, wherever that bundle is nested. The part carries
+  [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) naming its chip, and its payload is the chip in normal form. A
+  missing key, an unlisted chip, a payload of another length, or the key anywhere else makes a bundle malformed. It is
+  the one extension value a decoder checks. Breaking: an N64 ROM is hashed big-endian, and a 64DD disk as its retail
+  dump. Breaking: a part is never compressed. Part keys 7 and 8, `encoding` and `size`, are retired, and a part carrying
+  either is malformed. A transport that wants a smaller file compresses the whole of it. With nothing compressed, a
+  bundle's file hash and content hash are one value, so the spec names only the
+  [content hash](/specifications/bundle/#content-hash). New: the 64DD's [disk save](/specifications/saves/#a-64dd-disk),
+  under the system `n64dd`, and [`x.1sav.dirent.n64-cpak`](/specifications/extensions/x.1sav.dirent.n64-cpak/). A
+  Controller Pak of several banks is one card whose `capacity` counts every bank.
 - **0.8**, 2026-11-10. Breaking: a medium addressed only in whole words, such as a serial EEPROM, holds each word
   [most significant byte first](/specifications/bundle/#byte-order), as every order this spec chooses is. Under 0.7 an
   MBC7's or a GBA EEPROM's payload followed the CPU and was low byte first. A payload is the medium's bytes
@@ -108,10 +119,10 @@ already give them. A writer [regenerates](/specifications/memory-cards/#what-a-w
 mirror and checksum rather than reading them back, and `capacity` counts the data area rather than the length of a dump.
 None of those is a space optimisation. Each is a field that could disagree with the bytes, removed so that it cannot.
 
-A producer that wants the original file kept anyway attaches it as a part, where it gets a digest and can be compressed
-like any other payload. A whole card goes in a [`card-image`](/specifications/bundle/#part-kinds). A container this
-format has no name for goes in an [`aux` part](/specifications/bundle/#part-kinds) with a `content_type`. That is
-archival, riding alongside, and a consumer that rebuilds from the parts never has to consult it.
+A producer that wants the original file kept anyway attaches it as a part, where it gets a digest like any other
+payload. A whole card goes in a [`card-image`](/specifications/bundle/#part-kinds). A container this format has no name
+for goes in an [`aux` part](/specifications/bundle/#part-kinds) with a `content_type`. That is archival, riding
+alongside, and a consumer that rebuilds from the parts never has to consult it.
 
 Where bytes are carried verbatim, it is because nothing has decoded them and so nobody can say which of them are read.
 [`dirent`](/specifications/bundle/#part-map) and [`system_area`](/specifications/bundle/#card-map) are that case, not
@@ -119,10 +130,10 @@ exceptions to this rule: the format holds them whole precisely because it cannot
 
 ### One encoding per bundle
 
-A bundle's [content hash](/specifications/bundle/#content-hash-and-file-hash) is the identifier a store keys on and the
-value a [`bundle` part](/specifications/bundle/#nested-bundles) carries. So it has to be a function of what the bundle
-says, not of how a producer chose to say it. Deterministic encoding gets most of the way: it fixes how a given value is
-written. What it cannot fix is a format that offers two ways to say the same thing.
+A bundle's [content hash](/specifications/bundle/#content-hash) is the identifier a store keys on and the value a
+[`bundle` part](/specifications/bundle/#nested-bundles) carries. So it has to be a function of what the bundle says, not
+of how a producer chose to say it. Deterministic encoding gets most of the way: it fixes how a given value is written.
+What it cannot fix is a format that offers two ways to say the same thing.
 
 So this one offers one, everywhere:
 
@@ -130,8 +141,8 @@ So this one offers one, everywhere:
   `game`, `game_id` or `rom_hashes` is malformed, and so is an empty `parts` array.
 - **A default is absence.** Where a field has a default, the default is written by leaving the key out, and spelling it
   out is malformed. A part's [`kind`](/specifications/bundle/#part-kinds) means `save` when absent, its
-  [`role`](/specifications/bundle/#part-map) means `primary`, its [`path`](/specifications/bundle/#part-map) means the
-  role is the whole address, and its [`encoding`](/specifications/bundle/#part-map) means `"none"`.
+  [`role`](/specifications/bundle/#part-map) means `primary`, and its [`path`](/specifications/bundle/#part-map) means
+  the role is the whole address.
 - **One type per value.** A field that could take an integer or a float takes the integer, because
   [RFC 8949 section 4.2.2](https://datatracker.ietf.org/doc/html/rfc8949#name-additional-deterministic-en) declines to
   choose between them. Every epoch field here is whole seconds.
@@ -161,7 +172,8 @@ Whatever it kept would be a bundle its producer never wrote, still under that pr
 
 What a decoder does not recognise is not malformed. An integer key or a shape from a later version is round-tripped, as
 the sections below say. A [kind](/specifications/bundle/#part-kinds) the decoder does not know is read as `aux`. Every
-extension value is round-tripped too, since the format never looks inside one.
+extension value is round-tripped too. Apart from [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), which says how
+long a payload is, the format never looks inside one.
 
 ### Additive integer keys
 
@@ -173,6 +185,13 @@ one thing an unfamiliar integer key can be: a field a later minor version assign
 
 A later minor version assigns the next free key in whatever map needs it. A change that cannot be expressed that way
 takes a new bundle tag and a new major version, which old decoders reject on the tag alone.
+
+A retired key is never free again, and the rule above does not cover it:
+
+- Part keys 7 and 8 are retired. A part carrying either is malformed.
+
+Under 0.8 those two keys compressed a part's payload. A decoder that ignored them would hand compressed bytes out as the
+save.
 
 ### Names
 
@@ -213,7 +232,7 @@ any operation that depends on knowing: walking the parts, restoring a save, rebu
 bundle is not the same as rejecting it, and only the second loses the bytes.
 
 The schema is the narrower of the two on purpose. It pins the six shapes this version defines, so validating against it
-says "this is a conforming 0.8 bundle" rather than "some decoder can read this", the same asymmetry
+says "this is a conforming 0.9 bundle" rather than "some decoder can read this", the same asymmetry
 [Additive integer keys](#additive-integer-keys) describes.
 
 A bundle names its shape and a decoder reads it; what the parts then mean is that shape's document, and
@@ -234,8 +253,9 @@ keys. The rules:
   no domain to reverse takes a name in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree). The
   namespace is the whole of what stops two producers meaning different things by one key.
 - **What sits under the key is entirely the producer's.** Any CBOR value of any shape: a map, a text string, a byte
-  string, a number. The spec never looks inside one, imposes nothing on it, and the rule that integer keys belong to the
-  spec stops at the key.
+  string, a number. Apart from [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), which fixes how long the payload
+  beside it is, the spec never looks inside one or imposes anything on it. The rule that integer keys belong to the spec
+  stops at the key.
 - Decoders **MUST** round-trip an unknown extension key unchanged, value included. Never drop one just because you don't
   recognize it.
 - The integer namespace belongs to the spec, so an integer key is never an extension. Unknown ones are handled by
@@ -260,8 +280,8 @@ The spec deliberately does _not_ cover:
 - **Encryption.** The bundle is plaintext CBOR. Confidentiality is the transport's responsibility (TLS) or a separate
   envelope. Unbinding a [bound payload](/specifications/bundle/#bound-payloads) is out too: decryption, where it is even
   possible, needs keys this format does not carry.
-- **Compression at the file level.** Compression is per-part, via a part's `encoding` field; the outer file is never
-  wrapped in another compression layer.
+- **Compression.** The format defines none, for a whole bundle or for a part. A transport that wants a smaller file
+  compresses the file it carries, and hands a decoder the bundle as it was.
 - **Authentication / signing.** No signatures inside the bundle. If signed bundles are ever needed, they belong in a new
   outer CBOR tag that wraps this one.
 - **On-disk canonicalization for emulator save directories.** Devices that natively read `.sav` / `.srm` continue to do

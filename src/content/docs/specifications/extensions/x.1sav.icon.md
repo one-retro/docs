@@ -40,7 +40,7 @@ address the directory entry points to.
 
 An [`aux` part](/specifications/bundle/#part-kinds) is not the place. Beside the save it is linked only by inference
 from `slot` and `path`; inside the save's own bundle it joins that bundle's
-[content hash](/specifications/bundle/#content-hash-and-file-hash), which is the save's identity.
+[content hash](/specifications/bundle/#content-hash), which is the save's identity.
 
 ## What does not go here
 

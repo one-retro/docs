@@ -37,10 +37,9 @@ format.
 
 - **Can it carry executable content?** No. A bundle is data: no scripts, no references to external code, nothing a
   consumer is expected to run.
-- **What can hostile input cost a decoder?** Nothing it does not agree to spend. A part's declared length, a compressed
-  part's expansion and the parts array's count are all claims an attacker can inflate for free. A consumer is never
-  obliged to honour one: it may decline a part, decline to decompress it, or abandon a decompression that outgrows what
-  it expected.
+- **What can hostile input cost a decoder?** Nothing it does not agree to spend. A part's declared length and the parts
+  array's count are both claims an attacker can inflate for free. A consumer is never obliged to honour one: it may
+  decline a part, or the whole bundle.
 - **Does it provide integrity?** Each part carries a SHA-256 of its payload, which detects corruption and substitution
   when a consumer verifies it before use.
 - **Does it authenticate?** No. A bundle carries no signature, so an attacker who rewrites a payload rewrites the digest

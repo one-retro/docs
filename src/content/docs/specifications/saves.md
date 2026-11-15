@@ -36,24 +36,18 @@ are in the order the console's hardware addresses them, whatever order the file 
 A consumer **MAY** refuse a save bundle with more than one part. A producer that writes one part is therefore the
 producer most consumers can read, and an emulator writing a cartridge save has no reason to write more.
 
-| Key | Name      | Req?           | Notes                                                            |
-| --- | --------- | -------------- | ---------------------------------------------------------------- |
-| 0   | `id`      | yes            | The part's index, counting from 0.                               |
-| 9   | `sha256`  | yes            | Tag 18540 over the uncompressed payload.                         |
-| -1  | `payload` | yes            | The bytes. Always last in the map.                               |
-| 7   | `size`    | on compression | The uncompressed length, carried only when it cannot be derived. |
+| Key | Name      | Req? | Notes                                     |
+| --- | --------- | ---- | ----------------------------------------- |
+| 0   | `id`      | yes  | The part's index, counting from 0.        |
+| 9   | `sha256`  | yes  | Tag 18540 over the payload.               |
+| -1  | `payload` | yes  | The bytes, after every other integer key. |
 
 Every other key is for a save the container gave more than one part, and [Bundle](/specifications/bundle/#part-map)
 defines them all.
 
-### Carrying the payload
-
-Two forms, and a producer picks one:
-
-- **Embedded**, the ordinary case: `sha256` and the bytes. No `encoding`, no `size`, because an embedded uncompressed
-  payload states its own length.
-- **Compressed**: `encoding`, `size` and `sha256`, then the compressed bytes. `sha256` and `size` both describe the
-  payload _before_ compression, so neither changes when a producer recompresses.
+An N64 cartridge's save is the exception. Its part carries the role `cartridge`, and
+[`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) naming the chip, because the bytes cannot say which chip they
+came from. That page also fixes the payload's length and order.
 
 ### Encoding
 
@@ -85,6 +79,42 @@ One system's software wrapping another's save is not a nesting either. A Wii Vir
 No two parts of one kind may agree on `role`, `path` and `slot` together, which is
 [how a consumer names one](/specifications/bundle/#part-map).
 
+## A 64DD disk
+
+A 64DD disk keeps a game's saves in its RAM area, the part of the disk a game can write. Its save is an `n64dd` save
+whose one part holds that area. Nothing outside it belongs in the save: the rest of the disk is the game, as its dump
+holds it.
+
+The disk's type, 0 to 6, fixes where the RAM area starts, and it runs from there to the disk's last block. A block's
+length falls from 19720 bytes in the outer zones to 9520 in the inner ones, so each type's area has a length of its own.
+Blocks are numbered as libleo numbers them, from the first block after the system area:
+
+| Type | First block | Blocks | Payload in bytes |
+| ---- | ----------- | ------ | ---------------- |
+| 0    | 1418        | 2874   | 38444480         |
+| 1    | 1966        | 2326   | 29501120         |
+| 2    | 2514        | 1778   | 21303040         |
+| 3    | 3062        | 1230   | 13850240         |
+| 4    | 3610        | 682    | 7142720          |
+| 5    | 4088        | 204    | 1942080          |
+| 6    | none        | 0      | no save          |
+
+- A producer **MUST** put the RAM area's blocks in the payload in ascending block order, each as the drive transfers it.
+- A payload **MUST** be as long as the table gives for its disk's type.
+
+The length is how a consumer tells the type back, so a disk's save carries no key for it. A decoder finds the area as
+the save part with no `role` in a bundle naming `n64dd`.
+
+mupen64plus, Project64 and MiSTer's N64 core keep the area as a `.ram` file in exactly that form. Other tools keep a
+full copy of the disk: mupen64plus's `.ndr`, ares's `.disk` and Mupen64Plus-Next's `.disk_save`. A copy follows the
+layout of the image it came from. A retail dump runs in block order, and MAME's image runs in the disk's physical order,
+where finding a block takes the disk's defect table. A producer reading a copy takes the RAM area's blocks out of it. A
+consumer rebuilding a copy needs the disk's image as well, since the save holds the RAM area alone.
+
+The drive keeps the 64DD's clock, so a disk's save does not carry it. A game that saves to its cartridge as well as its
+disk has two saves, an `n64` one and an `n64dd` one, and a [collection](/specifications/collections/) holds both in one
+file.
+
 ## Extension keys
 
 These attach to the header, because they describe the save and travel with it:
@@ -92,6 +122,10 @@ These attach to the header, because they describe the save and travel with it:
 - [`x.1sav.label`](/specifications/extensions/x.1sav.label/), what a console calls the save.
 - [`x.1sav.icon`](/specifications/extensions/x.1sav.icon/), the picture it shows for it.
 - [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/), a clock reading, where the save carries one.
+
+One attaches to a part, because it describes those bytes:
+
+- [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), the chip an N64 cartridge's part holds. It is required there.
 
 ## The smallest valid save
 
@@ -109,6 +143,5 @@ lets the user associate it later.
 
 ## What a saves producer can ignore
 
-The `card` map, `slot`, `dirent` and directory entries belong to [Cards](/specifications/cards/). Nesting, content
-hashes against file hashes, and what a shape may hold matter only where a bundle holds another one. A producer writing
-single saves needs none of it.
+The `card` map, `slot`, `dirent` and directory entries belong to [Cards](/specifications/cards/). Nesting and what a
+shape may hold matter only where a bundle holds another one. A producer writing single saves needs none of it.

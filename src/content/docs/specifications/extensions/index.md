@@ -15,9 +15,12 @@ the _keys_ people have defined.
 A key's schema belongs to its producer, and those entries are **non-normative**: the page records a shape these
 specifications observed, and the producer may change it without notice. A key under a
 [reserved name](/registries/vendors/) works the other way, because it belongs to no one producer. These specifications
-define it, its page carries a normative schema even though carrying the key is optional, and it moves with the
+define it, its page carries a normative schema, and it moves with the
 [format's version](/specifications/universal-saves-format/#changelog) rather than with anybody's release. The `Owner`
 column below is what tells the two apart.
+
+Carrying a key is optional, with one exception. An N64 cartridge's save part carries
+[`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), and a decoder checks it.
 
 Which tree a name sits in follows from the same split. A key whose meaning is one producer's sits under a domain that
 producer holds, as [`com.1retro.forge`](/specifications/extensions/com.1retro.forge/) does: what one parser read out of
@@ -34,20 +37,22 @@ collection's.
 Registration is first-come and non-blocking; to add a key, open a PR with a new `extensions/<key>.md` page and a row in
 the table.
 
-| Key                                                                      | Owner  | Applies to                      | Purpose                                                                   |
-| ------------------------------------------------------------------------ | ------ | ------------------------------- | ------------------------------------------------------------------------- |
-| [`com.1retro.forge`](/specifications/extensions/com.1retro.forge/)       | 1retro | header, part                    | What a Forge parser found, and which parser found it.                     |
-| [`x.1sav.cheats.mgba`](/specifications/extensions/x.1sav.cheats.mgba/)   | (spec) | state's state part              | The cheat list mGBA keeps in a state, set by set.                         |
-| [`x.1sav.dirent`](/specifications/extensions/x.1sav.dirent/)             | (spec) | card or save part               | When a card's directory dates a save and when it last wrote it.           |
-| [`x.1sav.dirent.gc-mc`](/specifications/extensions/x.1sav.dirent.gc-mc/) | (spec) | card part                       | A GameCube directory entry, field by field, for a writer that builds one. |
-| [`x.1sav.icon`](/specifications/extensions/x.1sav.icon/)                 | (spec) | save header                     | The image a console shows for a save, decoded to PNG.                     |
-| [`x.1sav.label`](/specifications/extensions/x.1sav.label/)               | (spec) | save header; card part as index | What a console calls a save, and what it says beneath that.               |
-| [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)                   | (spec) | save or state header            | A clock reading normalized to a Unix instant.                             |
-| [`x.1sav.rtc.huc3`](/specifications/extensions/x.1sav.rtc.huc3/)         | (spec) | save or state header            | The clock controller's memory in a HuC-3 Game Boy cartridge.              |
-| [`x.1sav.rtc.joybus`](/specifications/extensions/x.1sav.rtc.joybus/)     | (spec) | save or state header            | The clock an N64 cartridge answers on the Joybus.                         |
-| [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/)         | (spec) | save or state header            | The clock an MBC3 Game Boy cartridge keeps.                               |
-| [`x.1sav.rtc.rtc4513`](/specifications/extensions/x.1sav.rtc.rtc4513/)   | (spec) | save or state header            | The Epson clock on a Super Famicom SPC7110 board.                         |
-| [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/)     | (spec) | save or state header            | The latched registers of the Seiko RTC in a GBA or WonderSwan cartridge.  |
-| [`x.1sav.rtc.srtc`](/specifications/extensions/x.1sav.rtc.srtc/)         | (spec) | save or state header            | The Sharp clock in a Super Famicom cartridge.                             |
-| [`x.1sav.rtc.tc8521`](/specifications/extensions/x.1sav.rtc.tc8521/)     | (spec) | save or state header            | The Toshiba clock in the TAMA5 Game Boy cartridge.                        |
-| [`x.1sav.rtc.tpp1`](/specifications/extensions/x.1sav.rtc.tpp1/)         | (spec) | save or state header            | The clock of the TPP1 homebrew Game Boy mapper.                           |
+| Key                                                                            | Owner  | Applies to                             | Purpose                                                                           |
+| ------------------------------------------------------------------------------ | ------ | -------------------------------------- | --------------------------------------------------------------------------------- |
+| [`com.1retro.forge`](/specifications/extensions/com.1retro.forge/)             | 1retro | header, part                           | What a Forge parser found, and which parser found it.                             |
+| [`x.1sav.cheats.mgba`](/specifications/extensions/x.1sav.cheats.mgba/)         | (spec) | state's state part                     | The cheat list mGBA keeps in a state, set by set.                                 |
+| [`x.1sav.dirent`](/specifications/extensions/x.1sav.dirent/)                   | (spec) | card or save part                      | When a card's directory dates a save and when it last wrote it.                   |
+| [`x.1sav.dirent.gc-mc`](/specifications/extensions/x.1sav.dirent.gc-mc/)       | (spec) | card part                              | A GameCube directory entry, field by field, for a writer that builds one.         |
+| [`x.1sav.dirent.n64-cpak`](/specifications/extensions/x.1sav.dirent.n64-cpak/) | (spec) | card part                              | An N64 Controller Pak note's entry, field by field, for a writer that builds one. |
+| [`x.1sav.icon`](/specifications/extensions/x.1sav.icon/)                       | (spec) | save header                            | The image a console shows for a save, decoded to PNG.                             |
+| [`x.1sav.label`](/specifications/extensions/x.1sav.label/)                     | (spec) | save header; card part as index        | What a console calls a save, and what it says beneath that.                       |
+| [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/)                         | (spec) | `n64` save or state's `cartridge` part | Which save chip an N64 cartridge has, and so how long its payload is.             |
+| [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)                         | (spec) | save or state header                   | A clock reading normalized to a Unix instant.                                     |
+| [`x.1sav.rtc.huc3`](/specifications/extensions/x.1sav.rtc.huc3/)               | (spec) | save or state header                   | The clock controller's memory in a HuC-3 Game Boy cartridge.                      |
+| [`x.1sav.rtc.joybus`](/specifications/extensions/x.1sav.rtc.joybus/)           | (spec) | save or state header                   | The clock an N64 cartridge answers on the Joybus.                                 |
+| [`x.1sav.rtc.mbc3`](/specifications/extensions/x.1sav.rtc.mbc3/)               | (spec) | save or state header                   | The clock an MBC3 Game Boy cartridge keeps.                                       |
+| [`x.1sav.rtc.rtc4513`](/specifications/extensions/x.1sav.rtc.rtc4513/)         | (spec) | save or state header                   | The Epson clock on a Super Famicom SPC7110 board.                                 |
+| [`x.1sav.rtc.s3511a`](/specifications/extensions/x.1sav.rtc.s3511a/)           | (spec) | save or state header                   | The latched registers of the Seiko RTC in a GBA or WonderSwan cartridge.          |
+| [`x.1sav.rtc.srtc`](/specifications/extensions/x.1sav.rtc.srtc/)               | (spec) | save or state header                   | The Sharp clock in a Super Famicom cartridge.                                     |
+| [`x.1sav.rtc.tc8521`](/specifications/extensions/x.1sav.rtc.tc8521/)           | (spec) | save or state header                   | The Toshiba clock in the TAMA5 Game Boy cartridge.                                |
+| [`x.1sav.rtc.tpp1`](/specifications/extensions/x.1sav.rtc.tpp1/)               | (spec) | save or state header                   | The clock of the TPP1 homebrew Game Boy mapper.                                   |

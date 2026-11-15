@@ -125,12 +125,14 @@ slug.
 
 ## Nintendo 64
 
-| Slug               | Core             | Kind         | Systems | Also seen as |
-| ------------------ | ---------------- | ------------ | ------- | ------------ |
-| `mupen64plus`      | Mupen64Plus      | `standalone` | `n64`   |              |
-| `mupen64plus-next` | Mupen64Plus-Next | `libretro`   | `n64`   |              |
-| `n64-mister`       | N64_MiSTer       | `mister`     | `n64`   | `N64`        |
-| `parallel-n64`     | ParaLLEl N64     | `libretro`   | `n64`   |              |
+| Slug               | Core             | Kind         | Systems        | Also seen as |
+| ------------------ | ---------------- | ------------ | -------------- | ------------ |
+| `mupen64plus`      | Mupen64Plus      | `standalone` | `n64`, `n64dd` |              |
+| `mupen64plus-next` | Mupen64Plus-Next | `libretro`   | `n64`, `n64dd` |              |
+| `n64-mister`       | N64_MiSTer       | `mister`     | `n64`, `n64dd` | `N64`        |
+| `parallel-n64`     | ParaLLEl N64     | `libretro`   | `n64`, `n64dd` |              |
+| `project64`        | Project64        | `standalone` | `n64`, `n64dd` |              |
+| `simple64`         | simple64         | `standalone` | `n64`          |              |
 
 ## GameCube and Wii
 
@@ -332,9 +334,10 @@ slug.
 
 ## Multi-system
 
-| Slug       | Core     | Kind         | Systems                                                                                                                                                                                                                      | Also seen as |
-| ---------- | -------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| `mednafen` | Mednafen | `standalone` | `atari-lynx`, `fds`, `gb`, `gba`, `gbc`, `genesis`, `mastersystem`, `nes`, `ngp`, `ngpc`, `pcengine`, `pcenginecd`, `pcfx`, `psx`, `saturn`, `sega-gg`, `snes`, `supergrafx`, `virtualboy`, `wonderswan`, `wonderswan-color` |              |
+| Slug       | Core     | Kind         | Systems                                                                                                                                                                                                                                                                                               | Also seen as |
+| ---------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `ares`     | ares     | `standalone` | `atari-2600`, `atari-5200`, `colecovision`, `fds`, `gb`, `gba`, `gbc`, `genesis`, `mastersystem`, `msx`, `msx2`, `n64`, `n64dd`, `neogeo`, `nes`, `ngp`, `ngpc`, `pcengine`, `pcenginecd`, `psx`, `sega-32x`, `sega-cd`, `sega-gg`, `sg-1000`, `snes`, `supergrafx`, `wonderswan`, `wonderswan-color` |              |
+| `mednafen` | Mednafen | `standalone` | `atari-lynx`, `fds`, `gb`, `gba`, `gbc`, `genesis`, `mastersystem`, `nes`, `ngp`, `ngpc`, `pcengine`, `pcenginecd`, `pcfx`, `psx`, `saturn`, `sega-gg`, `snes`, `supergrafx`, `virtualboy`, `wonderswan`, `wonderswan-color`                                                                          |              |
 
 ## Other systems
 

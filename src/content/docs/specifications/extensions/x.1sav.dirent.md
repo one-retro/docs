@@ -84,15 +84,15 @@ the same reason in reverse.
 
 Only a format whose entry holds something a writer cannot get elsewhere gets one, and two of the seven do not.
 
-| Format       | Key                                                                      | Why                                                                                                            |
-| ------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `gc-mc`      | [`x.1sav.dirent.gc-mc`](/specifications/extensions/x.1sav.dirent.gc-mc/) | Comment and image addresses, icon format, permissions.                                                         |
-| `ps2-mc`     | not yet written                                                          | Mode bits, attributes and two timestamps per entry.                                                            |
-| `vmu`        | not yet written                                                          | The mini-game type byte, copy protection, a header offset.                                                     |
-| `n64-cpak`   | not yet written                                                          | A company code and the note's own character encoding.                                                          |
-| `neogeo-mc`  | never                                                                    | Its 4 bytes are an NGH number and a sub-number, which are `path`, and a FAT index, which a writer regenerates. |
-| `saturn-bup` | not yet written                                                          | The comment's language byte, which nothing else carries.                                                       |
-| `ps1-mc`     | never                                                                    | Its frame holds a filename, an allocation byte and a block link: `path`, and two things a writer regenerates.  |
+| Format       | Key                                                                            | Why                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `gc-mc`      | [`x.1sav.dirent.gc-mc`](/specifications/extensions/x.1sav.dirent.gc-mc/)       | Comment and image addresses, icon format, permissions.                                                         |
+| `ps2-mc`     | not yet written                                                                | Mode bits, attributes and two timestamps per entry.                                                            |
+| `vmu`        | not yet written                                                                | The mini-game type byte, copy protection, a header offset.                                                     |
+| `n64-cpak`   | [`x.1sav.dirent.n64-cpak`](/specifications/extensions/x.1sav.dirent.n64-cpak/) | The game and company codes, and the name's raw bytes.                                                          |
+| `neogeo-mc`  | never                                                                          | Its 4 bytes are an NGH number and a sub-number, which are `path`, and a FAT index, which a writer regenerates. |
+| `saturn-bup` | not yet written                                                                | The comment's language byte, which nothing else carries.                                                       |
+| `ps1-mc`     | never                                                                          | Its frame holds a filename, an allocation byte and a block link: `path`, and two things a writer regenerates.  |
 
 ## When to set it
 

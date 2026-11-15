@@ -16,7 +16,6 @@ import { bundle, nested, part, ps1Card, ps2Card, valid } from "./bundles.js";
 
 const BUNDLE_TAG = 827539798;
 const PAYLOAD = -1;
-const ENCODING = 7;
 const SHA256 = 9;
 const GAME = 11;
 const SYSTEM = 12;
@@ -50,16 +49,6 @@ describe("nested bundles", () => {
   it("re-encodes to the same bytes, so the hash is a content hash", () => {
     for (const { part: p, bundle: inner } of nestedEntries(ps2Card)) {
       assert.ok(encode(inner).equals(p.get(PAYLOAD)), "decode then encode is the identity");
-    }
-  });
-
-  it("is normalized: every inner part is uncompressed and embedded", () => {
-    for (const [name, fixture] of Object.entries(valid)) {
-      for (const { part: p, depth } of everyPart(fixture)) {
-        if (depth === 0) continue;
-        assert.equal(p.get(ENCODING), undefined, `${name}: inner part ${p.get(0)} is uncompressed`);
-        assert.ok(p.get(PAYLOAD) instanceof Uint8Array, `${name}: inner part ${p.get(0)} embeds its payload`);
-      }
     }
   });
 

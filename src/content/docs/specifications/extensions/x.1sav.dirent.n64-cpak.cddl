@@ -1,0 +1,27 @@
+; ============================================================================
+; x.1sav.dirent.n64-cpak - an N64 Controller Pak note's entry, field by field
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because a
+; Controller Pak's note table has one layout and every tool that writes one
+; writes it.
+;
+; The 32 bytes themselves are already carried verbatim in the part's `dirent`.
+; This key is the structured form, for the writer that has to build an entry
+; rather than copy one. The start page is the allocator's and is absent by
+; design; the page says why.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+dirent-n64-cpak = {
+  0 => bstr .size 4,   ; game_code    - 0x00, the game code a cartridge's header holds
+  1 => bstr .size 2,   ; company_code - 0x04
+  2 => uint .size 1,   ; status       - 0x08
+  3 => uint .size 1,   ; reserved     - 0x09
+  4 => uint .size 2,   ; data_sum     - 0x0a
+  5 => bstr .size 4,   ; extension    - 0x0c, in the pak's character set
+  6 => bstr .size 16,  ; name         - 0x10, in the pak's character set
+}

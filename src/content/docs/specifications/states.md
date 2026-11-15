@@ -103,9 +103,9 @@ A state holds no nested bundle. A state and an in-game save of the same game tra
 ### The data is raw
 
 The state part holds the core's data and nothing around it, so a consumer rebuilding the emulator's file knows what it
-has. A producer **MUST** remove any compression the emulator applied. A part's own
-[`encoding`](/specifications/bundle/#part-map) does that job. It **MUST** also take the data out of any file format the
-emulator wrapped around it. RetroArch, for instance, loads a bare core state as readily as its own wrapped file.
+has. A producer **MUST** remove any compression the emulator applied. It **MUST** also take the data out of any file
+format the emulator wrapped around it. RetroArch, for instance, loads a bare core state as readily as its own wrapped
+file.
 
 ### Rebuilding the emulator's file
 
@@ -119,6 +119,9 @@ file need not come back byte for byte, as long as the emulator loads it.
 | RetroArch   | A `RASTATE` header around the core's memory block and an achievement block, sometimes compressed, and a PNG beside it              | The memory block is the state part, the achievement block an `aux` part and the PNG the screenshot          |
 | mGBA        | The core's data, a screenshot, the in-game save, the cheats, the time it was taken and what took it, in a PNG or a file of its own | A state part carrying the cheats, a screenshot, an in-game save part and its clock, `taken_at` and `source` |
 | DuckStation | A header holding a version, the game's title and serial, the disc's path and a screenshot, then the data, often compressed         | `format_version`, `game`, a screenshot, and the state part uncompressed                                     |
+| mupen64plus | The core's `M64+SAVE` data, gzip-compressed, in `.st0` to `.st9`                                                                   | The decompressed data is the state part, and the number in the file's name its `slot`                       |
+| Project64   | Its own state data in `.pj` or `.pj1` to `.pj9`, zipped by default                                                                 | The unzipped data is the state part, and the number in the file's name its `slot`                           |
+| ares        | The core's data, uncompressed, in `.bs1` to `.bs9`, and a `.bsu` it keeps to undo a load                                           | The file is the state part. A numbered one has that `slot`, and `.bsu` has an `origin` of `undo`            |
 
 RetroArch's slot number is in its file's name, and `.state.auto` is the one with none. Those become the state part's
 `slot` and an `origin` of `auto`.
@@ -132,6 +135,8 @@ A state takes these extension keys:
   in-game save; see [On a state](/specifications/extensions/x.1sav.rtc/#on-a-state).
 - [`x.1sav.cheats.mgba`](/specifications/extensions/x.1sav.cheats.mgba/), on the state part. It is the cheat list mGBA
   keeps in its own states, and can turn back on when it loads one.
+- [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), on an N64 in-game save part, whose role is `cartridge`. It is
+  required there, as on a save, since a consumer lifting the in-game save out needs the chip.
 
 ## The smallest valid state
 

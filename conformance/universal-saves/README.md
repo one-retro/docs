@@ -10,9 +10,8 @@ Cases are generated from `test/bundles.js`.
 
 **Determinism.** Two encoders given the same logical bundle must produce the same bytes, which no single file can
 demonstrate. Test it directly: decode each `valid` case, re-encode it, and assert the bytes are identical. That
-round-trip is what the
-[content hash](https://docs.1retro.com/specifications/universal-saves-format/#content-hash-and-file-hash) depends on,
-and it is the property most likely to be quietly wrong in a new implementation.
+round-trip is what the [content hash](https://docs.1retro.com/specifications/bundle/#content-hash) depends on, and it is
+the property most likely to be quietly wrong in a new implementation.
 
 **Nesting depth.** The corpus carries a `collection` case reaching the depth-2 cap, but nothing beyond it, since a
 bundle deeper than the cap is rejected by a rule about structure rather than by anything a decoder sees in one map.

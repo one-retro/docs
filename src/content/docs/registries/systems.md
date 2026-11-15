@@ -52,6 +52,7 @@ The list is **non-normative** and first-come; to add a system, open a PR with a 
 | `msx`              | MSX                  |                      |
 | `msx2`             | MSX2                 |                      |
 | `n64`              | Nintendo 64          |                      |
+| `n64dd`            | Nintendo 64DD        | `64dd`               |
 | `nds`              | Nintendo DS          |                      |
 | `neogeo`           | Neo Geo              |                      |
 | `neogeo-cd`        | Neo Geo CD           | `neocd`, `neogeocd`  |

@@ -1,10 +1,10 @@
 {
   "corpus": "Universal Saves Format conformance cases",
-  "spec_version": "0.8",
+  "spec_version": "0.9",
   "generated_from": "test/bundles.js",
   "counts": {
-    "valid": 40,
-    "invalid": 104
+    "valid": 49,
+    "invalid": 110
   },
   "cases": [
     {
@@ -88,8 +88,22 @@
       "name": "cartridge-and-pak",
       "expect": "valid",
       "file": "valid/cartridge-and-pak.cbor",
-      "sha256": "2a6302f15394a1d4b07738599e419b48900ff078eb0c103dbcde37e5cd591758",
-      "note": "One game whose save spans a cartridge and a memory card, which is neither a card (the bundle is not one) nor a collection (it has a system and a game). Mixing a plain save part with a `bundle` part is what covers it."
+      "sha256": "5ff2132dd45bb1b02909c5d5c6c0a7031b69d93889807735b37f9cb36a230955",
+      "note": "An N64 cartridge beside the whole Controller Pak. The pak holds notes for games the cartridge knows nothing about, so this is a device of two components, each a nested bundle: the cartridge a save, the pak a card. The cartridge save's own part has the role `cartridge` and carries `x.1sav.n64`, so the save means the same lifted out of the device."
+    },
+    {
+      "name": "n64-cartridge-and-note",
+      "expect": "valid",
+      "file": "valid/n64-cartridge-and-note.cbor",
+      "sha256": "eb477d710ee92f83cecffa981bfeeab6475af366d1a57433e7cc942146291a19",
+      "note": "One game's cartridge and its own note, without the rest of the pak, is a save of two parts rather than a device. Only the cartridge's part carries the chip."
+    },
+    {
+      "name": "n64-state-with-in-game-save",
+      "expect": "valid",
+      "file": "valid/n64-state-with-in-game-save.cbor",
+      "sha256": "20b14842f71ba22061a22a494ec10e3d34ed2d1fd7552f2390a17c8b38dfe17b",
+      "note": "An N64 state whose emulator keeps the in-game save beside the core's data. That part is the cartridge's memory, so it has the role `cartridge` and names its chip, as it would in a save of its own."
     },
     {
       "name": "fully-identified",
@@ -99,11 +113,11 @@
       "note": "Every identification hint at once, plus a populated metadata slot. A real producer emits the hashes it has already computed rather than all four; this is the upper bound, and the only save fixture with a clock reading."
     },
     {
-      "name": "compressed-and-aux",
+      "name": "save-and-aux",
       "expect": "valid",
-      "file": "valid/compressed-and-aux.cbor",
-      "sha256": "58f801246a65e1be0a3060d700014423a726421f97d8896026ade76305cf0ce5",
-      "note": "A compressed part beside an `aux` one. `size` and `sha256` cover the uncompressed bytes whatever `encoding` says, so a zstd part's stored bytes match neither, and only the parts around it can be read without inflating."
+      "file": "valid/save-and-aux.cbor",
+      "sha256": "aa79b802e198a08c9d6a029510e9e683c78701481ca616b766ede174efe43a9f",
+      "note": "A save beside an `aux` part. The thumbnail is no save, so it names its type and rides along for a consumer that wants it."
     },
     {
       "name": "n64-pak-duplicate-note-names",
@@ -111,6 +125,55 @@
       "file": "valid/n64-pak-duplicate-note-names.cbor",
       "sha256": "6cdd1179368bbf086e1a525968d02388a972754ec1012a40cdc28e7e18b5ffa5",
       "note": "An N64 Controller Pak permits two notes with the same game code and note name, so `path` cannot tell them apart and the producer must carry `slot`. This is the case the uniqueness rule exists for, on real hardware."
+    },
+    {
+      "name": "n64-cartridge-eeprom-4k",
+      "expect": "valid",
+      "file": "valid/n64-cartridge-eeprom-4k.cbor",
+      "sha256": "42dc47e910b93501103f5158dfa61722491a1f7c5ad5bde8bf12d092ad8a66cf",
+      "note": "An N64 cartridge save for each chip. The part holding the chip's memory carries `x.1sav.n64`, and its payload is that chip at its full size, from a 4 Kbit EEPROM's 512 bytes to a FlashRAM's 128 KiB."
+    },
+    {
+      "name": "n64-cartridge-eeprom-16k",
+      "expect": "valid",
+      "file": "valid/n64-cartridge-eeprom-16k.cbor",
+      "sha256": "76b48ccf14a089d6fb86f95a6e66cb92c7fc429d8f0c76ff1318d1bef3ba8cd1",
+      "note": "An N64 cartridge save for each chip. The part holding the chip's memory carries `x.1sav.n64`, and its payload is that chip at its full size, from a 4 Kbit EEPROM's 512 bytes to a FlashRAM's 128 KiB."
+    },
+    {
+      "name": "n64-cartridge-sram-256k",
+      "expect": "valid",
+      "file": "valid/n64-cartridge-sram-256k.cbor",
+      "sha256": "f3d94954d788440613455b877cd04cd7664bacfafad34a924009b65e21ba3b1c",
+      "note": "An N64 cartridge save for each chip. The part holding the chip's memory carries `x.1sav.n64`, and its payload is that chip at its full size, from a 4 Kbit EEPROM's 512 bytes to a FlashRAM's 128 KiB."
+    },
+    {
+      "name": "n64-cartridge-sram-768k",
+      "expect": "valid",
+      "file": "valid/n64-cartridge-sram-768k.cbor",
+      "sha256": "843677bda1be2e20b601c96c864ec7489942660a45bd1c21e7145e298616b5c4",
+      "note": "An N64 cartridge save for each chip. The part holding the chip's memory carries `x.1sav.n64`, and its payload is that chip at its full size, from a 4 Kbit EEPROM's 512 bytes to a FlashRAM's 128 KiB."
+    },
+    {
+      "name": "n64-cartridge-flash-1m",
+      "expect": "valid",
+      "file": "valid/n64-cartridge-flash-1m.cbor",
+      "sha256": "a6440b295dbd444a92b10a63bccbc5199c68ce99db452f1b648fd54f64e8fe59",
+      "note": "An N64 cartridge save for each chip. The part holding the chip's memory carries `x.1sav.n64`, and its payload is that chip at its full size, from a 4 Kbit EEPROM's 512 bytes to a FlashRAM's 128 KiB."
+    },
+    {
+      "name": "n64-cartridge-sram-1m",
+      "expect": "valid",
+      "file": "valid/n64-cartridge-sram-1m.cbor",
+      "sha256": "d031ec025bbb9805bd2d598a89710c4e77fd4afc66b3f301360206b62dd41a73",
+      "note": "An N64 cartridge save for each chip. The part holding the chip's memory carries `x.1sav.n64`, and its payload is that chip at its full size, from a 4 Kbit EEPROM's 512 bytes to a FlashRAM's 128 KiB."
+    },
+    {
+      "name": "n64dd-disk",
+      "expect": "valid",
+      "file": "valid/n64dd-disk.cbor",
+      "sha256": "be9fc761c59e20196e38be84459fbed843265402602828904c9cc241b518c3b7",
+      "note": "A 64DD disk's save is its RAM area, in block order, and its length is what tells a consumer the disk's type. A type 5 disk's area is its last 204 blocks, 1942080 bytes, the smallest a disk has."
     },
     {
       "name": "saturn-backup",
@@ -173,7 +236,7 @@
       "expect": "valid",
       "file": "valid/zero-byte-payload.cbor",
       "sha256": "53c75971cd58e4337cdd04c01ed0d474279e349e733f2ccaac001d0c280e0cb5",
-      "note": "A zero-length payload. A save slot a console formatted and never wrote to is still a part: `size` is absent because the payload states its own length, and sha256 over no bytes is perfectly well defined."
+      "note": "A zero-length payload. A save slot a console formatted and never wrote to is still a part, and sha256 over no bytes is perfectly well defined."
     },
     {
       "name": "token-bound-save",
@@ -293,7 +356,7 @@
       "rejected_by": "schema",
       "file": "invalid/part-unknown-integer-key.cbor",
       "sha256": "f35a7f557ea356a7f764c22b6b31626ddd8da0891fcf91824df0a1ad5df5faaa",
-      "note": "This schema describes v0.8, so an integer key it does not list fails validation. A shipped decoder is deliberately looser: it ignores and round-trips these, because the only thing they can be is a later minor version's field. That difference is a decoder rule the schema cannot state."
+      "note": "This schema describes v0.9, so an integer key it does not list fails validation. A shipped decoder is deliberately looser: it ignores and round-trips these, because the only thing they can be is a later minor version's field. That difference is a decoder rule the schema cannot state."
     },
     {
       "name": "header-unknown-integer-key",
@@ -301,7 +364,7 @@
       "rejected_by": "schema",
       "file": "invalid/header-unknown-integer-key.cbor",
       "sha256": "38d3710e8cca5034c58a831bb3b81fa64f54c8c129909e229af966448c92f818",
-      "note": "This schema describes v0.8, so an integer key it does not list fails validation. A shipped decoder is deliberately looser: it ignores and round-trips these, because the only thing they can be is a later minor version's field. That difference is a decoder rule the schema cannot state."
+      "note": "This schema describes v0.9, so an integer key it does not list fails validation. A shipped decoder is deliberately looser: it ignores and round-trips these, because the only thing they can be is a later minor version's field. That difference is a decoder rule the schema cannot state."
     },
     {
       "name": "header-without-shape",
@@ -429,15 +492,7 @@
       "rejected_by": "schema",
       "file": "invalid/path-spelled-empty.cbor",
       "sha256": "76772f6a5c641d1d8f9c6230f2892a1d717206f9f1e9079f0d9f69a78bd3ea6d",
-      "note": "A default written out, which would give one part several encodings. Each of the four is written by leaving its key out."
-    },
-    {
-      "name": "encoding-spelled-none",
-      "expect": "invalid",
-      "rejected_by": "schema",
-      "file": "invalid/encoding-spelled-none.cbor",
-      "sha256": "53e67168090794ea9b89ae614bddf4875630dbbb134e10696e8e459bb7109e5f",
-      "note": "A default written out, which would give one part several encodings. Each of the four is written by leaving its key out."
+      "note": "A default written out, which would give one part several encodings. Each of the three is written by leaving its key out."
     },
     {
       "name": "kind-spelled-save",
@@ -445,7 +500,7 @@
       "rejected_by": "schema",
       "file": "invalid/kind-spelled-save.cbor",
       "sha256": "b8e90649e36178d23c74624db3e65e184a9605833cb192e2b863fd44327e9740",
-      "note": "A default written out, which would give one part several encodings. Each of the four is written by leaving its key out."
+      "note": "A default written out, which would give one part several encodings. Each of the three is written by leaving its key out."
     },
     {
       "name": "role-spelled-primary",
@@ -453,7 +508,7 @@
       "rejected_by": "schema",
       "file": "invalid/role-spelled-primary.cbor",
       "sha256": "bec12084a19ce63f48f68c3073b39e8490cb3ed366471b45376de9e646f0a9f6",
-      "note": "A default written out, which would give one part several encodings. Each of the four is written by leaving its key out."
+      "note": "A default written out, which would give one part several encodings. Each of the three is written by leaving its key out."
     },
     {
       "name": "role-with-underscore",
@@ -872,12 +927,12 @@
       "note": "The tag is what lets a generic reader name the digest, so an untagged one is not a hash value at all. A different algorithm's tag is rejected too: this spec pins sha256 here so that identity has exactly one answer."
     },
     {
-      "name": "size-on-uncompressed-part",
+      "name": "part-compressed",
       "expect": "invalid",
       "rejected_by": "schema",
-      "file": "invalid/size-on-uncompressed-part.cbor",
-      "sha256": "4dffe928e90972d2d3a945e7a9963d3d4de50d97bcdaa7e3cf2d42e0de754130",
-      "note": "`size` is carried only where it cannot be derived. An embedded uncompressed payload states its own length, so repeating it invites the two to disagree."
+      "file": "invalid/part-compressed.cbor",
+      "sha256": "69db5f2b0ca018d9c2e3cdfda3c3f23d4782d6d6f142403c84fc8d612881a33d",
+      "note": "A part is never compressed, and keys 7 and 8 are retired. A part carrying `encoding` and `size` as 0.8 wrote them is malformed, even to a decoder that ignores the other integer keys it does not know, since its payload is zstd output rather than the save."
     },
     {
       "name": "payload-at-old-key-8",
@@ -885,7 +940,7 @@
       "rejected_by": "schema",
       "file": "invalid/payload-at-old-key-8.cbor",
       "sha256": "de3cb206b16cf766c618691fc52fbd7910053e4f271661ee79df16d5796b47af",
-      "note": "A pre-renumber bundle, from when the payload sat in the unsigned range. Key 8 is `game` now, and the payload is at -1, so this is rejected rather than read as a game map."
+      "note": "A pre-renumber bundle, from when the payload sat in the unsigned range. Key 11 is `game` now, and the payload is at -1, so this is rejected rather than read as a game map."
     },
     {
       "name": "indefinite-length-parts",
@@ -968,14 +1023,6 @@
       "note": "At most one entry per algorithm. Two sha256 digests name two different files, and nothing says which one the bundle means."
     },
     {
-      "name": "nested-part-compressed",
-      "expect": "invalid",
-      "rejected_by": "structure",
-      "file": "invalid/nested-part-compressed.cbor",
-      "sha256": "ee23d9c77d354d693c5efdea5d2dbc137f5275d6dddcdc6685ba16febc03bf36",
-      "note": "Every part of a nested bundle is uncompressed with its payload embedded, so that an inner bundle's file hash and content hash are the same value. Compression belongs on the outer part."
-    },
-    {
       "name": "bundle-part-payload-not-a-bundle",
       "expect": "invalid",
       "rejected_by": "structure",
@@ -1012,7 +1059,7 @@
       "expect": "invalid",
       "rejected_by": "structure",
       "file": "invalid/save-holding-a-bundle-part.cbor",
-      "sha256": "76bfc65c37e0cfa5272ae890e7f36cb3d97bb0a56a1abaf91225ba384ea82126",
+      "sha256": "b14eae287e99394c7bee1f7b4f056d90fd575c3183842ae62676efc3fe24e513",
       "note": "A save holds no nested bundle: a component that is a card of its own makes the bundle a device."
     },
     {
@@ -1118,6 +1165,70 @@
       "file": "invalid/n64-path-longer-than-a-note-name.cbor",
       "sha256": "7fa39aa70a5ff5b59e8f9f80e7b573af7f5411d2088211ca40d40ed54e61adf1",
       "note": "A note's name is 16 bytes, so its spelling runs to 16 characters at most before any extension. This one has 17 and no extension."
+    },
+    {
+      "name": "n64-cartridge-wrong-size",
+      "expect": "invalid",
+      "rejected_by": "structure",
+      "file": "invalid/n64-cartridge-wrong-size.cbor",
+      "sha256": "17c830a9200cdb03b8ce19094a5d6f8ccdebc5495b8408ea0661f7f8677fbb84",
+      "note": "An N64 cartridge's chip fixes how long its payload is. A 16 Kbit EEPROM is 2048 bytes, and this payload is the 512 of a 4 Kbit one, which is the mix-up the key is there to prevent."
+    },
+    {
+      "name": "n64-chip-undefined",
+      "expect": "invalid",
+      "rejected_by": "structure",
+      "file": "invalid/n64-chip-undefined.cbor",
+      "sha256": "e8b96b52202f1cc9e2f8db65a3287dc93fb271c46397c31e756acda76ee241cd",
+      "note": "The chip names count kilobits, as the chips are sold. This one counts the payload in KiB instead, so it is no chip the key's page lists, and a consumer could not say how long the save should be."
+    },
+    {
+      "name": "n64-cartridge-without-its-chip",
+      "expect": "invalid",
+      "rejected_by": "structure",
+      "file": "invalid/n64-cartridge-without-its-chip.cbor",
+      "sha256": "7ff93cbc405560e0c3a55f7e513c4d66b372ae95a9a0524a64c6040423b918dd",
+      "note": "The `cartridge` part of an N64 save says which chip it holds. Neither the bytes nor their length can say it for the part."
+    },
+    {
+      "name": "n64-device-cartridge-without-its-chip",
+      "expect": "invalid",
+      "rejected_by": "structure",
+      "file": "invalid/n64-device-cartridge-without-its-chip.cbor",
+      "sha256": "603d52ea920259e742fe3b62a351d5636a18d761fe40bca04f08cb430deda9fc",
+      "note": "The same inside a device. The nested save's part has the role `cartridge`, so it is marked as a cartridge's however deep it sits."
+    },
+    {
+      "name": "n64-chip-on-the-header",
+      "expect": "invalid",
+      "rejected_by": "structure",
+      "file": "invalid/n64-chip-on-the-header.cbor",
+      "sha256": "785bff1b694e0ad6a7defce5c7ad4fa747134d2fcc17ffc2c9c20b65d066f71d",
+      "note": "The key goes on the part holding the chip's memory and nowhere else. A header, the `bundle` part wrapping a device's cartridge save, and a note's part each hold something other than the chip."
+    },
+    {
+      "name": "n64-chip-on-a-bundle-part",
+      "expect": "invalid",
+      "rejected_by": "structure",
+      "file": "invalid/n64-chip-on-a-bundle-part.cbor",
+      "sha256": "fbae134b95cae9b8f5f9f633ac292a0d40653215a69ed7a0d01347d318ef9399",
+      "note": "The key goes on the part holding the chip's memory and nowhere else. A header, the `bundle` part wrapping a device's cartridge save, and a note's part each hold something other than the chip."
+    },
+    {
+      "name": "n64-chip-on-a-note",
+      "expect": "invalid",
+      "rejected_by": "structure",
+      "file": "invalid/n64-chip-on-a-note.cbor",
+      "sha256": "1bcb4a3e122962fd8edf0bb402e7bfb5df5bf7ecab9b3e287dcf1f89f32b58d5",
+      "note": "The key goes on the part holding the chip's memory and nowhere else. A header, the `bundle` part wrapping a device's cartridge save, and a note's part each hold something other than the chip."
+    },
+    {
+      "name": "n64dd-disk-wrong-size",
+      "expect": "invalid",
+      "rejected_by": "structure",
+      "file": "invalid/n64dd-disk-wrong-size.cbor",
+      "sha256": "5a6f9b45b697bb6af99ebaca0d2769ff4477ff1cf6f086dad8a1525e72210792",
+      "note": "A 64DD disk's save is the whole of its RAM area, which no disk type makes 32 KiB long. A save of part of the area cannot be told from a disk of another type."
     }
   ]
 }

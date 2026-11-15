@@ -73,7 +73,43 @@ the card would be, and holds no card at all. It is a device of `internal` and `c
 A device is also where a dump lands that holds one game's storage across two components rather than a whole console's.
 An N64 cartridge save beside the whole Controller Pak is a device: the pak is a card of its own, holding notes for games
 the cartridge knows nothing about. Carry only that game's note instead and there is no device, just a
-[save](/specifications/saves/) with two ordinary parts.
+[save](/specifications/saves/) with two ordinary parts. Either way the cartridge's own part has the role `cartridge` and
+carries [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), so the save means the same lifted out of the device.
+
+### Nintendo 64 files
+
+Several tools keep an N64's storage across components rather than one game's save per file. A producer reading the
+cartridge's chip and the paks together makes a device of a `cartridge` save and a `controller-pak-<n>` card per pak that
+holds a note. With no note in any pak, it is just the cartridge's [save](/specifications/saves/).
+[`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) gives each chip's payload, whatever order the tool keeps it in.
+
+Mupen64Plus-Next and ParaLLEl N64 keep it all in one `.srm` per game, 0x48800 bytes long. It has a slot for every chip
+and all four paks, whatever the game uses:
+
+| Offset    | Length       | Holds                                        |
+| --------- | ------------ | -------------------------------------------- |
+| `0x00000` | `0x800`      | EEPROM, a 4 Kbit chip in its first 512 bytes |
+| `0x00800` | 4 × `0x8000` | Controller Paks, port 1 to port 4            |
+| `0x20800` | `0x8000`     | SRAM                                         |
+| `0x28800` | `0x20000`    | FlashRAM                                     |
+
+SRAM and FlashRAM are 32-bit words in the host's order there, and EEPROM and the paks are as the console reads them. The
+cores format all four paks, so a pak with no note holds nothing a game wrote. The file has no room for 768 Kbit or 1
+Mbit SRAM. ParaLLEl N64 reserves room after FlashRAM for a whole 64DD disk. Older builds kept the disk there, and newer
+ones keep it in a file of their own; either way it is an [`n64dd` save](/specifications/saves/#a-64dd-disk) apart from
+this device.
+
+mupen64plus keeps the chip in a file of its own, and all four paks in one `.mpk` of 128 KiB, port 1 first, as the
+console reads them. ares keeps one file per chip and one `.pak` per pak, all as the console reads them. Its `.rtc` file
+is the cartridge's clock, which [`x.1sav.rtc.joybus`](/specifications/extensions/x.1sav.rtc.joybus/) carries.
+
+MiSTer's N64 core keeps the chip in a file named for it: `.eep`, `.sra` or `.fla`, each as long as the chip. `.sra` and
+`.fla` are 32-bit words in the reverse of the console's order, and `.eep` is as the console reads it. Each Controller
+Pak is a `.cpk` of its own, numbered by port. A `.tpk` holds the save of the Game Boy cartridge in a Transfer Pak, which
+is a [`gb` save](/specifications/bundle/#two-systems-and-what-each-answers). Older builds kept it all in one `.sav`: the
+chip, then a Transfer Pak's cartridge save where one was enabled, then the Controller Paks.
+
+A consumer rebuilding any of these files puts each component back where the file keeps it, in the file's order.
 
 ## Merging two devices
 
@@ -84,8 +120,8 @@ dump having anticipated the other.
 
 Where two parts do share a `role`, the two bundles hold the same component read twice, and this format does not say
 which wins. A consumer **MUST NOT** merge them silently: decline, or ask. Identical is the one case it may settle alone,
-since two parts with the same [content hash](/specifications/bundle/#content-hash-and-file-hash) are the same component
-and either will do.
+since two parts with the same [content hash](/specifications/bundle/#content-hash) are the same component and either
+will do.
 
 A merged bundle is newly assembled, so its `bundled_at` is the time of the merge and its `source` is whatever performed
 it. What each component says about itself is untouched, because merging moves nested bundles whole and never opens one.

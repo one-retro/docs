@@ -34,9 +34,8 @@ export const bundle = (header, parts) => new Tag(BUNDLE_TAG, [header, parts]);
 // Builds a part with the keys in the order the spec assigns them. `extra` goes
 // on last so a fixture can add or override a key without rebuilding the map.
 export function part({ id = 0, role, path, payload = SAVE, game, slot, dirent, kind, system, binding, extra } = {}) {
-  // `role`, `path` and `encoding` all default to absence, so the helper only
-  // writes what a part actually says. `size` is absent too: an embedded
-  // uncompressed payload already states its own length.
+  // `role` and `path` both default to absence, so the helper only writes what
+  // a part actually says.
   const p = new Map([[0, id]]);
   if (kind) p.set(1, kind); // absent means "save", which is never written out
   if (role) p.set(2, role);
@@ -52,8 +51,8 @@ export function part({ id = 0, role, path, payload = SAVE, game, slot, dirent, k
   return p;
 }
 
-// One nested entry: a `bundle` part whose payload is `inner` encoded. `size`
-// and `sha256` fall out of part() over those bytes, so the outer part's key 5
+// One nested entry: a `bundle` part whose payload is `inner` encoded.
+// `sha256` falls out of part() over those bytes, so the outer part's key 9
 // is the inner bundle's content hash with nothing extra to keep in step, and
 // the `system` index is read off the inner header rather than passed in, so a
 // fixture cannot drift from what it wraps.
@@ -160,6 +159,63 @@ const n64Pak = (path) =>
       dirent: pattern(32, 3),
     }),
   ]);
+
+// An N64 cartridge save: the part holding the chip's memory has the role
+// `cartridge` and names the chip in `x.1sav.n64`. The payload is the chip at
+// its full size, so a fixture only passes `size` to break that.
+const N64_CHIPS = {
+  "eeprom-4k": 512,
+  "eeprom-16k": 2048,
+  "sram-256k": 32768,
+  "sram-768k": 98304,
+  "flash-1m": 131072,
+  "sram-1m": 131072,
+};
+const n64Chip = (chip) => new Map([["x.1sav.n64", map({ 0: chip })]]);
+const n64Cartridge = (game, chip, { size = N64_CHIPS[chip], seed = 21 } = {}) =>
+  bundle(map({ 0: "save", 1: "n64", 2: game }), [
+    part({ role: "cartridge", payload: pattern(size, seed), extra: chip ? n64Chip(chip) : undefined }),
+  ]);
+
+// A device of an N64 cartridge and the Controller Pak in port 1, which holds
+// one Mario Kart 64 note. The cases built on it change only the cartridge.
+const n64Device = (cartridge, outer = {}) =>
+  bundle(map({ 0: "device", 1: "n64" }), [
+    nested(cartridge, { id: 0, role: "cartridge", ...outer }),
+    nested(
+      bundle(map({ 0: "card", 1: "n64", 4: map({ 0: "n64-cpak", 1: 32768, 2: pattern(32, 9) }) }), [
+        nested(oneFileSave("n64", MK64, pattern(256)), {
+          id: 0,
+          role: "controller-pak-1",
+          game: MK64,
+          slot: 1,
+          dirent: pattern(32, 1),
+        }),
+      ]),
+      { id: 1, role: "controller-pak-1" },
+    ),
+  ]);
+
+// One game's cartridge beside its own note, with nothing nested: the two are
+// parts of one save, told apart by `role`.
+const n64CartridgeAndNote = (noteExtra) =>
+  bundle(map({ 0: "save", 1: "n64", 2: MK64 }), [
+    part({ id: 0, role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
+    part({
+      id: 1,
+      role: "controller-pak-1",
+      path: "MARIOKART64",
+      slot: 1,
+      dirent: pattern(32, 1),
+      payload: pattern(256),
+      extra: noteExtra,
+    }),
+  ]);
+const SM64 = map({ 3: "NUS-NSME", 4: "Super Mario 64" });
+const YOSHI = map({ 3: "NUS-NYSE", 4: "Yoshi's Story" });
+const OOT = map({ 3: "NUS-CZLE", 4: "The Legend of Zelda: Ocarina of Time" });
+const DEZAEMON = map({ 4: "Dezaemon 3D" });
+const MAJORA = map({ 3: "NUS-NZSE", 4: "The Legend of Zelda: Majora's Mask" });
 
 // Save states and screenshots. A state is one core's snapshot of a running
 // game, so its header names that core and the ROM it was taken against, and its
@@ -311,24 +367,28 @@ export const valid = {
   // consumer cannot work out from the payload.
   binding: bundle(map({ 0: "save", 1: "wii" }), [part({ payload: pattern(512), binding: "device" })]),
 
-  // One game whose save spans a cartridge and a memory card, which is neither
-  // a card (the bundle is not one) nor a collection (it has a system and a
-  // game). Mixing a plain save part with a `bundle` part is what covers it.
-  "cartridge-and-pak": bundle(map({ 0: "device", 1: "n64" }), [
-    nested(oneFileSave("n64", MK64, pattern(512, 21)), { id: 0, role: "cartridge" }),
-    nested(
-      bundle(map({ 0: "card", 1: "n64", 4: map({ 0: "n64-cpak", 1: 32768, 2: pattern(32, 9) }) }), [
-        nested(oneFileSave("n64", MK64, pattern(256)), {
-          id: 0,
-          role: "controller-pak-1",
-          game: MK64,
-          slot: 1,
-          dirent: pattern(32, 1),
-        }),
-      ]),
-      { id: 1, role: "controller-pak-1" },
-    ),
-  ]),
+  // An N64 cartridge beside the whole Controller Pak. The pak holds notes for
+  // games the cartridge knows nothing about, so this is a device of two
+  // components, each a nested bundle: the cartridge a save, the pak a card.
+  // The cartridge save's own part has the role `cartridge` and carries
+  // `x.1sav.n64`, so the save means the same lifted out of the device.
+  "cartridge-and-pak": n64Device(n64Cartridge(MK64, "eeprom-4k")),
+
+  // One game's cartridge and its own note, without the rest of the pak, is a
+  // save of two parts rather than a device. Only the cartridge's part carries
+  // the chip.
+  "n64-cartridge-and-note": n64CartridgeAndNote(),
+
+  // An N64 state whose emulator keeps the in-game save beside the core's data.
+  // That part is the cartridge's memory, so it has the role `cartridge` and
+  // names its chip, as it would in a save of its own.
+  "n64-state-with-in-game-save": bundle(
+    map({ 0: "state", 1: "n64", 2: MK64, 3: map({ 2: "retroarch", 4: "mupen64plus-next" }) }),
+    [
+      statePart({ id: 0, slot: 1 }),
+      part({ id: 1, role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
+    ],
+  ),
 
   // Every identification hint at once, plus a populated metadata slot. A real
   // producer emits the hashes it has already computed rather than all four;
@@ -351,18 +411,10 @@ export const valid = {
     [part({ payload: pattern(131072, 23) })],
   ),
 
-  // A compressed part beside an `aux` one. `size` and `sha256` cover the
-  // uncompressed bytes whatever `encoding` says, so a zstd part's stored bytes
-  // match neither, and only the parts around it can be read without inflating.
-  "compressed-and-aux": bundle(map({ 0: "save", 1: "snes" }), [
-    new Map([
-      [0, 0],
-      [2, "cartridge"],
-      [7, "zstd"],
-      [8, 32768],
-      [9, digest(pattern(32768, 29))],
-      [-1, pattern(410, 31)],
-    ]),
+  // A save beside an `aux` part. The thumbnail is no save, so it names its
+  // type and rides along for a consumer that wants it.
+  "save-and-aux": bundle(map({ 0: "save", 1: "snes" }), [
+    part({ id: 0, role: "cartridge", payload: pattern(32768, 29) }),
     part({
       id: 1,
       path: "thumb.png",
@@ -396,6 +448,21 @@ export const valid = {
       }),
     ],
   ),
+
+  // An N64 cartridge save for each chip. The part holding the chip's memory
+  // carries `x.1sav.n64`, and its payload is that chip at its full size, from
+  // a 4 Kbit EEPROM's 512 bytes to a FlashRAM's 128 KiB.
+  "n64-cartridge-eeprom-4k": n64Cartridge(SM64, "eeprom-4k"),
+  "n64-cartridge-eeprom-16k": n64Cartridge(YOSHI, "eeprom-16k"),
+  "n64-cartridge-sram-256k": n64Cartridge(OOT, "sram-256k"),
+  "n64-cartridge-sram-768k": n64Cartridge(DEZAEMON, "sram-768k"),
+  "n64-cartridge-flash-1m": n64Cartridge(MAJORA, "flash-1m"),
+  "n64-cartridge-sram-1m": n64Cartridge(map({ 4: "Homebrew" }), "sram-1m"),
+
+  // A 64DD disk's save is its RAM area, in block order, and its length is
+  // what tells a consumer the disk's type. A type 5 disk's area is its last
+  // 204 blocks, 1942080 bytes, the smallest a disk has.
+  "n64dd-disk": bundle(map({ 0: "save", 1: "n64dd" }), [part({ payload: pattern(1942080, 89) })]),
 
   // Saturn keeps a save's directory entry at the head of the save's own first
   // block rather than in a directory region, which changes where a reader finds
@@ -521,8 +588,7 @@ export const valid = {
   ]),
 
   // A zero-length payload. A save slot a console formatted and never wrote to
-  // is still a part: `size` is absent because the payload states its own
-  // length, and sha256 over no bytes is perfectly well defined.
+  // is still a part, and sha256 over no bytes is perfectly well defined.
   "zero-byte-payload": bundle(map({ 0: "save", 1: "gb" }), [part({ payload: Buffer.alloc(0) })]),
 
   // An amiibo: a few hundred bytes on an NFC tag, signed against that tag's own
@@ -729,7 +795,7 @@ export const valid = {
 };
 
 export const invalid = {
-  // This schema describes v0.8, so an integer key it does not list fails
+  // This schema describes v0.9, so an integer key it does not list fails
   // validation. A shipped decoder is deliberately looser: it ignores and
   // round-trips these, because the only thing they can be is a later minor
   // version's field. That difference is a decoder rule the schema cannot state.
@@ -773,9 +839,8 @@ export const invalid = {
   "empty-parts": bundle(map({ 0: "save" }), []),
 
   // A default written out, which would give one part several encodings. Each
-  // of the four is written by leaving its key out.
+  // of the three is written by leaving its key out.
   "path-spelled-empty": bundle(map({ 0: "save" }), [part({ extra: new Map([[3, ""]]) })]),
-  "encoding-spelled-none": bundle(map({ 0: "save" }), [part({ extra: new Map([[7, "none"]]) })]),
   "kind-spelled-save": bundle(map({ 0: "save" }), [part({ kind: "save" })]),
   "role-spelled-primary": bundle(map({ 0: "save" }), [part({ role: "primary" })]),
 
@@ -953,13 +1018,23 @@ export const invalid = {
     part({ extra: new Map([[9, new Tag(18542, pattern(20))]]) }),
   ]),
 
-  // `size` is carried only where it cannot be derived. An embedded
-  // uncompressed payload states its own length, so repeating it invites the
-  // two to disagree.
-  "size-on-uncompressed-part": bundle(map({ 0: "save" }), [part({ extra: new Map([[8, 4]]) })]),
+  // A part is never compressed, and keys 7 and 8 are retired. A part carrying
+  // `encoding` and `size` as 0.8 wrote them is malformed, even to a decoder
+  // that ignores the other integer keys it does not know, since its payload is
+  // zstd output rather than the save.
+  "part-compressed": bundle(map({ 0: "save", 1: "snes" }), [
+    new Map([
+      [0, 0],
+      [2, "cartridge"],
+      [7, "zstd"],
+      [8, 32768],
+      [9, digest(pattern(32768, 29))],
+      [-1, pattern(410, 31)],
+    ]),
+  ]),
 
   // A pre-renumber bundle, from when the payload sat in the unsigned range.
-  // Key 8 is `game` now, and the payload is at -1, so this is rejected rather
+  // Key 11 is `game` now, and the payload is at -1, so this is rejected rather
   // than read as a game map.
   "payload-at-old-key-8": bundle(map({ 0: "save" }), [
     new Map([
@@ -1059,24 +1134,6 @@ export const malformedDeterminism = {
 const innerSave = bundle(map({ 0: "save", 1: "psx", 2: MGS }), [part({ payload: BLOCK })]);
 
 export const malformedStructure = {
-  // Every part of a nested bundle is uncompressed with its payload embedded,
-  // so that an inner bundle's file hash and content hash are the same value.
-  // Compression belongs on the outer part.
-  "nested-part-compressed": card("psx", "ps1-mc", 131072, [
-    nested(
-      bundle(map({ 0: "save", 1: "psx", 2: MGS }), [
-        new Map([
-          [0, 0],
-          [7, "zstd"],
-          [8, 8192],
-          [9, new Tag(18540, sha256(BLOCK))],
-          [-1, pattern(410, 23)],
-        ]),
-      ]),
-      { id: 0, role: "memcard-1", path: "BASLUS-00594", slot: 1, dirent: pattern(128, 1) },
-    ),
-  ]),
-
   // A `bundle` part's payload has to decode as a saves-file. This one is a
   // plain save's bytes wearing the kind of a bundle.
   "bundle-part-payload-not-a-bundle": card("psx", "ps1-mc", 131072, [
@@ -1114,7 +1171,7 @@ export const malformedStructure = {
   // A save holds no nested bundle: a component that is a card of its own makes
   // the bundle a device.
   "save-holding-a-bundle-part": bundle(map({ 0: "save", 1: "n64", 2: MK64 }), [
-    part({ id: 0, role: "cartridge", payload: pattern(512, 21) }),
+    part({ id: 0, role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
     nested(
       bundle(map({ 0: "card", 1: "n64", 4: map({ 0: "n64-cpak", 1: 32768 }) }), [part({ payload: pattern(256) })]),
       {
@@ -1183,4 +1240,36 @@ export const malformedStructure = {
   // A note's name is 16 bytes, so its spelling runs to 16 characters at most
   // before any extension. This one has 17 and no extension.
   "n64-path-longer-than-a-note-name": n64Pak("MARIOKART64DELUXE"),
+
+  // An N64 cartridge's chip fixes how long its payload is. A 16 Kbit EEPROM is
+  // 2048 bytes, and this payload is the 512 of a 4 Kbit one, which is the
+  // mix-up the key is there to prevent.
+  "n64-cartridge-wrong-size": n64Cartridge(YOSHI, "eeprom-16k", { size: 512 }),
+
+  // The chip names count kilobits, as the chips are sold. This one counts the
+  // payload in KiB instead, so it is no chip the key's page lists, and a
+  // consumer could not say how long the save should be.
+  "n64-chip-undefined": n64Cartridge(OOT, "sram-32k", { size: 32768 }),
+
+  // The `cartridge` part of an N64 save says which chip it holds. Neither the
+  // bytes nor their length can say it for the part.
+  "n64-cartridge-without-its-chip": n64Cartridge(MK64, null, { size: 512 }),
+
+  // The same inside a device. The nested save's part has the role
+  // `cartridge`, so it is marked as a cartridge's however deep it sits.
+  "n64-device-cartridge-without-its-chip": n64Device(n64Cartridge(MK64, null, { size: 512 })),
+
+  // The key goes on the part holding the chip's memory and nowhere else. A
+  // header, the `bundle` part wrapping a device's cartridge save, and a note's
+  // part each hold something other than the chip.
+  "n64-chip-on-the-header": bundle(map({ 0: "save", 1: "n64", 2: MK64, "x.1sav.n64": map({ 0: "eeprom-4k" }) }), [
+    part({ role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
+  ]),
+  "n64-chip-on-a-bundle-part": n64Device(n64Cartridge(MK64, "eeprom-4k"), { extra: n64Chip("eeprom-4k") }),
+  "n64-chip-on-a-note": n64CartridgeAndNote(n64Chip("eeprom-4k")),
+
+  // A 64DD disk's save is the whole of its RAM area, which no disk type makes
+  // 32 KiB long. A save of part of the area cannot be told from a disk of
+  // another type.
+  "n64dd-disk-wrong-size": bundle(map({ 0: "save", 1: "n64dd" }), [part({ payload: pattern(32768, 89) })]),
 };

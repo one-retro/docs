@@ -41,4 +41,4 @@ so the value is free-form text — compare it by equality, and do not parse it f
 
 Deliberately underspecified. The Forge specification will live in this repository eventually and will define both keys
 properly; until then this page fixes only the envelope. Tightening it later is a change to Forge rather than to the
-saves format, which never looks inside an extension key.
+saves format, which looks inside no extension key but [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/).

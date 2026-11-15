@@ -49,7 +49,7 @@ checks CBOR syntax will accept nearly all of them, and pass for the wrong reason
 | ------------- | ---------------------------------------------------------------------------------------------- |
 | `schema`      | the spec's CDDL, or an equivalent structural check                                             |
 | `determinism` | the encoding rules: definite lengths, preferred heads, key and array order, text normalisation |
-| `structure`   | a rule needing a look inside a payload, or a comparison across items                           |
+| `structure`   | a rule needing a look inside a payload or an extension value, or a comparison across items     |
 
 Only the first is checkable by a schema validator. Everything marked `determinism` or `structure` **validates against
 the CDDL and is malformed anyway**, because CDDL describes the decoded data model: it sees neither the encoding beneath
