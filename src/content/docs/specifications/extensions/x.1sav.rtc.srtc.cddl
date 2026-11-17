@@ -11,7 +11,7 @@
 ; ============================================================================
 
 rtc-srtc = {
-  0 => [13*13 nybble], ; registers - index 0 to 12, as a read returns them
+  0 => [13*13 nybble], ; registers - index 0 to C, as a read returns them
   ? 1 => #6.1(int),    ; taken_at  - the producer's clock when it took them
 }
 

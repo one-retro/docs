@@ -100,13 +100,14 @@ export const ps1Card = card("psx", "ps1-mc", 131072, [
 ]);
 
 // A PS2 save is a directory. Its files are the parts of one nested bundle, each
-// with its own dirent; the directory's own dirent rides on the outer entry.
+// with its own dirent; the directory's own dirent rides on the outer entry. The
+// directory's slots 0 and 1 are `.` and `..`, so its files start at 2.
 const FFX = map({ 3: "SLUS-20312", 4: "Final Fantasy X" });
 
 const ffxSave = bundle(map({ 0: "save", 1: "ps2", 2: FFX }), [
-  part({ id: 0, path: "icon.sys", payload: pattern(964), slot: 4, dirent: pattern(512, 4) }),
-  part({ id: 1, path: "list.ico", payload: pattern(15168), slot: 5, dirent: pattern(512, 5) }),
-  part({ id: 2, path: "BASLUS-20312", payload: pattern(40960), slot: 6, dirent: pattern(512, 6) }),
+  part({ id: 0, path: "icon.sys", payload: pattern(964), slot: 2, dirent: pattern(512, 4) }),
+  part({ id: 1, path: "list.ico", payload: pattern(15168), slot: 3, dirent: pattern(512, 5) }),
+  part({ id: 2, path: "BASLUS-20312", payload: pattern(40960), slot: 4, dirent: pattern(512, 6) }),
 ]);
 
 export const ps2Card = card("ps2", "ps2-mc", 8388608, [
@@ -187,6 +188,7 @@ const n64Device = (cartridge, outer = {}) =>
         nested(oneFileSave("n64", MK64, pattern(256)), {
           id: 0,
           role: "controller-pak-1",
+          path: "MARIOKART64",
           game: MK64,
           slot: 1,
           dirent: pattern(32, 1),
@@ -196,19 +198,15 @@ const n64Device = (cartridge, outer = {}) =>
     ),
   ]);
 
-// One game's cartridge beside its own note, with nothing nested: the two are
-// parts of one save, told apart by `role`.
-const n64CartridgeAndNote = (noteExtra) =>
-  bundle(map({ 0: "save", 1: "n64", 2: MK64 }), [
-    part({ id: 0, role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
-    part({
-      id: 1,
+// A Controller Pak holding one note, whose own save part takes `noteExtra`.
+const n64PakWithNote = (noteExtra) =>
+  bundle(map({ 0: "card", 1: "n64", 4: map({ 0: "n64-cpak", 1: 32768, 2: pattern(32, 9) }) }), [
+    nested(bundle(map({ 0: "save", 1: "n64", 2: MK64 }), [part({ payload: pattern(256), extra: noteExtra })]), {
+      id: 0,
       role: "controller-pak-1",
       path: "MARIOKART64",
       slot: 1,
       dirent: pattern(32, 1),
-      payload: pattern(256),
-      extra: noteExtra,
     }),
   ]);
 const SM64 = map({ 3: "NUS-NSME", 4: "Super Mario 64" });
@@ -237,6 +235,56 @@ const emeraldState = bundle(map({ 0: "state", 1: "gba", 2: EMERALD, 3: map({ 2: 
 const emeraldScreenshot = bundle(map({ 0: "screenshot", 1: "gba", 2: EMERALD, 3: map({ 2: "mgba", 4: "mgba" }) }), [
   screenshot(0, pattern(1024, 103)),
 ]);
+
+// A PS1 card of fifteen-slot Final Fantasy VII saves, cut to two. The header
+// names the game, so an outer part carries a copy only where `copies` asks.
+const cardOfOneGame = (copies = false) =>
+  bundle(map({ 0: "card", 1: "psx", 2: FF7, 4: map({ 0: "ps1-mc", 1: 131072 }) }), [
+    nested(oneFileSave("psx", FF7, BLOCK), {
+      id: 0,
+      role: "memcard-1",
+      path: "BASCUS-94163FF7-S01",
+      game: copies ? FF7 : undefined,
+      slot: 1,
+      dirent: pattern(128, 1),
+    }),
+    nested(oneFileSave("psx", FF7, pattern(8192, 3)), {
+      id: 1,
+      role: "memcard-1",
+      path: "BASCUS-94163FF7-S03",
+      game: copies ? FF7 : undefined,
+      slot: 2,
+      dirent: pattern(128, 2),
+    }),
+  ]);
+
+// A Sega CD read whole: its internal backup RAM and its Backup RAM Cart, each a
+// save, since no card format describes either.
+const segaCdDevice = bundle(map({ 0: "device", 1: "sega-cd" }), [
+  nested(bundle(map({ 0: "save", 1: "sega-cd" }), [part({ payload: pattern(8192, 11) })]), { id: 0, role: "internal" }),
+  nested(bundle(map({ 0: "save", 1: "sega-cd" }), [part({ payload: pattern(32768, 13) })]), {
+    id: 1,
+    role: "ram-cart",
+  }),
+]);
+
+// Small payloads for the cases a schema rejects. The reference tool prints
+// every arm it tried, payload bytes and all, so a rejected bundle costs time in
+// proportion to what it carries.
+const smallStatePart = (options = {}) => part({ kind: "state", payload: pattern(16, 61), ...options });
+const smallSave = (system = "psx", game = MGS) => oneFileSave(system, game, pattern(16, 5));
+const smallCardEntry = nested(smallSave(), {
+  id: 0,
+  role: "memcard-1",
+  path: "BASLUS-00594",
+  slot: 1,
+  dirent: pattern(128, 3),
+});
+const smallEntry = nested(smallSave("gb", POKEMON), { id: 0 });
+const smallComponent = nested(bundle(map({ 0: "save", 1: "sega-cd" }), [part({ payload: pattern(16, 11) })]), {
+  id: 0,
+  role: "internal",
+});
 
 export const valid = {
   // An empty header and one bare save. The floor of what a bundle is.
@@ -302,6 +350,7 @@ export const valid = {
     nested(oneFileSave("n64", MK64, pattern(256)), {
       id: 0,
       role: "controller-pak-1",
+      path: "MARIOKART64",
       game: MK64,
       slot: 1,
       dirent: pattern(32, 1),
@@ -313,46 +362,55 @@ export const valid = {
   // anything else. The header names the game, because here a single game
   // really does describe the whole card. The `-Sxx` in the name is the game's
   // own slot and the card's directory slot is a different number, so the two
-  // entries below are deliberately not aligned.
-  "card-of-one-game": bundle(map({ 0: "card", 1: "psx", 2: FF7, 4: map({ 0: "ps1-mc", 1: 131072 }) }), [
-    nested(oneFileSave("psx", FF7, BLOCK), {
-      id: 0,
-      role: "memcard-1",
-      path: "BASCUS-94163FF7-S01",
-      game: FF7,
-      slot: 1,
-      dirent: pattern(128, 1),
-    }),
-    nested(oneFileSave("psx", FF7, pattern(8192, 3)), {
-      id: 1,
-      role: "memcard-1",
-      path: "BASCUS-94163FF7-S03",
-      game: FF7,
-      slot: 2,
-      dirent: pattern(128, 2),
-    }),
-  ]),
+  // entries below are deliberately not aligned. The outer parts carry no index
+  // copy of the game: it would equal the header's, which absence already says.
+  "card-of-one-game": cardOfOneGame(),
 
   // One console's storage read whole. A Sega CD carries internal backup RAM and
   // a Backup RAM Cart at once; neither is one game's save, and the pair is not
-  // a collection, because both came off one system.
-  device: bundle(map({ 0: "device", 1: "segacd" }), [
-    nested(bundle(map({ 0: "save", 1: "segacd" }), [part({ payload: pattern(8192, 11) })]), {
-      id: 0,
-      role: "internal",
-    }),
-    nested(bundle(map({ 0: "save", 1: "segacd" }), [part({ payload: pattern(32768, 13) })]), {
-      id: 1,
-      role: "cartridge",
-    }),
-  ]),
+  // a collection, because both came off one system. No card format describes
+  // the Sega CD's backup RAM, so each component is a save.
+  device: segaCdDevice,
 
   // A collection: no system, no game, no card of its own, and entries that do
-  // not agree on a system. This is how one file spans systems, and it is the
-  // deepest shape the spec allows, since the PS1 entry is itself a card.
+  // not agree on a system. This is how one file spans systems, and the PS1
+  // entry is itself a card holding saves.
   collection: bundle(map({ 0: "collection" }), [
     nested(ps1Card, { id: 0, role: "memcard-1" }),
     nested(gbSave, { id: 1, role: "cartridge", game: POKEMON }),
+  ]),
+
+  // No depth is written down: a collection can hold a device, which holds a
+  // card, which holds saves. Each nested bundle is a shape its holder allows,
+  // so the chain ends on its own.
+  "collection-of-devices": bundle(map({ 0: "collection" }), [
+    nested(n64Device(n64Cartridge(MK64, "eeprom-4k")), { id: 0 }),
+    nested(segaCdDevice, { id: 1 }),
+  ]),
+
+  // A console's own clock is on the device, since every game on it reads the
+  // one clock and no save holds it. An MVS board's uPD4990A, as ares keeps it:
+  // 2001-04-14 12:34:56, a Saturday, beside the board's backup RAM and the
+  // card in its slot.
+  "device-with-a-clock": bundle(
+    map({
+      0: "device",
+      1: "neogeo",
+      "x.1sav.rtc": map({ 0: new Tag(1, 987251696) }),
+      "x.1sav.rtc.upd4990a": map({ 0: Buffer.from([0x56, 0x34, 0x12, 0x14, 0x46, 0x01]), 1: TAKEN_AT }),
+    }),
+    [
+      nested(oneFileSave("neogeo", METAL_SLUG, pattern(256, 7)), { id: 0, role: "internal" }),
+      nested(neogeoCard(), { id: 1, role: "neogeo-card" }),
+    ],
+  ),
+
+  // A device's component names the system that reads it. A Game Boy cartridge
+  // in an N64's Transfer Pak is a `gb` save in an `n64` device, in the socket
+  // `transfer-pak-1`.
+  "n64-device-with-transfer-pak": bundle(map({ 0: "device", 1: "n64" }), [
+    nested(n64Cartridge(map({ 4: "Pokemon Stadium" }), "sram-256k"), { id: 0, role: "cartridge" }),
+    nested(gbSave, { id: 1, role: "transfer-pak-1", game: POKEMON }),
   ]),
 
   // A kind nobody has to recognize. A consumer treats it as `aux` and hands it
@@ -367,17 +425,31 @@ export const valid = {
   // consumer cannot work out from the payload.
   binding: bundle(map({ 0: "save", 1: "wii" }), [part({ payload: pattern(512), binding: "device" })]),
 
-  // An N64 cartridge beside the whole Controller Pak. The pak holds notes for
-  // games the cartridge knows nothing about, so this is a device of two
-  // components, each a nested bundle: the cartridge a save, the pak a card.
-  // The cartridge save's own part has the role `cartridge` and carries
-  // `x.1sav.n64`, so the save means the same lifted out of the device.
+  // A save bound to a console and to an account at once, naming both. A
+  // consumer compares each identifier byte for byte with its target's, and
+  // offers the save to no other.
+  "bound-to": bundle(map({ 0: "save", 1: "ps3" }), [
+    part({
+      payload: pattern(512, 3),
+      binding: "device-account",
+      extra: new Map([[14, map({ 0: pattern(16, 5), 1: pattern(8, 7) })]]),
+    }),
+  ]),
+
+  // An N64 cartridge beside its Controller Pak is a device of two components,
+  // each a nested bundle: the cartridge a save, the pak a card. A note is
+  // always a save on a card, so the pak stays a card even where it holds only
+  // this game's one note. The cartridge save's own part has the role
+  // `cartridge` and carries `x.1sav.n64`, so the save means the same lifted out
+  // of the device.
   "cartridge-and-pak": n64Device(n64Cartridge(MK64, "eeprom-4k")),
 
-  // One game's cartridge and its own note, without the rest of the pak, is a
-  // save of two parts rather than a device. Only the cartridge's part carries
-  // the chip.
-  "n64-cartridge-and-note": n64CartridgeAndNote(),
+  // A producer that cannot tell a cartridge's chip gives its bytes no
+  // `cartridge` part. A 131072-byte file is FlashRAM or 1 Mbit SRAM, so it
+  // carries the file whole as `aux`, for a consumer that can tell.
+  "n64-chip-unknown": bundle(map({ 0: "save", 1: "n64", 2: map({ 4: "Unknown" }) }), [
+    part({ kind: "aux", path: "Unknown.sra", payload: pattern(131072, 25) }),
+  ]),
 
   // An N64 state whose emulator keeps the in-game save beside the core's data.
   // That part is the cartridge's memory, so it has the role `cartridge` and
@@ -458,6 +530,17 @@ export const valid = {
   "n64-cartridge-sram-768k": n64Cartridge(DEZAEMON, "sram-768k"),
   "n64-cartridge-flash-1m": n64Cartridge(MAJORA, "flash-1m"),
   "n64-cartridge-sram-1m": n64Cartridge(map({ 4: "Homebrew" }), "sram-1m"),
+
+  // The key's integer keys are the spec's, as in the format's own maps. One a
+  // later version assigns is ignored and round-tripped, and the chip beside it
+  // still fixes the payload's length.
+  "n64-chip-with-a-later-key": bundle(map({ 0: "save", 1: "n64", 2: SM64 }), [
+    part({
+      role: "cartridge",
+      payload: pattern(512, 21),
+      extra: new Map([["x.1sav.n64", map({ 0: "eeprom-4k", 1: 5 })]]),
+    }),
+  ]),
 
   // A 64DD disk's save is its RAM area, in block order, and its length is
   // what tells a consumer the disk's type. A type 5 disk's area is its last
@@ -602,10 +685,16 @@ export const valid = {
 
   // A numbered socket past anything the registry enumerates. Eight VMU slots
   // across four Dreamcast controllers, and the prefix is what a consumer
-  // matches on, so `memcard-8` is understood without being listed.
-  "high-numbered-socket": bundle(map({ 0: "save", 1: "dreamcast" }), [
-    part({ id: 0, role: "memcard-1", payload: pattern(128, 53) }),
-    part({ id: 1, role: "memcard-8", payload: pattern(128, 59) }),
+  // matches on, so a VMU read from `memcard-8` is understood without that role
+  // being listed.
+  "high-numbered-socket": bundle(map({ 0: "card", 1: "dreamcast", 4: map({ 0: "vmu", 1: 131072 }) }), [
+    nested(oneFileSave("dreamcast", SONIC, pattern(512, 59)), {
+      id: 0,
+      role: "memcard-8",
+      path: "SONICADV_INT",
+      slot: 1,
+      dirent: pattern(32, 59),
+    }),
   ]),
 
   // Provenance at both levels: a cartridge reader assembled the bundle, and one
@@ -652,10 +741,10 @@ export const valid = {
     map({
       0: "save",
       1: "gba",
-      // A real GBA cartridge clock rather than a placeholder: the value has to
-      // satisfy that key's own schema, which is what the extension suite
-      // cross-checks.
-      "x.1sav.rtc.s3511a": map({ 0: pattern(7), 1: 0x40 }),
+      // A real GBA cartridge clock rather than a placeholder, in BCD: 2003-02-01,
+      // a Saturday, 14:30:00. The value has to satisfy that key's own schema,
+      // which is what the extension suite cross-checks.
+      "x.1sav.rtc.s3511a": map({ 0: Buffer.from([0x03, 0x02, 0x01, 0x06, 0x94, 0x30, 0x00]), 1: 0x40 }),
     }),
     // The pair: what a parser found, and which parser found it. The map is
     // uninterpretable without the id beside it.
@@ -716,7 +805,7 @@ export const valid = {
       3: map({ 2: "mgba", 3: "0.10.5", 4: "mgba", 5: "0.10.5" }),
       7: TAKEN_AT,
       "x.1sav.rtc": map({ 0: new Tag(1, 1793284200) }),
-      "x.1sav.rtc.s3511a": map({ 0: Buffer.from([0x26, 0x10, 0x29, 0x04, 0x14, 0x30, 0x00]), 1: 0x40, 2: TAKEN_AT }),
+      "x.1sav.rtc.s3511a": map({ 0: Buffer.from([0x26, 0x10, 0x29, 0x04, 0x94, 0x30, 0x00]), 1: 0x40, 2: TAKEN_AT }),
     }),
     [
       statePart({
@@ -795,36 +884,30 @@ export const valid = {
 };
 
 export const invalid = {
-  // This schema describes v0.9, so an integer key it does not list fails
-  // validation. A shipped decoder is deliberately looser: it ignores and
-  // round-trips these, because the only thing they can be is a later minor
-  // version's field. That difference is a decoder rule the schema cannot state.
-  "part-unknown-integer-key": bundle(map({ 0: "save" }), [part({ extra: new Map([[15, "nope"]]) })]),
-  "header-unknown-integer-key": bundle(map({ 0: "save", 16: "nope" }), [part()]),
-
   // `shape` says which document governs the bundle, so it is the one header key
   // that is never optional and never inferred.
   "header-without-shape": bundle(new Map(), [part()]),
-  "shape-unknown": bundle(map({ 0: "save-state" }), [part()]),
   "shape-as-integer": bundle(map({ 0: 0 }), [part()]),
 
   // Each shape admits a different header. A card is a card because it carries
   // the `card` map, a save never carries one, and a collection has nothing of
   // its own to say.
-  "card-without-card-map": bundle(map({ 0: "card", 1: "psx" }), [part()]),
+  "card-without-card-map": bundle(map({ 0: "card", 1: "psx" }), [smallCardEntry]),
   "save-with-card-map": bundle(map({ 0: "save", 1: "psx", 4: map({ 0: "ps1-mc", 1: 131072 }) }), [part()]),
-  "collection-with-system": bundle(map({ 0: "collection", 1: "psx" }), [part()]),
-  "collection-with-game": bundle(map({ 0: "collection", 2: FF7 }), [part()]),
-  "collection-with-card-map": bundle(map({ 0: "collection", 4: map({ 0: "ps1-mc", 1: 131072 }) }), [part()]),
+  "collection-with-system": bundle(map({ 0: "collection", 1: "psx" }), [smallEntry]),
+  "collection-with-game": bundle(map({ 0: "collection", 2: FF7 }), [smallEntry]),
+  "collection-with-card-map": bundle(map({ 0: "collection", 4: map({ 0: "ps1-mc", 1: 131072 }) }), [smallEntry]),
 
   // `system` is what tells a device from a collection, so it is required, and
   // the components hold saves for many games rather than for one.
-  "device-without-system": bundle(map({ 0: "device" }), [part()]),
-  "device-with-game": bundle(map({ 0: "device", 1: "segacd", 2: FF7 }), [part()]),
-  "device-with-card-map": bundle(map({ 0: "device", 1: "segacd", 4: map({ 0: "ps1-mc", 1: 131072 }) }), [part()]),
+  "device-without-system": bundle(map({ 0: "device" }), [smallComponent]),
+  "device-with-game": bundle(map({ 0: "device", 1: "sega-cd", 2: FF7 }), [smallComponent]),
+  "device-with-card-map": bundle(map({ 0: "device", 1: "sega-cd", 4: map({ 0: "ps1-mc", 1: 131072 }) }), [
+    smallComponent,
+  ]),
 
   // `card` needs both format and capacity; neither is optional.
-  "card-without-capacity": bundle(map({ 0: "card", 1: "psx", 4: map({ 0: "ps1-mc" }) }), [part()]),
+  "card-without-capacity": bundle(map({ 0: "card", 1: "psx", 4: map({ 0: "ps1-mc" }) }), [smallCardEntry]),
 
   // `dirent` is a byte string. Text would make it look parseable, which is the
   // one thing this spec promises it is not.
@@ -844,38 +927,43 @@ export const invalid = {
   "kind-spelled-save": bundle(map({ 0: "save" }), [part({ kind: "save" })]),
   "role-spelled-primary": bundle(map({ 0: "save" }), [part({ role: "primary" })]),
 
-  // The pre-coalescing spellings. `memcard_1` and `card_image` were valid when
-  // the format ran two slug grammars; one grammar means one spelling, so they
-  // are malformed now rather than unrecognized-but-round-trippable.
+  // A slug has no `_`. A name that breaks the grammar is malformed rather than
+  // a later version's, since nobody could have assigned it.
   "role-with-underscore": bundle(map({ 0: "save" }), [part({ role: "memcard_1" })]),
   "kind-with-underscore": bundle(map({ 0: "save" }), [part({ kind: "card_image" })]),
 
   // A slug separates runs with a single dash and carries none at either end,
   // so a doubled or dangling one is malformed rather than an odd name.
   "slug-with-doubled-dash": bundle(map({ 0: "save" }), [part({ role: "memcard--1" })]),
+  "slug-with-trailing-dash": bundle(map({ 0: "save" }), [part({ role: "memcard-" })]),
+
+  // A slug runs to 64 bytes at most. This one is 65.
   "slug-too-long": bundle(map({ 0: "save" }), [part({ role: `a${"-a".repeat(32)}` })]),
 
-  // The bare-slug vocabularies are lowercase and closed over their own
-  // punctuation. `role`, `kind` and `app` separate words with `_`; `system` and
-  // the card format use `-`. A value written in the other convention, or in any
-  // case but lower, is malformed rather than an unknown-but-round-trippable
-  // value: round-tripping applies to names this decoder has not heard of, not
-  // to names that could not have been minted.
+  // A slug is lowercase, separates its runs with `-` and holds no `_`, in every
+  // field that takes one. A value written any other way is malformed rather
+  // than a later version's: round-tripping applies to names this decoder has
+  // not heard of, not to names that could not have been assigned.
   "role-with-uppercase": bundle(map({ 0: "save" }), [part({ role: "MemCard" })]),
   "system-slug-with-underscore": bundle(map({ 0: "save", 1: "ps_x" }), [part()]),
   "game-system-with-underscore": bundle(map({ 0: "save", 2: map({ 4: "Sonic Adventure", 5: "drea_mcast" }) }), [
     part(),
   ]),
   "game-system-as-integer": bundle(map({ 0: "save", 2: map({ 5: 1 }) }), [part()]),
-  "card-format-with-underscore": bundle(map({ 0: "card", 1: "psx", 4: map({ 0: "ps1_mc", 1: 131072 }) }), [part()]),
+  "card-format-with-underscore": bundle(map({ 0: "card", 1: "psx", 4: map({ 0: "ps1_mc", 1: 131072 }) }), [
+    smallCardEntry,
+  ]),
 
-  // A card format is one of three vocabularies a producer may not mint into. An
-  // unknown format leaves a consumer unable to write the card back at all, so a
+  // A card format is spec-owned, and a producer may not mint one. An unknown
+  // format leaves a consumer unable to write the card back at all, so a
   // reverse-DNS name here is malformed rather than a private extension.
-  "card-format-reverse-dns": bundle(map({ 0: "card", 1: "psx", 4: map({ 0: "io.mgba.card", 1: 131072 }) }), [part()]),
+  "card-format-reverse-dns": bundle(map({ 0: "card", 1: "psx", 4: map({ 0: "io.mgba.card", 1: 131072 }) }), [
+    smallCardEntry,
+  ]),
 
-  // Same for a device kind. `app` in the same map names the producer itself and
-  // is minted freely, so the two arms of that map pull in opposite directions.
+  // A device kind is spec-owned too, so a minted one is malformed. `app` in the
+  // same map names the producer itself and is minted freely, so the two fields
+  // of that map pull in opposite directions.
   "device-kind-reverse-dns": bundle(
     map({ 0: "save", 1: "gb", 3: map({ 0: "io.epilogue.operator", 2: "io.epilogue" }) }),
     [part()],
@@ -895,9 +983,13 @@ export const invalid = {
   // no zone at all, and one a consumer would move a clock by.
   "utc-offset-out-of-range": bundle(map({ 0: "save", 1: "gbc", 3: map({ 2: "mister", 8: 86400 }) }), [part()]),
 
-  // Same for a role. A socket is hardware and belongs to nobody, and a private
-  // name for one could not be matched against a target by anything but its
-  // author, which is the whole job the field does.
+  // Zero is UTC, and anchors on UTC are written by leaving the key out.
+  "utc-offset-zero": bundle(map({ 0: "save", 1: "gbc", 3: map({ 2: "mister", 8: 0 }) }), [part()]),
+
+  // A role takes a registry slug and never a minted name. A socket is hardware
+  // and belongs to nobody, and a private name for one could not be matched
+  // against a target by anything but its author, which is the whole job the
+  // field does.
   "role-reverse-dns": bundle(map({ 0: "save" }), [part({ role: "io.mgba.cart-slot" })]),
 
   // A binding names a category everyone shares, so it is spec-owned too. A
@@ -914,6 +1006,15 @@ export const invalid = {
   // in bytes rather than characters, since that is what a decoder can check.
   "path-too-long": bundle(map({ 0: "save" }), [part({ path: "a".repeat(513) })]),
 
+  // A path is relative, `/` separates its segments, and no segment is empty,
+  // `.` or `..`. Each of these is a second spelling of an address, or one
+  // that climbs out of the container it names.
+  "path-leading-slash": bundle(map({ 0: "save" }), [part({ path: "/data.bin" })]),
+  "path-trailing-slash": bundle(map({ 0: "save" }), [part({ path: "title/" })]),
+  "path-empty-segment": bundle(map({ 0: "save" }), [part({ path: "title//data.bin" })]),
+  "path-dot-segment": bundle(map({ 0: "save" }), [part({ path: "title/./data.bin" })]),
+  "path-dot-dot-segment": bundle(map({ 0: "save" }), [part({ path: "title/../data.bin" })]),
+
   // A resolver name is minted exactly as an extension key is, so a bare word
   // fails for the same reason: nothing says whose catalog this id is from.
   "resolver-name-not-reverse-dns": bundle(map({ 0: "save", 2: map({ 0: map({ hasheous: 1234 }) }) }), [part()]),
@@ -924,6 +1025,13 @@ export const invalid = {
   // much as on the header or a part.
   "extension-key-not-reverse-dns": bundle(map({ 0: "save", parsed: 1 }), [part()]),
   "extension-key-uppercase": bundle(map({ 0: "save" }), [part({ extra: new Map([["IO.mgba.rtc", 1]]) })]),
+
+  // A reverse-DNS name runs to 255 characters, as a domain does. This one has
+  // 256, every label within its own limit.
+  "extension-key-too-long": bundle(
+    map({ 0: "save", [`io.${"a".repeat(63)}.${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(61)}`]: 1 }),
+    [part()],
+  ),
   "game-extension-key-not-reverse-dns": bundle(map({ 0: "save", 2: map({ 4: "Pokemon Ruby", revision: 1 }) }), [
     part(),
   ]),
@@ -935,64 +1043,81 @@ export const invalid = {
 
   // A state only loads into the core that took it, so its header has to say
   // which: a core, or the app where nothing runs one.
-  "state-without-source": bundle(map({ 0: "state", 1: "gba" }), [statePart()]),
+  "state-without-source": bundle(map({ 0: "state", 1: "gba" }), [smallStatePart()]),
   "state-source-without-core-or-app": bundle(map({ 0: "state", 1: "gba", 3: map({ 0: "emulator", 5: "0.10.5" }) }), [
-    statePart(),
+    smallStatePart(),
   ]),
 
   // A state part and a screenshot part sit only in the shapes that hold them,
   // so a consumer restoring an in-game save never meets either.
-  "state-part-in-a-save": bundle(map({ 0: "save", 1: "gba" }), [statePart()]),
-  "screenshot-part-in-a-save": bundle(map({ 0: "save", 1: "gba" }), [part({ id: 0 }), screenshot(1)]),
+  "state-part-in-a-save": bundle(map({ 0: "save", 1: "gba" }), [smallStatePart()]),
+  "screenshot-part-in-a-save": bundle(map({ 0: "save", 1: "gba" }), [part({ id: 0 }), screenshot(1, pattern(16, 59))]),
 
   // A state part is the core's own data, which has no media type to name.
   "state-part-with-content-type": bundle(map({ 0: "state", 3: MGBA }), [
-    statePart({ extra: new Map([[6, "application/octet-stream"]]) }),
+    smallStatePart({ extra: new Map([[6, "application/octet-stream"]]) }),
   ]),
 
   // A screenshot names its image type, and the type is one every consumer can
   // show. Anything else is encoded as PNG on the way in.
-  "screenshot-without-content-type": bundle(map({ 0: "screenshot" }), [part({ kind: "screenshot", payload: PNG })]),
-  "screenshot-as-webp": bundle(map({ 0: "screenshot" }), [screenshot(0, PNG, "image/webp")]),
+  "screenshot-without-content-type": bundle(map({ 0: "screenshot" }), [
+    part({ kind: "screenshot", payload: pattern(16, 59) }),
+  ]),
+  "screenshot-as-webp": bundle(map({ 0: "screenshot" }), [screenshot(0, pattern(16, 59), "image/webp")]),
 
   // A screenshot bundle is one image. Two images are two bundles, which a
   // collection can hold together.
-  "screenshot-with-two-images": bundle(map({ 0: "screenshot" }), [screenshot(0), screenshot(1, pattern(512, 89))]),
+  "screenshot-with-two-images": bundle(map({ 0: "screenshot" }), [
+    screenshot(0, pattern(16, 59)),
+    screenshot(1, pattern(16, 89)),
+  ]),
   "screenshot-holding-a-save": bundle(map({ 0: "screenshot" }), [part()]),
 
   // A `system` part is an entry on a card that belongs to no game, so it sits on
   // a card and nowhere else, says where on the card it goes, and names no game.
   "system-part-in-a-save": bundle(map({ 0: "save", 1: "ps2" }), [
     part({ id: 0 }),
-    part({ id: 1, kind: "system", path: "BWNETCNF/BWNETCNF", payload: pattern(64, 103) }),
+    part({ id: 1, kind: "system", path: "BWNETCNF/BWNETCNF", payload: pattern(16, 103) }),
   ]),
-  "system-part-without-path": card("ps2", "ps2-mc", 8388608, [part({ kind: "system", payload: pattern(64, 107) })]),
+  "system-part-without-path": card("ps2", "ps2-mc", 8388608, [part({ kind: "system", payload: pattern(16, 107) })]),
   "system-part-naming-a-game": card("ps2", "ps2-mc", 8388608, [
-    part({ kind: "system", path: "BASLUS-20312/icon.sys", game: FFX, payload: pattern(964, 109) }),
+    part({ kind: "system", path: "BWNETCNF", game: FFX, payload: Buffer.alloc(0) }),
   ]),
 
   // `taken_at` is when a state or a screenshot was taken, which an in-game save
   // has no field for. `taken_with` and `origin` belong to a state alone.
   "taken-at-on-a-save": bundle(map({ 0: "save", 1: "gba", 7: TAKEN_AT }), [part()]),
-  "taken-with-on-a-screenshot": bundle(map({ 0: "screenshot", 8: map({ 0: "little" }) }), [screenshot(0)]),
+  "taken-with-on-a-screenshot": bundle(map({ 0: "screenshot", 8: map({ 0: "little" }) }), [
+    screenshot(0, pattern(16, 59)),
+  ]),
   "origin-on-a-save": bundle(map({ 0: "save", 9: "auto" }), [part()]),
 
   // An origin names a category everyone shares, so like a binding it is
   // spec-owned, and a minted one is malformed.
-  "origin-reverse-dns": bundle(map({ 0: "state", 3: MGBA, 9: "io.mgba.rewind" }), [statePart()]),
+  "origin-reverse-dns": bundle(map({ 0: "state", 3: MGBA, 9: "io.mgba.rewind" }), [smallStatePart()]),
 
   // Each `taken_with` entry takes only its own values, so that one setting has
   // one spelling. A byte order is little or big and a word size 32 or 64 bits.
   // A format version is a number, never the text a file writes it as. A
   // language tag is in BCP 47's own case, with the language in lower case.
-  "byte-order-unknown": bundle(map({ 0: "state", 3: MGBA, 8: map({ 0: "middle" }) }), [statePart()]),
-  "word-size-16": bundle(map({ 0: "state", 3: MGBA, 8: map({ 1: 16 }) }), [statePart()]),
-  "format-version-as-text": bundle(map({ 0: "state", 3: MGBA, 8: map({ 5: "72" }) }), [statePart()]),
-  "language-not-canonical": bundle(map({ 0: "state", 3: MGBA, 8: map({ 3: "EN-us" }) }), [statePart()]),
+  "byte-order-unknown": bundle(map({ 0: "state", 3: MGBA, 8: map({ 0: "middle" }) }), [smallStatePart()]),
+  "word-size-16": bundle(map({ 0: "state", 3: MGBA, 8: map({ 1: 16 }) }), [smallStatePart()]),
+  "format-version-as-text": bundle(map({ 0: "state", 3: MGBA, 8: map({ 5: "72" }) }), [smallStatePart()]),
+  "language-not-canonical": bundle(map({ 0: "state", 3: MGBA, 8: map({ 3: "EN-us" }) }), [smallStatePart()]),
+
+  // An optional map, text or byte string is absent rather than empty: an
+  // empty one is a second spelling of absence.
+  "empty-game": bundle(map({ 0: "save", 1: "gb", 2: new Map() }), [part()]),
+  "empty-part-game": bundle(map({ 0: "save", 1: "gb" }), [part({ game: new Map() })]),
+  "empty-source": bundle(map({ 0: "save", 1: "gb", 3: new Map() }), [part()]),
+  "empty-taken-with": bundle(map({ 0: "state", 3: MGBA, 8: new Map() }), [smallStatePart()]),
+  "empty-description": bundle(map({ 0: "save", 5: "" }), [part()]),
+  "empty-serial": bundle(map({ 0: "save", 2: map({ 3: "", 4: "Pokemon Red" }) }), [part()]),
+  "empty-dirent": bundle(map({ 0: "save" }), [part({ extra: new Map([[5, Buffer.alloc(0)]]) })]),
 
   // Empty maps, which absence already encodes.
-  "empty-core-options": bundle(map({ 0: "state", 3: MGBA, 8: map({ 4: new Map() }) }), [statePart()]),
-  "empty-firmware": bundle(map({ 0: "state", 3: MGBA, 8: map({ 2: new Map() }) }), [statePart()]),
+  "empty-core-options": bundle(map({ 0: "state", 3: MGBA, 8: map({ 4: new Map() }) }), [smallStatePart()]),
+  "empty-firmware": bundle(map({ 0: "state", 3: MGBA, 8: map({ 2: new Map() }) }), [smallStatePart()]),
 
   // A digest has to match the length its algorithm tag implies, and the tag has
   // to be one of the four the shared type defines. Neither is recoverable by
@@ -1018,21 +1143,6 @@ export const invalid = {
     part({ extra: new Map([[9, new Tag(18542, pattern(20))]]) }),
   ]),
 
-  // A part is never compressed, and keys 7 and 8 are retired. A part carrying
-  // `encoding` and `size` as 0.8 wrote them is malformed, even to a decoder
-  // that ignores the other integer keys it does not know, since its payload is
-  // zstd output rather than the save.
-  "part-compressed": bundle(map({ 0: "save", 1: "snes" }), [
-    new Map([
-      [0, 0],
-      [2, "cartridge"],
-      [7, "zstd"],
-      [8, 32768],
-      [9, digest(pattern(32768, 29))],
-      [-1, pattern(410, 31)],
-    ]),
-  ]),
-
   // A pre-renumber bundle, from when the payload sat in the unsigned range.
   // Key 11 is `game` now, and the payload is at -1, so this is rejected rather
   // than read as a game map.
@@ -1044,6 +1154,73 @@ export const invalid = {
       [11, SAVE],
     ]),
   ]),
+
+  // A save holds no nested bundle: a component that is a card of its own makes
+  // the bundle a device. A state holds none either: a state and an in-game save
+  // in one file is a collection of two bundles.
+  "save-holding-a-bundle-part": bundle(map({ 0: "save", 1: "n64", 2: MK64 }), [
+    part({ id: 0, role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
+    nested(
+      bundle(map({ 0: "card", 1: "n64", 4: map({ 0: "n64-cpak", 1: 32768 }) }), [
+        nested(smallSave("n64", MK64), { id: 0, role: "controller-pak-1", path: "MARIOKART64", slot: 1 }),
+      ]),
+      { id: 1, role: "controller-pak-1" },
+    ),
+  ]),
+  "state-holding-a-bundle-part": bundle(map({ 0: "state", 3: MGBA }), [
+    smallStatePart(),
+    nested(smallSave("gb", POKEMON), { id: 1 }),
+  ]),
+
+  // A card's own parts are its saves, each nested, and the entries beside them.
+  // A bare save part on a card is a save flattened out of the bundle it
+  // belongs in.
+  "card-holding-a-bare-save": card("psx", "ps1-mc", 131072, [part({ role: "memcard-1", payload: pattern(16, 5) })]),
+
+  // A device's component sits in a socket, and the role is the whole of what
+  // tells two components apart, so it is required.
+  "device-component-without-role": bundle(map({ 0: "device", 1: "sega-cd" }), [
+    nested(bundle(map({ 0: "save", 1: "sega-cd" }), [part({ payload: pattern(16, 11) })]), { id: 0 }),
+  ]),
+
+  // A `bundle` part's media type is this format's by construction, so it names
+  // none. It names no binding either: that belongs on the part inside holding
+  // the bound bytes.
+  "bundle-part-with-content-type": card("psx", "ps1-mc", 131072, [
+    (() => {
+      const p = nested(smallSave(), { id: 0, role: "memcard-1", path: "BASLUS-00594", slot: 1 });
+      p.set(6, "application/vnd.1saves+cbor");
+      return p;
+    })(),
+  ]),
+  "bundle-part-with-binding": card("psx", "ps1-mc", 131072, [
+    nested(smallSave(), { id: 0, role: "memcard-1", path: "BASLUS-00594", slot: 1, binding: "device" }),
+  ]),
+
+  // Part key 12 is an index copy of a nested bundle's `system`, so it sits on a
+  // `bundle` part and nowhere else.
+  "system-on-a-plain-part": bundle(map({ 0: "save", 1: "gb" }), [part({ system: "gb" })]),
+
+  // A whole card belongs to no one game, so a `card-image` names none.
+  "card-image-naming-a-game": bundle(map({ 0: "card", 1: "psx", 4: map({ 0: "ps1-mc", 1: 131072 }) }), [
+    part({ role: "memcard-1", payload: pattern(16, 7), kind: "card-image", game: FF7 }),
+  ]),
+
+  // `bound_to` comes only with `binding`, and holds only the identifiers its
+  // value names: a console's for `device`, never an account's.
+  "bound-to-without-binding": bundle(map({ 0: "save", 1: "wii" }), [
+    part({ payload: pattern(16), extra: new Map([[14, map({ 0: pattern(4, 3) })]]) }),
+  ]),
+  "bound-to-naming-another-target": bundle(map({ 0: "save", 1: "wii" }), [
+    part({ payload: pattern(16), binding: "device", extra: new Map([[14, map({ 1: pattern(8, 3) })]]) }),
+  ]),
+
+  // The file is one tagged item and nothing else. Trailing bytes, the
+  // self-describe tag in front, or no bundle tag at all each make it something
+  // other than a bundle.
+  "trailing-byte": new Raw(Buffer.concat([encode(bundle(map({ 0: "save" }), [part()])), Buffer.from([0x00])])),
+  "self-describe-tag": new Tag(55799, bundle(map({ 0: "save" }), [part()])),
+  untagged: [map({ 0: "save" }), [part()]],
 };
 
 // ---------------------------------------------------------------------------
@@ -1062,7 +1239,7 @@ export const invalid = {
 //   da 31534156        tag 827539798
 //   82                 array(2)
 //   a1                 header: map(1)
-//   06 64 73617665       0: "save"                 shape
+//   00 64 73617665       0: "save"                 shape
 //   81                 parts: array(1)
 //   a3                 part: map(3)
 //   00 00                 0: 0                      id
@@ -1096,13 +1273,28 @@ export const malformedDeterminism = {
   // that keeps the first disagree about what the bundle says.
   "duplicate-map-key": hex(MINIMAL_HEAD, "a4", PART_ID, "0001", PART_SHA, PART_PAYLOAD),
 
-  // The rules below are not about CBOR heads at all. RFC 8949 4.2 leaves them
-  // to the application, and the spec takes them on because the content hash
-  // needs them: two encoders given one logical bundle have to agree byte for
-  // byte, and text normalisation and array order both break that.
-  // Parts are stored in ascending `id` order, always. This one holds id 1 then
-  // id 0, which decodes to the same two parts and hashes differently.
-  "parts-out-of-order": bundle(map({ 0: "save" }), [part({ id: 1 }), part({ id: 0, payload: pattern(16, 3) })]),
+  // A byte string has a definite length too. 5f/ff is the payload sent in two
+  // chunks, which decodes to the same four bytes.
+  "indefinite-length-payload": hex(MINIMAL_HEAD, "a3", PART_ID, PART_SHA, "20", "5f", "425341", "424645", "ff"),
+
+  // A length is a head like any other, so it takes the shortest form that fits.
+  // A streaming encoder that reserves four bytes for a length writes this.
+  "non-preferred-length-head": hex(MINIMAL_HEAD, "a3", PART_ID, PART_SHA, "20", "5a00000004", "53415645"),
+
+  // Parts sit in strictly ascending `id` order. This one holds id 1 then id 0,
+  // which decodes to the same two parts and hashes differently. The parts sit
+  // in different slots, so nothing else about them is wrong.
+  "parts-out-of-order": bundle(map({ 0: "save" }), [
+    part({ id: 1, slot: 2 }),
+    part({ id: 0, slot: 1, payload: pattern(16, 3) }),
+  ]),
+
+  // Strictly ascending means no two parts share an `id`, so nothing says which
+  // of the two an extension key names.
+  "parts-share-an-id": bundle(map({ 0: "save" }), [
+    part({ id: 0, slot: 1 }),
+    part({ id: 0, slot: 2, payload: pattern(16, 3) }),
+  ]),
 
   // Text is in NFC. "Pokémon" written with a combining acute (U+0065 U+0301)
   // rather than the precomposed é (U+00E9) is the same string to a reader and
@@ -1122,22 +1314,90 @@ export const malformedDeterminism = {
     map({ 0: "save", 2: map({ 1: [new Tag(18540, pattern(32, 13)), new Tag(18540, pattern(32, 17))] }) }),
     [part()],
   ),
+
+  // The ordering rule holds for every list of hash values, a firmware file's
+  // in `taken_with` as much as `rom_hashes`.
+  "firmware-hashes-out-of-order": bundle(
+    map({
+      0: "state",
+      3: MGBA,
+      8: map({ 2: map({ "gba_bios.bin": [new Tag(18542, pattern(20, 7)), new Tag(18540, pattern(32, 11))] }) }),
+    }),
+    [smallStatePart()],
+  ),
+
+  // The encoding rules hold at every depth. This card's save sets its part's
+  // `id` in two bytes where one does, and the outer `sha256` is over those
+  // bytes, so only the encoding is wrong.
+  "nested-bundle-not-canonical": card("psx", "ps1-mc", 131072, [
+    part({
+      id: 0,
+      role: "memcard-1",
+      path: "BASLUS-00594",
+      slot: 1,
+      kind: "bundle",
+      system: "psx",
+      payload: Buffer.from("da3153415682a2006473617665016370737881a3" + "1800" + PART_SHA + PART_PAYLOAD, "hex"),
+    }),
+  ]),
 };
 
 // ---------------------------------------------------------------------------
-// Malformed by rules that need a look inside a payload, or across parts.
+// Malformed by rules that need a look inside a payload or an extension value,
+// or a comparison across parts or maps.
 //
-// CDDL cannot reach inside a byte string, so nothing about a nested bundle is
-// checkable by the schema, and neither is a rule that compares one part to
-// another. These are the cases an implementation has to catch on its own.
+// The schema checks what each map holds, but not what sits inside a nested
+// bundle's bytes or under an extension key, and not a rule that compares one
+// value with another. These are the cases an implementation has to catch on
+// its own.
 
-const innerSave = bundle(map({ 0: "save", 1: "psx", 2: MGS }), [part({ payload: BLOCK })]);
+const innerSave = bundle(map({ 0: "save", 1: "psx", 2: MGS }), [part({ payload: pattern(16, 5) })]);
 
 export const malformedStructure = {
-  // A `bundle` part's payload has to decode as a saves-file. This one is a
-  // plain save's bytes wearing the kind of a bundle.
+  // A `bundle` part's payload has to decode as a bundle at all, and as a shape
+  // its holder may hold. This one is a plain save's bytes.
   "bundle-part-payload-not-a-bundle": card("psx", "ps1-mc", 131072, [
-    part({ id: 0, role: "memcard-1", path: "BASLUS-00594", kind: "bundle", payload: BLOCK, system: "psx" }),
+    part({ id: 0, role: "memcard-1", path: "BASLUS-00594", kind: "bundle", payload: pattern(16, 5), system: "psx" }),
+  ]),
+
+  // A collection never holds another collection.
+  "collection-in-a-collection": bundle(map({ 0: "collection" }), [
+    nested(bundle(map({ 0: "collection" }), [smallEntry]), { id: 0 }),
+  ]),
+
+  // A card holds saves and nothing nested beyond them, and a device holds cards
+  // and saves.
+  "card-holding-a-card": card("psx", "ps1-mc", 131072, [
+    nested(bundle(map({ 0: "card", 1: "psx", 4: map({ 0: "ps1-mc", 1: 131072 }) }), [smallCardEntry]), {
+      id: 0,
+      role: "memcard-1",
+    }),
+  ]),
+  "device-holding-a-collection": bundle(map({ 0: "device", 1: "sega-cd" }), [
+    smallComponent,
+    nested(bundle(map({ 0: "collection" }), [smallEntry]), { id: 1, role: "ram-cart" }),
+  ]),
+  "device-holding-a-state": bundle(map({ 0: "device", 1: "gba" }), [
+    nested(bundle(map({ 0: "state", 3: MGBA }), [smallStatePart()]), { id: 0, role: "cartridge" }),
+  ]),
+
+  // One bad part makes the whole bundle malformed, however deep it sits. The
+  // card and its first save are fine; the second save writes out a default,
+  // so the card is malformed too, and a decoder keeps neither save.
+  "nested-save-spelling-out-a-default": card("psx", "ps1-mc", 131072, [
+    smallCardEntry,
+    nested(bundle(map({ 0: "save", 1: "psx", 2: FF7 }), [part({ role: "primary", payload: pattern(16, 3) })]), {
+      id: 1,
+      role: "memcard-1",
+      path: "BASCUS-94163FF7-S01",
+      slot: 2,
+    }),
+  ]),
+
+  // A part's `sha256` is the digest of its payload. Here it names other bytes,
+  // so a decoder handing the payload out would hand out something corrupt.
+  "part-sha256-mismatch": bundle(map({ 0: "save", 1: "gb" }), [
+    part({ extra: new Map([[9, new Tag(18540, sha256(Buffer.from("something else")))]]) }),
   ]),
 
   // The outer sha256 is the inner bundle's identity, which is what makes
@@ -1150,70 +1410,61 @@ export const malformedStructure = {
     })(),
   ]),
 
-  // One bad part makes the whole bundle malformed, however deep it sits. The
-  // card and its first save are fine; the second save writes out a default,
-  // so the card is malformed too, and a decoder keeps neither save.
-  "nested-save-spelling-out-a-default": card("psx", "ps1-mc", 131072, [
-    nested(innerSave, { id: 0, role: "memcard-1", path: "BASLUS-00594", game: MGS, slot: 1 }),
-    nested(bundle(map({ 0: "save", 1: "psx", 2: FF7 }), [part({ role: "primary", payload: pattern(8192, 3) })]), {
-      id: 1,
-      role: "memcard-1",
-      path: "BASCUS-94163FF7-S01",
-      game: FF7,
-      slot: 2,
-    }),
-  ]),
-
-  // A collection is the one shape that does not nest inside itself, which is
-  // what keeps the chain of shapes from running forever.
-  "collection-in-a-collection": bundle(map({ 0: "collection" }), [nested(valid.collection, { id: 0 })]),
-
-  // A save holds no nested bundle: a component that is a card of its own makes
-  // the bundle a device.
-  "save-holding-a-bundle-part": bundle(map({ 0: "save", 1: "n64", 2: MK64 }), [
-    part({ id: 0, role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
-    nested(
-      bundle(map({ 0: "card", 1: "n64", 4: map({ 0: "n64-cpak", 1: 32768 }) }), [part({ payload: pattern(256) })]),
-      {
-        id: 1,
-        role: "controller-pak-1",
-      },
-    ),
-  ]),
-
   // No two parts may agree on `role`, `path` and `slot` together, and with all
   // three defaulting to absence two bare parts collide on every one of them.
   // That is a bundle a consumer cannot name a part in, or match against a
   // target, so it cannot act on it at all.
   "parts-share-an-address": bundle(map({ 0: "save" }), [part({ id: 0 }), part({ id: 1, payload: pattern(16, 19) })]),
 
+  // A device's components never share a role, whatever else tells them apart.
+  // These two differ in `path`, which the ordinary addressing rule would allow.
+  "device-components-share-a-role": bundle(map({ 0: "device", 1: "sega-cd" }), [
+    smallComponent,
+    nested(bundle(map({ 0: "save", 1: "sega-cd" }), [part({ payload: pattern(16, 13) })]), {
+      id: 1,
+      role: "internal",
+      path: "second",
+    }),
+  ]),
+
+  // A part's `game` that equals the header's is a default spelled out, since
+  // a part with none takes the header's. On a card of one game, that makes an
+  // index copy on each save's part a second spelling of the same card.
+  "part-game-equal-to-header": bundle(map({ 0: "save", 1: "gb", 2: POKEMON }), [part({ game: POKEMON })]),
+  "card-of-one-game-with-index-copies": cardOfOneGame(true),
+
+  // Every part of one card names the same socket, or none does: a card sat in
+  // one slot when it was read.
+  "card-parts-disagree-on-role": card("psx", "ps1-mc", 131072, [
+    smallCardEntry,
+    nested(smallSave("psx", FF7), { id: 1, role: "memcard-2", path: "BASCUS-94163FF7-S01", slot: 2 }),
+  ]),
+
   // A state bundle holds exactly one state part. Without one there is nothing
   // to load, and with two a consumer cannot tell which one the bundle is.
-  "state-without-a-state-part": bundle(map({ 0: "state", 3: MGBA }), [screenshot(0)]),
+  "state-without-a-state-part": bundle(map({ 0: "state", 3: MGBA }), [screenshot(0, pattern(16, 59))]),
   "state-with-two-state-parts": bundle(map({ 0: "state", 3: MGBA }), [
-    statePart({ id: 0, slot: 1 }),
-    statePart({ id: 1, slot: 2, payload: pattern(4096, 97) }),
+    smallStatePart({ id: 0, slot: 1 }),
+    smallStatePart({ id: 1, slot: 2, payload: pattern(16, 97) }),
   ]),
 
   // And at most one screenshot, since the screenshot is the state's picture.
+  // A screenshot part takes no `role`, `path` or `slot`, so two of them also
+  // share an address: a decoder may catch this by either rule.
   "state-with-two-screenshots": bundle(map({ 0: "state", 3: MGBA }), [
-    statePart(),
-    screenshot(1),
-    screenshot(2, pattern(512, 101)),
+    smallStatePart(),
+    screenshot(1, pattern(16, 59)),
+    screenshot(2, pattern(16, 101)),
   ]),
-
-  // A state holds no nested bundle. A state and an in-game save in one file is
-  // a collection of two bundles.
-  "state-holding-a-bundle-part": bundle(map({ 0: "state", 3: MGBA }), [statePart(), nested(gbSave, { id: 1 })]),
 
   // A `system` file sits in a directory that has a `system` part of its own,
   // ahead of the file's, so a writer has made the directory before it reaches
   // the file. Here the directory is missing, and then it comes too late.
   "system-file-without-its-directory": card("ps2", "ps2-mc", 8388608, [
-    part({ kind: "system", path: "BWNETCNF/icon.sys", dirent: pattern(512, 8), payload: pattern(964, 9) }),
+    part({ kind: "system", path: "BWNETCNF/icon.sys", dirent: pattern(512, 8), payload: pattern(16, 9) }),
   ]),
   "system-file-before-its-directory": card("ps2", "ps2-mc", 8388608, [
-    part({ id: 0, kind: "system", path: "BWNETCNF/icon.sys", dirent: pattern(512, 8), payload: pattern(964, 9) }),
+    part({ id: 0, kind: "system", path: "BWNETCNF/icon.sys", dirent: pattern(512, 8), payload: pattern(16, 9) }),
     part({ id: 1, kind: "system", path: "BWNETCNF", dirent: pattern(512, 7), payload: Buffer.alloc(0) }),
   ]),
 
@@ -1223,9 +1474,13 @@ export const malformedStructure = {
   "neogeo-path-uppercase": neogeoCard({ path: "0201-A", dirent: Buffer.from([0x0a, 0x02, 0x01, 0x05]) }),
   "neogeo-path-unpadded": neogeoCard({ path: "201-0" }),
 
-  // A `dirent` is as long as its card's format makes it, and a Neo Geo entry
-  // is four bytes. This one stops at three.
+  // A `dirent` is as long as its card's format makes it. A Neo Geo entry is
+  // four bytes, and this one stops at three. A PS1 entry is 128 bytes, and
+  // this one is 127.
   "dirent-wrong-length": neogeoCard({ dirent: Buffer.from([0x00, 0x02, 0x01]) }),
+  "ps1-dirent-wrong-length": card("psx", "ps1-mc", 131072, [
+    nested(smallSave(), { id: 0, role: "memcard-1", path: "BASLUS-00594", slot: 1, dirent: pattern(127, 3) }),
+  ]),
 
   // A Neo Geo card's `system_area` is its whole 64-byte header block, which
   // carries the cardholder username and the card's region. The username alone
@@ -1238,8 +1493,10 @@ export const malformedStructure = {
   "n64-path-outside-the-table": n64Pak("MarioKart64"),
 
   // A note's name is 16 bytes, so its spelling runs to 16 characters at most
-  // before any extension. This one has 17 and no extension.
+  // before any extension. This one has 17 and no extension. Its extension is 4
+  // bytes, so the next one has 5 after the dot.
   "n64-path-longer-than-a-note-name": n64Pak("MARIOKART64DELUXE"),
+  "n64-path-extension-too-long": n64Pak("MARIOKART64.ABCDE"),
 
   // An N64 cartridge's chip fixes how long its payload is. A 16 Kbit EEPROM is
   // 2048 bytes, and this payload is the 512 of a 4 Kbit one, which is the
@@ -1251,25 +1508,101 @@ export const malformedStructure = {
   // consumer could not say how long the save should be.
   "n64-chip-undefined": n64Cartridge(OOT, "sram-32k", { size: 32768 }),
 
+  // The value is a map whose key 0 names the chip. A bare name is not one.
+  "n64-chip-not-a-map": bundle(map({ 0: "save", 1: "n64", 2: SM64 }), [
+    part({ role: "cartridge", payload: pattern(512, 21), extra: new Map([["x.1sav.n64", "eeprom-4k"]]) }),
+  ]),
+
   // The `cartridge` part of an N64 save says which chip it holds. Neither the
   // bytes nor their length can say it for the part.
   "n64-cartridge-without-its-chip": n64Cartridge(MK64, null, { size: 512 }),
 
-  // The same inside a device. The nested save's part has the role
-  // `cartridge`, so it is marked as a cartridge's however deep it sits.
+  // The same inside a device and inside a state. The part has the role
+  // `cartridge` in a bundle naming `n64`, so it is marked as a cartridge's
+  // however deep it sits and whatever shape holds it.
   "n64-device-cartridge-without-its-chip": n64Device(n64Cartridge(MK64, null, { size: 512 })),
+  "n64-state-cartridge-without-its-chip": bundle(
+    map({ 0: "state", 1: "n64", 2: MK64, 3: map({ 2: "retroarch", 4: "mupen64plus-next" }) }),
+    [smallStatePart({ id: 0, slot: 1 }), part({ id: 1, role: "cartridge", payload: pattern(512, 21) })],
+  ),
 
   // The key goes on the part holding the chip's memory and nowhere else. A
-  // header, the `bundle` part wrapping a device's cartridge save, and a note's
-  // part each hold something other than the chip.
+  // header, the `bundle` part wrapping a device's cartridge save, a note's own
+  // save, a `game` map and a Game Boy cartridge's part each hold something
+  // other than an N64 chip.
   "n64-chip-on-the-header": bundle(map({ 0: "save", 1: "n64", 2: MK64, "x.1sav.n64": map({ 0: "eeprom-4k" }) }), [
     part({ role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
   ]),
   "n64-chip-on-a-bundle-part": n64Device(n64Cartridge(MK64, "eeprom-4k"), { extra: n64Chip("eeprom-4k") }),
-  "n64-chip-on-a-note": n64CartridgeAndNote(n64Chip("eeprom-4k")),
+  "n64-chip-on-a-note": n64PakWithNote(n64Chip("eeprom-4k")),
+  "n64-chip-in-a-game-map": bundle(
+    map({ 0: "save", 1: "n64", 2: map({ 3: "NUS-NKTE", 4: "Mario Kart 64", "x.1sav.n64": map({ 0: "eeprom-4k" }) }) }),
+    [part({ role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") })],
+  ),
+  "n64-chip-on-a-gb-cartridge": bundle(map({ 0: "save", 1: "gb", 2: POKEMON }), [
+    part({ role: "cartridge", payload: pattern(512, 47), extra: n64Chip("eeprom-4k") }),
+  ]),
+
+  // A cartridge has one save chip, so a bundle naming `n64` holds one
+  // `cartridge` part at most. These two differ only in `path`.
+  "n64-two-cartridge-parts": bundle(map({ 0: "save", 1: "n64", 2: MK64 }), [
+    part({ id: 0, role: "cartridge", path: "eeprom", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
+    part({ id: 1, role: "cartridge", path: "sram", payload: pattern(32768, 23), extra: n64Chip("sram-256k") }),
+  ]),
+
+  // A Controller Pak is a card, and a note is a save on it. No part of a save
+  // names a card's slot, so a note beside the cartridge's part is a save
+  // flattened out of the card it belongs on.
+  "n64-note-as-a-save-part": bundle(map({ 0: "save", 1: "n64", 2: MK64 }), [
+    part({ id: 0, role: "cartridge", payload: pattern(512, 21), extra: n64Chip("eeprom-4k") }),
+    part({ id: 1, role: "controller-pak-1", path: "MARIOKART64", slot: 1, payload: pattern(256) }),
+  ]),
+
+  // A 64DD disk's save holds its RAM area in one `save` part with no role, which
+  // is how a decoder finds it. A role, or a second save part, leaves it unable
+  // to tell which bytes are the area.
+  "n64dd-disk-with-a-role": bundle(map({ 0: "save", 1: "n64dd" }), [
+    part({ role: "cartridge", payload: pattern(1942080, 89) }),
+  ]),
+  "n64dd-disk-with-two-save-parts": bundle(map({ 0: "save", 1: "n64dd" }), [
+    part({ id: 0, payload: pattern(1942080, 89) }),
+    part({ id: 1, path: "extra", payload: pattern(16, 3) }),
+  ]),
 
   // A 64DD disk's save is the whole of its RAM area, which no disk type makes
   // 32 KiB long. A save of part of the area cannot be told from a disk of
   // another type.
   "n64dd-disk-wrong-size": bundle(map({ 0: "save", 1: "n64dd" }), [part({ payload: pattern(32768, 89) })]),
+};
+
+// ---------------------------------------------------------------------------
+// What a later version adds. A schema describes one version exactly, so each
+// of these fails it. A decoder is looser on purpose: it accepts each, keeps it,
+// and writes it back byte for byte, since the only thing an unfamiliar integer
+// key or a new name in a list the spec owns can be is a later version's.
+
+export const roundTrip = {
+  // An integer key nobody has assigned yet, on a part and on the header.
+  "part-unknown-integer-key": bundle(map({ 0: "save" }), [part({ extra: new Map([[15, "later"]]) })]),
+  "header-unknown-integer-key": bundle(map({ 0: "save", 16: "later" }), [part()]),
+
+  // A shape this version does not define. A decoder keeps the bundle, and
+  // declines anything that depends on knowing what the shape means.
+  "shape-unknown": bundle(map({ 0: "save-state" }), [part()]),
+
+  // A card format this version does not list. A consumer keeps the card and
+  // declines to write it, since it cannot rebuild what it cannot read.
+  "card-format-unknown": bundle(map({ 0: "card", 1: "ps3", 4: map({ 0: "ps3-mc", 1: 131072 }) }), [
+    nested(smallSave("ps3", map({ 4: "Unknown" })), { id: 0, path: "SAVE0" }),
+  ]),
+
+  // A new name in each of the other lists the spec owns. A kind the decoder does
+  // not know is handled as `aux`; the rest are labels it carries.
+  "kind-unknown": bundle(map({ 0: "save", 1: "gba" }), [
+    part({ id: 0 }),
+    part({ id: 1, kind: "thumbnail", payload: pattern(16, 3) }),
+  ]),
+  "binding-unknown": bundle(map({ 0: "save", 1: "wii" }), [part({ binding: "region" })]),
+  "origin-unknown": bundle(map({ 0: "state", 3: MGBA, 9: "rewind" }), [smallStatePart()]),
+  "device-kind-unknown": bundle(map({ 0: "save", 1: "gb", 3: map({ 0: "phone", 2: "io.example.app" }) }), [part()]),
 };

@@ -32,7 +32,7 @@ describe("conformance corpora", () => {
       });
 
       it("carries no case the fixtures no longer define", () => {
-        for (const sub of ["valid", "invalid"]) {
+        for (const sub of ["valid", "round-trip", "invalid"]) {
           for (const file of readdirSync(join(dir, sub))) {
             assert.ok(expected.has(`${sub}/${file}`), `${dir}/${sub}/${file} is orphaned; ${REGENERATE}`);
           }

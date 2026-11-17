@@ -6,7 +6,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 
 import { cddl, skip, harness } from "./cddl.js";
-import { valid, invalid, malformedDeterminism, malformedStructure } from "./bundles.js";
+import { valid, invalid, malformedDeterminism, malformedStructure, roundTrip } from "./bundles.js";
 
 const SCHEMA = "src/content/docs/specifications/universal-saves-format.cddl";
 
@@ -39,12 +39,25 @@ describe("CDDL schema", { skip }, () => {
     }
   });
 
+  // The schema describes this version exactly, so it rejects what a later one
+  // adds. A decoder round-trips each of these instead; that difference is a
+  // decoder rule no schema for one version can state.
+  describe("rejects what a later version adds", () => {
+    for (const [name, bundle] of Object.entries(roundTrip)) {
+      it(name, () => {
+        const run = h.validate(h.writeItem(name, bundle));
+        assert.equal(run.status, 1, "expected the schema to reject this bundle");
+      });
+    }
+  });
+
   // Asserted the way round it looks wrong on purpose. Every bundle below is
   // malformed, and the schema takes all of them: CDDL validates the decoded
-  // data model, so it sees neither the encoding rules beneath it nor anything
-  // inside a payload. Passing the schema is therefore not the same as
-  // conforming, and this is the test that says so out loud. If a future cddl
-  // release starts rejecting one, that is good news and this is what tells you.
+  // data model, so it sees neither the encoding rules beneath it nor a rule
+  // that compares one value with another. Passing the schema is therefore not
+  // the same as conforming, and this is the test that says so out loud. If a
+  // future cddl release starts rejecting one, that is good news and this is
+  // what tells you.
   describe("cannot see the determinism or structure rules", () => {
     for (const [name, raw] of Object.entries({ ...malformedDeterminism, ...malformedStructure })) {
       it(`accepts ${name}, which is malformed`, () => {

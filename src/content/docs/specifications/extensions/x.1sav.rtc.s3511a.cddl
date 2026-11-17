@@ -12,7 +12,7 @@
 
 rtc-s3511a = {
   0 => bstr .size 7,          ; components - latched BCD: year, month, day, weekday, hour, minute, second
-  1 => uint,                  ; control    - the control register as read
+  1 => uint .size 1 / null,   ; control    - the control register as read
   ? 2 => #6.1(int),           ; taken_at   - the producer's clock when it took the components
   ? 3 => bstr .size 2 / null, ; alarm      - the alarm register, as last written
 }
@@ -21,6 +21,7 @@ rtc-s3511a = {
 ; have and the producer's source does not keep it. The chip reads the register
 ; back as all ones, so only a producer that saw the write holds it.
 
-; 24-hour mode is bit 6 of the control register and does not get a field of its
-; own. Two spellings of one value let a bundle contradict itself, which the
-; format rules out everywhere else; see "One encoding per bundle".
+; 24-hour mode is bit 6 of the control register, and the power-off status is
+; bit 7. Bit 7 of the hour byte is PM, which the chip sets itself in 24-hour
+; mode. The control register is null when the producer's source does not keep
+; it.

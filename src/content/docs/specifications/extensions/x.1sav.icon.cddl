@@ -11,17 +11,18 @@
 ; ============================================================================
 
 icon = {
-    0 => [+ frame],   ; frames - in display order; a still icon is one frame
-  ? 1 => png,         ; banner - the wider still image, where a format keeps one
+    0 => still / animated, ; frames - in display order
+  ? 1 => png,              ; banner - the wider still image, where a format keeps one
 }
 
-; A frame and how long it holds. The hold is absent on a still icon, and on a
-; format whose frames all run at one rate a producer repeats the same number
-; rather than inventing a second way to say it.
-frame = [
-    png,
-  ? uint,             ; hold_ms
-]
+; A still icon is one frame, with no hold.
+still = [[png]]
+
+; An animated icon is two frames or more, and each carries how long it holds,
+; in milliseconds. A format whose frames all run at one rate gives each frame
+; that same number.
+animated = [2* [png, hold-ms]]
+hold-ms = uint
 
 ; PNG, because a consumer that needs a per-format decoder to see the picture is
 ; the consumer this key exists to spare. The ceiling is headroom: the largest of

@@ -1,6 +1,6 @@
-// The nesting rules, which CDDL cannot reach because it never looks inside a
-// byte string. A `bundle` part's payload is an encoded bundle, so everything
-// the spec says about it has to be checked by decoding those bytes back.
+// The nesting rules, checked by decoding a `bundle` part's payload back. The
+// schema reaches inside one with `.cbor`, but what it checks is the decoded
+// data; these tests look at the bytes themselves.
 //
 // These tests take care not to be circular. Asserting that the fixture's
 // declared sha256 matches a hash of the fixture's own payload would only prove
@@ -12,7 +12,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import { decode, encode, encodedKeyLayout, everyPart, map, sha256 } from "./cbor.js";
-import { bundle, nested, part, ps1Card, ps2Card, valid } from "./bundles.js";
+import { ps1Card, ps2Card, valid } from "./bundles.js";
 
 const BUNDLE_TAG = 827539798;
 const PAYLOAD = -1;
@@ -52,24 +52,32 @@ describe("nested bundles", () => {
     }
   });
 
-  it("never nests deeper than the cap of 2", () => {
-    for (const [name, fixture] of Object.entries(valid)) {
-      for (const { depth } of everyPart(fixture)) {
-        assert.ok(depth <= 2, `${name}: depth ${depth} exceeds the cap of 2`);
+  // No depth is written down. What a bundle may hold follows from its shape,
+  // and nothing in that chain leads back to itself, so checking each nested
+  // bundle against its holder is what bounds the depth.
+  const HOLDS = {
+    card: ["save"],
+    device: ["card", "save"],
+    collection: ["save", "state", "screenshot", "card", "device"],
+  };
+
+  it("nests only the shapes each holder allows", () => {
+    const check = (name, fixture) => {
+      const holder = fixture.value[0].get(0);
+      for (const p of fixture.value[1]) {
+        if (p.get(1) !== "bundle") continue;
+        const inner = decode(p.get(PAYLOAD));
+        const shape = inner.value[0].get(0);
+        assert.ok((HOLDS[holder] ?? []).includes(shape), `${name}: a ${holder} holds a ${shape}`);
+        check(name, inner);
       }
-    }
+    };
+    for (const [name, fixture] of Object.entries(valid)) check(name, fixture);
   });
 
-  it("reaches all three tiers on the collection fixture", () => {
-    const depths = new Set([...everyPart(valid.collection)].map((e) => e.depth));
-    assert.deepEqual([...depths].sort(), [0, 1, 2], "collection, card and save are all present");
-  });
-
-  it("leaves a deeper nesting visible to a decoder that wants to reject it", () => {
-    const overDeep = bundle(new Map(), [nested(valid.collection, { id: 0 })]);
-
-    const depths = [...everyPart(overDeep)].map((e) => e.depth);
-    assert.equal(Math.max(...depths), 3, "the cap is enforceable, not merely stated");
+  it("reaches past two levels where the shapes allow it", () => {
+    const depths = [...everyPart(valid["collection-of-devices"])].map((e) => e.depth);
+    assert.equal(Math.max(...depths), 3, "collection, device, card and save");
   });
 
   // The index copy is the one thing here that can rot silently: nothing breaks

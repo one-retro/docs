@@ -39,7 +39,13 @@ entry holds them. libultra never reads either, and some tools store their own da
 Re-serializing this key therefore reproduces the entry except for the field a writer owns. A consumer that wants the
 original 32 bytes reads the part's [`dirent`](/specifications/bundle/#part-map).
 
+## Where it goes
+
+The [`bundle` part](/specifications/bundle/#nested-bundles) of an `n64-cpak` [card](/specifications/cards/) that holds
+one note's save, whose [`dirent`](/specifications/bundle/#part-map) is the note's 32-byte entry. A note is always a save
+on a card, so there is no other place.
+
 ## When to set it
 
 When the producer parsed the entry, and when something downstream may have to build one. A producer **MUST NOT** write a
-field the entry does not hold: there is nothing to normalize here, so a value that is not the entry's is wrong.
+value the entry does not hold. Every field here is copied from the entry unchanged, so any other value is wrong.

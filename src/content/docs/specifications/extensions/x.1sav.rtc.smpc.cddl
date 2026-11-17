@@ -1,0 +1,23 @@
+; ============================================================================
+; x.1sav.rtc.smpc - the clock in a Sega Saturn's SMPC
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; the console's clock belongs to no one emulator.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+rtc-smpc = {
+  0 => bstr .size 7,        ; time     - year in two BCD bytes, weekday and month, then BCD day to second
+  1 => bstr .size 4 / null, ; smem     - the four bytes of battery-backed memory beside the clock
+  ? 2 => #6.1(int),         ; taken_at - the producer's clock when it took them
+}
+
+; The year is four BCD digits, high byte first. The next byte holds the
+; weekday in its high nibble and the month, 1 to 12 in binary, in its low one.
+; The hour runs 0 to 23.
+;
+; The memory is null when the producer's source does not keep it.

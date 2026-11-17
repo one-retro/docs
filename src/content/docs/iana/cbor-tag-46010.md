@@ -4,7 +4,7 @@ description: The tag that marks a CRC-32 digest in the Universal Saves Format, a
 slug: iana/cbor-tag-46010
 ---
 
-The permanent reference for one entry in the IANA **CBOR Tags** registry. Not yet filed.
+The permanent reference for one entry in the IANA **CBOR Tags** registry. Registered.
 
 | Field     | Value                                          |
 | --------- | ---------------------------------------------- |

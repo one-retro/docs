@@ -4,8 +4,8 @@ description: The clock an N64 cartridge answers on the Joybus, as Doubutsu no Mo
 slug: specifications/extensions/x.1sav.rtc.joybus
 ---
 
-**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's bundle header
-· **Status:** normative schema, optional to carry
+**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** the header of a save or
+state, or one of its parts · **Status:** normative schema, optional to carry
 
 Doubutsu no Mori is the one N64 cartridge with a clock. The console reaches it over the Joybus, the serial bus the
 controllers and the save EEPROM share, and reads and writes it in blocks of eight bytes. This key carries those blocks
@@ -43,19 +43,16 @@ for every dating clock. The clock has no 12-hour mode.
 
 ## Where it goes
 
-Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes and nowhere else: the
-[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
-[`state`](/specifications/states/). A producer carrying this key and `x.1sav.rtc` puts both in the same place, since
-they describe one clock.
+Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes, and nowhere else: the
+[header](/specifications/bundle/#0-header-map) of a [save](/specifications/saves/) or a
+[state](/specifications/states/), or one of its [parts](/specifications/bundle/#part-map). A producer carrying this key
+**SHOULD** carry `x.1sav.rtc` on the same map. The two describe one clock, and a consumer that wants only the time then
+reads it without knowing the chip. They
+[may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
+wrong.
 
 ## When to set it
 
 Only for a cartridge with this clock: Doubutsu no Mori, or a homebrew ROM whose header asks for it. The 64DD's clock is
-in the drive rather than on the disk, so a disk save does not carry it.
-
-This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
-[scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a
-[`bundle` part](/specifications/bundle/#nested-bundles). A producer **SHOULD** carry
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map. The two
-[may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
-wrong.
+in the drive rather than on the disk, so a disk save does not carry it. A device does, under
+[`x.1sav.rtc.n64dd`](/specifications/extensions/x.1sav.rtc.n64dd/).

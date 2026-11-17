@@ -29,7 +29,9 @@ in that save's own header, inside its nested bundle, where they stay correct onc
 
 ## Parts
 
-One [`bundle` part](/specifications/bundle/#nested-bundles) per save, plus whatever belongs to the card itself:
+One [`bundle` part](/specifications/bundle/#nested-bundles) per save, plus whatever belongs to the card itself. A card
+bundle need not hold every save on its medium: a producer carrying one game's saves off a card carries those, beside the
+card's map.
 
 ```text
 1SAV                                       the card
@@ -45,15 +47,22 @@ One [`bundle` part](/specifications/bundle/#nested-bundles) per save, plus whate
     └── kind "card-image"                  optional byte-exact archive
 ```
 
-A save's part carries the card's record of that save, and only that:
+A save's part carries the card's record of that save, and index copies of what the save's own header says:
 
-| Key | Name     | Notes                                                                         |
-| --- | -------- | ----------------------------------------------------------------------------- |
-| 3   | `path`   | The name the card's directory holds, which tells two saves of one game apart. |
-| 4   | `slot`   | Its index in the directory.                                                   |
-| 5   | `dirent` | Its directory entry, verbatim bytes.                                          |
-| 2   | `role`   | Which socket the card was in, where that matters.                             |
-| 9   | `sha256` | The inner bundle's content hash, which is the save's identity.                |
+| Key | Name     | Notes                                                                                                       |
+| --- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| 2   | `role`   | The socket the card was read from, such as `memcard-1`. Absent when it was read out of no console.          |
+| 3   | `path`   | The name the card's directory holds, which tells two saves of one game apart.                               |
+| 4   | `slot`   | Its index in the directory.                                                                                 |
+| 5   | `dirent` | Its directory entry, verbatim bytes.                                                                        |
+| 9   | `sha256` | The inner bundle's content hash, which is the save's identity.                                              |
+| 11  | `game`   | [Index copy](/specifications/bundle/#nested-bundles) of the save's `game`, unless the card's header has it. |
+| 12  | `system` | Index copy of the save's `system`.                                                                          |
+
+- Every part of one card **MUST** name the same `role`, or none.
+
+A card in a [device](/specifications/device/) names the socket the device's part gives it. A card read on its own names
+the one it was read from, where the producer knows it.
 
 Card-level parts sit beside those: [`system`](#system-entries) for the entries on the card that no game owns, a
 [`card-image`](/specifications/bundle/#part-kinds) for a byte-exact archive of the whole medium, and `aux` for anything
@@ -107,5 +116,5 @@ On a save's part, and on a `system` part, describing the card's record of it:
   decompose the entry so a writer can rebuild it.
 
 [`x.1sav.label`](/specifications/extensions/x.1sav.label/) and [`x.1sav.icon`](/specifications/extensions/x.1sav.icon/)
-go on the nested save's own header instead, since they describe the save rather than the card. `x.1sav.label` MAY also
-be repeated on the part as an index copy, so a consumer can list the card without opening every payload.
+go on the nested save's own header instead, since they describe the save rather than the card. A producer **MAY** repeat
+`x.1sav.label` on the part as an index copy, so a consumer can list the card without opening every payload.

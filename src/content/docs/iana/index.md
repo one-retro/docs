@@ -16,12 +16,12 @@ page is stale; report it.
 | Registration                                              | Registry    | Status        |
 | --------------------------------------------------------- | ----------- | ------------- |
 | [`application/vnd.1saves+cbor`](/iana/media-type-1saves/) | Media Types | Not yet filed |
-| [CBOR tag 827539798](/iana/cbor-tag-827539798/)           | CBOR Tags   | Not yet filed |
-| [CBOR tag 46010](/iana/cbor-tag-46010/)                   | CBOR Tags   | Not yet filed |
-| [CBOR tag 46011](/iana/cbor-tag-46011/)                   | CBOR Tags   | Not yet filed |
+| [CBOR tag 827539798](/iana/cbor-tag-827539798/)           | CBOR Tags   | Registered    |
+| [CBOR tag 46010](/iana/cbor-tag-46010/)                   | CBOR Tags   | Registered    |
+| [CBOR tag 46011](/iana/cbor-tag-46011/)                   | CBOR Tags   | Registered    |
 
 Tags 18540 and 18542 need no registration and never will. They fall in the bare-hash block IANA already assigns at
 18300-18811, where the tag for COSE algorithm _N_ is `18556 + N`, so a generic CBOR tool decodes them without knowing
 anything about these specifications.
 
-Until a form is filed, a number here is held by nothing but this page, and another producer may claim it first.
+Until its form is filed, the media type is held by nothing but its page, and another party may claim it first.

@@ -8,22 +8,23 @@ slug: specifications/extensions/com.1retro.forge
 
 What a Forge parser pulled out of a save, together with the name of the parser that pulled it.
 
+## Schema
+
 ```cddl file=./com.1retro.forge.cddl
 
 ```
 
-## One key, not two
+Key 0 names the parser, and key 1 holds what it found. They share one key because what a parser found means nothing
+without its name: nothing in the found values says how to read them. A consumer that copies, filters or merges extension
+keys takes both or neither.
 
-The two halves are useless apart. A bag of parsed values says nothing without the name of the parser that produced it,
-since nothing in the bag says how to read it. The name on its own says only that something ran. Keeping them under one
-key means nothing can separate them: a consumer that copies, filters or merges extension keys either takes both or takes
-neither.
+### Key 0 is not a format slug
 
-It is also what the format [advises](/specifications/universal-saves-format/#extensions). A producer with several fields
-to attach puts a map under one key rather than taking a key each, because the name is a namespace rather than a field
-label.
+The saves format checks several vocabularies against a strict [slug grammar](/specifications/common-types/slug/):
+lowercase ASCII, single dashes, at most 64 bytes. This is not one of them. What a parser is called is Forge's business,
+so the value is free-form text. Compare it by equality, and do not parse it for structure that may not be there.
 
-## Do not interpret key 1
+### Do not interpret key 1
 
 There is no stable field set to code against. What it holds depends on the game and on the parser version, a shape
 observed in one bundle says nothing about the next, and Forge is free to change both without notice.
@@ -31,11 +32,14 @@ observed in one bundle says nothing about the next, and Forge is free to change 
 Key 0 is what makes the rest legible. A consumer that recognises the parser name knows how to read the map beside it.
 One that does not round-trips the whole thing and reads none of it.
 
-## Key 0 is not a format slug
+## Where it goes
 
-The saves format checks several vocabularies against a strict [slug grammar](/specifications/common-types/slug/):
-lowercase ASCII, single dashes, at most 64 bytes. This is not one of them. What a parser is called is Forge's business,
-so the value is free-form text — compare it by equality, and do not parse it for structure that may not be there.
+The header of the bundle whose save a Forge parser read, or one of that bundle's parts.
+
+## When to set it
+
+When a Forge parser has read the save. A parser that ran and found nothing worth recording still names itself, and
+leaves key 1 out.
 
 ## Status
 

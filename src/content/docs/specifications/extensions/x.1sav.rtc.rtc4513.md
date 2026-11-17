@@ -4,8 +4,8 @@ description: The registers of the Epson RTC-4513 in Tengai Makyou Zero, and when
 slug: specifications/extensions/x.1sav.rtc.rtc4513
 ---
 
-**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's bundle header
-· **Status:** normative schema, optional to carry
+**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** the header of a save or
+state, or one of its parts · **Status:** normative schema, optional to carry
 
 Tengai Makyou Zero has an Epson RTC-4513 beside the SPC7110 on its board. The two other SPC7110 games have no clock.
 This key carries what the chip holds and the moment a producer took it.
@@ -58,19 +58,15 @@ they were UTC, as it does for every dating clock.
 
 ## Where it goes
 
-Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes and nowhere else: the
-[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
-[`state`](/specifications/states/). A producer carrying this key and `x.1sav.rtc` puts both in the same place, since
-they describe one clock.
+Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes, and nowhere else: the
+[header](/specifications/bundle/#0-header-map) of a [save](/specifications/saves/) or a
+[state](/specifications/states/), or one of its [parts](/specifications/bundle/#part-map). A producer carrying this key
+**SHOULD** carry `x.1sav.rtc` on the same map. The two describe one clock, and a consumer that wants only the time then
+reads it without knowing the chip. They
+[may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
+wrong.
 
 ## When to set it
 
 Only for Tengai Makyou Zero, including its Shounen Jump no Shou edition. The other Super Famicom clock is the Sharp
 S-RTC in Daikaijuu Monogatari II, which takes [`x.1sav.rtc.srtc`](/specifications/extensions/x.1sav.rtc.srtc/).
-
-This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
-[scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a
-[`bundle` part](/specifications/bundle/#nested-bundles). A producer **SHOULD** carry
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map. The two
-[may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
-wrong.

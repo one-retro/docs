@@ -11,7 +11,12 @@ spec has never heard of, and decoders round-trip it unchanged. These pages list 
 existing names instead of inventing overlapping ones.
 
 Every registry here is **non-normative**: the meaning of a value belongs to the spec or the producer that minted it, not
-to the list. Registration is first-come and non-blocking; to add an entry, open a PR against the page.
+to the list. The rules for writing and reading a registry's slugs are in
+[Slug](/specifications/common-types/slug/#registered-slugs).
+
+Registration is first-come and non-blocking: to add an entry, open a PR against its page, with every column that page's
+table has. A slug is never given to another entry, and from 1.0 none is removed. A project that renames itself keeps its
+slug, and its new name goes in **Also seen as** where the registry has that column.
 
 | Registry                             | Contents                                           |
 | ------------------------------------ | -------------------------------------------------- |
@@ -21,5 +26,3 @@ to the list. Registration is first-come and non-blocking; to add an entry, open 
 | [Platforms](/registries/platforms/)  | Known operating systems and firmwares apps run on. |
 | [Save Roles](/registries/roles/)     | The socket a save came out of, per system.         |
 | [Vendor Names](/registries/vendors/) | Assigned `x.*` names for producers with no domain. |
-
-More lists land here as the specs need them; producers that run no core (cartridge readers, services) are next in line.

@@ -4,8 +4,8 @@ description: The image a console shows for a save, decoded so any consumer can d
 slug: specifications/extensions/x.1sav.icon
 ---
 
-**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's bundle header
-· **Status:** normative schema, optional to carry
+**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's header ·
+**Status:** normative schema, optional to carry
 
 The picture a console puts beside a save, decoded so a consumer can display it without knowing which card the save came
 off. [`x.1sav.label`](/specifications/extensions/x.1sav.label/) answers what the save is called; this answers what it
@@ -18,15 +18,18 @@ belongs to no single producer.
 
 ```
 
-`frames` is the icon in display order, and a still icon is one frame. `hold_ms` is how long a frame shows before the
-next, which a GameCube save varies per frame and other formats do not. `banner` is the wider still image a format keeps
-beside the icon rather than instead of it: a GameCube save's 96x32 banner, a VMU's 72x56 eyecatch.
+`frames` is the icon in display order. A still icon is one frame, and that frame carries no hold. An animated icon is
+two frames or more, and every frame carries `hold_ms`: how long it shows before the next. A GameCube save varies the
+hold per frame. A format whose frames all run at one rate gives each frame that same hold.
+
+`banner` is the wider still image a format keeps beside the icon rather than instead of it: a GameCube save's 96x32
+banner, a VMU's 72x56 eyecatch.
 
 ## Decoded to PNG
 
 A producer decodes to PNG. A PS1 icon is 4bpp against a 16-colour CLUT. A GameCube icon is RGB5A3 or CI8, depending on
-two bits in the directory entry. A VMU icon is 4bpp against a palette in the VMS header. A consumer should need none of
-those decoders.
+two bits in the directory entry. A VMU icon is 4bpp against a palette in the VMS header. A consumer needs none of those
+decoders to show it.
 
 A producer **MUST NOT** improve the picture. Scaling it up, correcting its palette, compositing a background behind
 transparency and reordering frames all produce something the card does not hold. The native bytes stay in the payload,
@@ -37,10 +40,6 @@ where a writer reads them through the format's own key.
 The [header](/specifications/bundle/#0-header-map) of the bundle that is the save, because the image bytes are in the
 save's payload and travel with it. PS1 keeps them in the first block, VMU in the VMS header, and GameCube at the image
 address the directory entry points to.
-
-An [`aux` part](/specifications/bundle/#part-kinds) is not the place. Beside the save it is linked only by inference
-from `slot` and `path`; inside the save's own bundle it joins that bundle's
-[content hash](/specifications/bundle/#content-hash), which is the save's identity.
 
 ## What does not go here
 

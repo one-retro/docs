@@ -14,17 +14,17 @@ load an in-game save as a state either.
 
 `shape` is `"state"`, and `source` is required.
 
-| Key | Name          | Req? | Notes                                                                               |
-| --- | ------------- | ---- | ----------------------------------------------------------------------------------- |
-| 0   | `shape`       | yes  | `"state"`.                                                                          |
-| 1   | `system`      | no   | The system the game runs on.                                                        |
-| 2   | `game`        | no   | The game, and the ROM the state was taken against.                                  |
-| 3   | `source`      | yes  | What the state loads into: a `core`, or an `app` where nothing runs one.            |
-| 5   | `description` | no   | Free-form note. Where an emulator lets the player name a state, the name goes here. |
-| 6   | `bundled_at`  | no   | When the bundle was assembled, not when the state was taken.                        |
-| 7   | `taken_at`    | no   | When the emulator took the state.                                                   |
-| 8   | `taken_with`  | no   | What the state was taken with, where that bears on loading it anywhere else.        |
-| 9   | `origin`      | no   | Who made the state, when it was not the player.                                     |
+| Key | Name          | Req? | Notes                                                                                                 |
+| --- | ------------- | ---- | ----------------------------------------------------------------------------------------------------- |
+| 0   | `shape`       | yes  | `"state"`.                                                                                            |
+| 1   | `system`      | no   | The system the game runs on. `n64` is required where the state holds an N64 cartridge's in-game save. |
+| 2   | `game`        | no   | The game, and the ROM the state was taken against.                                                    |
+| 3   | `source`      | yes  | What the state loads into: a `core`, or an `app` where nothing runs one.                              |
+| 5   | `description` | no   | Free-form note. Where an emulator lets the player name a state, the name goes here.                   |
+| 6   | `bundled_at`  | no   | When the bundle was assembled, not when the state was taken.                                          |
+| 7   | `taken_at`    | no   | When the emulator took the state.                                                                     |
+| 8   | `taken_with`  | no   | What the state was taken with, where that bears on loading it anywhere else.                          |
+| 9   | `origin`      | no   | Who made the state, when it was not the player.                                                       |
 
 `card` is forbidden. The full definitions are in the [header map](/specifications/bundle/#0-header-map).
 
@@ -34,6 +34,7 @@ On every other shape, `source` is provenance. On a state it also decides where t
 names the `core` that took the state. A producer that runs no core names its `app` instead, as a flashcart's firmware
 does for the states it takes itself.
 
+- A state's `source` **MUST** name a `core` or an `app`.
 - A consumer **MUST NOT** hand a state's data to any core but the one `source` names.
 - Where `source` names no core, a consumer **MUST NOT** hand the data to anything but that app.
 - A difference in `core_version` is the core's to judge. Many cores check a version of their own inside the data and
@@ -93,7 +94,8 @@ A state's parts are the state itself and what the emulator kept with it:
 - **An in-game save.** Where the emulator keeps the in-game save beside the core's data, as mGBA does, it is an ordinary
   save part. It is the in-game save as it was when the state was taken, and holds the bytes the console wrote, as on a
   save. A clock footer the emulator appended to it goes into the clock's [extension keys](#extension-keys) instead. A
-  consumer can lift it into a save bundle of its own.
+  consumer can lift it into a save bundle of its own. An N64 cartridge's has the role `cartridge`, as on a save, and the
+  state then names `n64` as its `system`.
 - **Anything else** the emulator's file holds is an `aux` part, named by `path` for where it sat. That is whatever
   neither the header nor an [extension key](#extension-keys) has a place for, such as RetroArch's achievement block.
 
@@ -123,16 +125,17 @@ file need not come back byte for byte, as long as the emulator loads it.
 | Project64   | Its own state data in `.pj` or `.pj1` to `.pj9`, zipped by default                                                                 | The unzipped data is the state part, and the number in the file's name its `slot`                           |
 | ares        | The core's data, uncompressed, in `.bs1` to `.bs9`, and a `.bsu` it keeps to undo a load                                           | The file is the state part. A numbered one has that `slot`, and `.bsu` has an `origin` of `undo`            |
 
-RetroArch's slot number is in its file's name, and `.state.auto` is the one with none. Those become the state part's
-`slot` and an `origin` of `auto`.
+RetroArch's slot number is in its file's name. `.state` is slot 0, `.state1` is slot 1, and `.state.auto` has an
+`origin` of `auto` and no slot. Project64's `.pj` is slot 0 the same way.
 
 ## Extension keys
 
 A state takes these extension keys:
 
 - [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/), and the chip key it lists for the cartridge's clock, on the
-  header as on a save. They are a reading of the cartridge's clock, taken from the core's data or from a footer on the
-  in-game save; see [On a state](/specifications/extensions/x.1sav.rtc/#on-a-state).
+  header as on a save, or on the in-game save part beside whose memory the clock sits. They are a reading of the
+  cartridge's clock, taken from the core's data or from a footer on the in-game save; see
+  [On a state](/specifications/extensions/x.1sav.rtc/#on-a-state).
 - [`x.1sav.cheats.mgba`](/specifications/extensions/x.1sav.cheats.mgba/), on the state part. It is the cheat list mGBA
   keeps in its own states, and can turn back on when it loads one.
 - [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), on an N64 in-game save part, whose role is `cartridge`. It is

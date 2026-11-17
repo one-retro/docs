@@ -1,0 +1,19 @@
+; ============================================================================
+; x.1sav.rtc.n64dd - the clock in a 64DD drive
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; the drive's clock belongs to no one emulator.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+rtc-n64dd = {
+  0 => bstr .size 6, ; time     - packed BCD: year, month, day, hour, minute, second
+  ? 1 => #6.1(int),  ; taken_at - the producer's clock when it took them
+}
+
+; The drive keeps no weekday and no century. Bit 7 of the minute byte is set
+; when the clock has stopped or its battery has run low, and is kept as read.

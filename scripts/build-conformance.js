@@ -18,7 +18,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { encode, sha256 } from "../test/cbor.js";
-import { valid, invalid, malformedDeterminism, malformedStructure } from "../test/bundles.js";
+import { valid, invalid, malformedDeterminism, malformedStructure, roundTrip } from "../test/bundles.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const CONFORMANCE = "conformance";
@@ -29,7 +29,7 @@ export const SPECS = [
     title: "Universal Saves Format conformance cases",
     fixtures: "test/bundles.js",
     versionFrom: "src/content/docs/specifications/universal-saves-format.md",
-    cases: { valid, invalid, malformedDeterminism, malformedStructure },
+    cases: { valid, invalid, malformedDeterminism, malformedStructure, roundTrip },
   },
 ];
 
@@ -53,7 +53,7 @@ function notes(spec) {
   let carrying = null;
 
   for (const line of readFileSync(join(ROOT, spec.fixtures), "utf8").split("\n")) {
-    const opens = line.match(/^export const (valid|invalid|malformedDeterminism|malformedStructure) = \{/);
+    const opens = line.match(/^export const (valid|invalid|malformedDeterminism|malformedStructure|roundTrip) = \{/);
     if (opens) {
       block = opens[1];
       carrying = null;
@@ -90,15 +90,20 @@ export function corpus(spec) {
   //
   //   schema        the CDDL rejects it
   //   determinism   RFC 8949 4.2, plus NFC text and the ordering rules on top
-  //   structure     needs a look inside a payload or an extension value, or a
-  //                 comparison across parts
+  //   structure     needs a look inside an extension value, or a comparison
+  //                 of one value with another
   //
   // Only the first is checkable by a validator. Everything in the other two
   // validates against the schema and is malformed anyway, so an implementation
   // that ports the schema and stops there passes them and computes content
   // hashes nobody else agrees with.
+  //
+  // `round-trip` cases go the other way: the schema for this version rejects
+  // each, and a decoder accepts it and writes it back unchanged, since it is
+  // what a later version adds.
   const sets = [
     ["valid", "valid", null],
+    ["roundTrip", "round-trip", null],
     ["invalid", "invalid", "schema"],
     ["malformedDeterminism", "invalid", "determinism"],
     ["malformedStructure", "invalid", "structure"],
@@ -127,7 +132,7 @@ export function corpus(spec) {
     corpus: spec.title,
     spec_version: specVersion(spec),
     generated_from: spec.fixtures,
-    counts: { valid: count("valid"), invalid: count("invalid") },
+    counts: { valid: count("valid"), "round-trip": count("round-trip"), invalid: count("invalid") },
     cases,
   };
 
@@ -145,7 +150,7 @@ function main() {
   for (const spec of SPECS) {
     const dir = join(ROOT, outDir(spec));
     const written = serialize(spec);
-    for (const sub of ["valid", "invalid"]) rmSync(join(dir, sub), { recursive: true, force: true });
+    for (const sub of ["valid", "round-trip", "invalid"]) rmSync(join(dir, sub), { recursive: true, force: true });
     for (const [path, bytes] of written) {
       const full = join(dir, path);
       mkdirSync(dirname(full), { recursive: true });

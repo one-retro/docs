@@ -19,6 +19,24 @@ const only = (length, known) => Array.from({ length }, (_, i) => (known.includes
 // mode and B the leap-year counter.
 const alarm = [0, 0, 0, 3, 7, 1, 2, 2, 2, 0, 1, 2, 0];
 
+// A GameCube entry with no addresses, with `changes` laid over it. A change to
+// undefined drops that field.
+const gcEntry = (changes = {}) => {
+  const fields = { 0: Buffer.from("GFZE"), 1: Buffer.from("01"), 2: pattern(12), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0 };
+  for (const [k, v] of Object.entries(changes)) {
+    if (v === undefined) delete fields[k];
+    else fields[k] = v;
+  }
+  return map(fields);
+};
+
+// What an S-3511A latches at 2003-02-01 14:30:00, a Saturday, one BCD byte
+// each: year since 2000, month, day, weekday, hour, minute, second. Bit 7 of
+// the hour byte is PM, which the chip sets itself in 24-hour mode. The 12-hour
+// form is the same moment, 2:30 PM.
+const S3511A_24H = Buffer.from([0x03, 0x02, 0x01, 0x06, 0x94, 0x30, 0x00]);
+const S3511A_12H = Buffer.from([0x03, 0x02, 0x01, 0x06, 0x82, 0x30, 0x00]);
+
 export const extensions = {
   // Normative: these specifications own the shape, so the negatives here are
   // real conformance tests rather than documentation checks.
@@ -34,14 +52,14 @@ export const extensions = {
       // The reading is the whole of what this key carries, so it is required.
       "without-reading": map({ 1: 500 }),
       // Whole seconds only, for the reason `bundled_at` gives: tag 1 admits a
-      // float, and allowing it would give one instant two encodings.
+      // float, and allowing it would give one reading two encodings.
       "reading-as-float": map({ 0: new Tag(1, new Float(1044057600.5)) }),
       // The reading is tagged. A bare integer could be anything.
       "reading-untagged": map({ 0: 1044057600 }),
       "accuracy-negative": map({ 0: new Tag(1, 1044057600), 1: -1 }),
-      // Naming the originating clock was key 1 and is not carried any more:
-      // the chip key beside this one says which clock, and `source` says who
-      // read it.
+      // Key 1 is the accuracy, a count of milliseconds. Which clock produced
+      // the reading has no key here: the chip key beside this one says that,
+      // and `source` says who read it.
       "source-clock-as-text": map({ 0: new Tag(1, 1044057600), 1: "gba-rtc" }),
       "unknown-key": map({ 0: new Tag(1, 1044057600), 2: "nope" }),
       "not-a-map": "1044057600",
@@ -55,10 +73,10 @@ export const extensions = {
     valid: {
       // A PS2 entry dates the save and records the last write.
       both: map({ 0: [new Tag(1, 1044057600)], 1: [new Tag(1, 1044144000)] }),
-      // A VMU entry has a creation time and no modify time; GameCube is the
-      // other way around. Each format carries the one it keeps, and a GameCube
-      // clock has no zone, so the one-element form is the common case rather
-      // than a degraded one.
+      // A VMU entry has a creation time and no modify time; GameCube and
+      // Saturn are the other way around. Each format carries the one it keeps,
+      // and a GameCube clock has no zone, so the one-element form is the common
+      // case rather than a degraded one.
       "created-only": map({ 0: [new Tag(1, 1044057600)] }),
       "modified-only": map({ 1: [new Tag(1, 1044144000)] }),
       // A PS2 keeps its directory times in a fixed +9 whatever the region, and
@@ -114,8 +132,8 @@ export const extensions = {
     schema: `${DIR}/x.1sav.dirent.gc-mc.cddl`,
     valid: {
       full: map({
-        0: "GFZE",
-        1: "01",
+        0: Buffer.from("GFZE"),
+        1: Buffer.from("01"),
         2: pattern(12),
         3: 2,
         4: 5,
@@ -127,30 +145,40 @@ export const extensions = {
       }),
       // A save with neither pictures nor comments holds 0xffffffff in both
       // address fields, which this key says by leaving them out.
-      "without-offsets": map({ 0: "GFZE", 1: "01", 2: pattern(12), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0 }),
+      "without-offsets": gcEntry(),
+      // The highest address the entry can hold short of the one meaning none.
+      "offset-max": gcEntry({ 8: 0xfffffffe }),
     },
     invalid: {
       // Every fixed field of the entry is present in the 64 bytes, so none of
       // them is optional here. Only the two addresses can be absent.
-      "without-game-code": map({ 1: "01", 2: pattern(12), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0 }),
-      "without-permissions": map({ 0: "GFZE", 1: "01", 2: pattern(12), 3: 0, 4: 0, 5: 0, 7: 0 }),
+      "without-game-code": gcEntry({ 0: undefined }),
+      "without-permissions": gcEntry({ 6: undefined }),
       // The identifiers are fixed-width on the card, so a value that is not
       // that width did not come off one.
-      "game-code-too-short": map({ 0: "GFZ", 1: "01", 2: pattern(12), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0 }),
-      "maker-code-too-long": map({ 0: "GFZE", 1: "012", 2: pattern(12), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0 }),
+      "game-code-too-short": gcEntry({ 0: Buffer.from("GFZ") }),
+      "maker-code-too-long": gcEntry({ 1: Buffer.from("012") }),
+      // The codes are bytes, as the entry holds them, even where a retail
+      // game's happen to read as ASCII.
+      "game-code-as-text": gcEntry({ 0: "GFZE" }),
+      "maker-code-as-text": gcEntry({ 1: "01" }),
       // Bytes rather than text, because a Shift-JIS name does not round-trip
       // through `path`, which is UTF-8 by construction.
-      "filename-as-text": map({ 0: "GFZE", 1: "01", 2: "f-zero", 3: 0, 4: 0, 5: 0, 6: 4, 7: 0 }),
-      "filename-empty": map({ 0: "GFZE", 1: "01", 2: Buffer.alloc(0), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0 }),
-      "filename-too-long": map({ 0: "GFZE", 1: "01", 2: pattern(33), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0 }),
+      "filename-as-text": gcEntry({ 2: "f-zero" }),
+      "filename-empty": gcEntry({ 2: Buffer.alloc(0) }),
+      "filename-too-long": gcEntry({ 2: pattern(33) }),
       // The packed fields are as wide as the entry makes them: one byte for
       // the flags and permissions, two for the icon format and speed.
-      "permissions-too-wide": map({ 0: "GFZE", 1: "01", 2: pattern(12), 3: 0, 4: 0, 5: 0, 6: 256, 7: 0 }),
-      "icon-format-too-wide": map({ 0: "GFZE", 1: "01", 2: pattern(12), 3: 0, 4: 65536, 5: 0, 6: 4, 7: 0 }),
-      // The fields a writer owns are not carried: `modtime` is normalized into
+      "permissions-too-wide": gcEntry({ 6: 256 }),
+      "icon-format-too-wide": gcEntry({ 4: 65536 }),
+      // 0xffffffff is how the entry says there is no address, and this key
+      // says that by leaving the field out.
+      "image-offset-none": gcEntry({ 8: 0xffffffff }),
+      "comments-offset-none": gcEntry({ 9: 0xffffffff }),
+      // The fields a writer owns are not carried: `modtime` is carried by
       // `x.1sav.dirent`, and the block fields are regenerated and derived.
-      "modtime-as-a-key": map({ 0: "GFZE", 1: "01", 2: pattern(12), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0, 10: 1044057600 }),
-      "block-count-as-a-key": map({ 0: "GFZE", 1: "01", 2: pattern(12), 3: 0, 4: 0, 5: 0, 6: 4, 7: 0, 11: 3 }),
+      "modtime-as-a-key": gcEntry({ 10: 1044057600 }),
+      "block-count-as-a-key": gcEntry({ 11: 3 }),
       "not-a-map": pattern(64),
     },
   },
@@ -279,8 +307,25 @@ export const extensions = {
       // A frame is an array so it has somewhere to put its hold.
       "frame-not-wrapped": map({ 0: [pattern(64)] }),
       "frame-empty-image": map({ 0: [[Buffer.alloc(0)]] }),
-      "hold-negative": map({ 0: [[pattern(64), -1]] }),
-      "frame-with-third-element": map({ 0: [[pattern(64), 250, 1]] }),
+      "hold-negative": map({
+        0: [
+          [pattern(64), 250],
+          [pattern(64, 2), -1],
+        ],
+      }),
+      "frame-with-third-element": map({
+        0: [
+          [pattern(64), 250, 1],
+          [pattern(64, 2), 125],
+        ],
+      }),
+      // A still icon shows its one frame for as long as it is shown, so a hold
+      // there says nothing.
+      "still-with-hold": map({ 0: [[pattern(64), 250]] }),
+      // Every frame of an animated icon carries its hold, even where a format
+      // runs them all at one rate.
+      "animated-frame-without-hold": map({ 0: [[pattern(64), 250], [pattern(64, 2)]] }),
+      "animated-without-holds": map({ 0: [[pattern(64)], [pattern(64, 2)]] }),
       "banner-as-text": map({ 0: [[pattern(64)]], 1: "banner.png" }),
       "unknown-key": map({ 0: [[pattern(64)]], 2: "nope" }),
       "not-a-map": pattern(64),
@@ -323,15 +368,19 @@ export const extensions = {
     valid: {
       // Control 0x40 is bit 6 set, which is 24-hour mode. There is no separate
       // flag to agree with, which is the point of carrying the raw register.
-      documented: map({ 0: pattern(7), 1: 0x40 }),
-      "12-hour-mode": map({ 0: pattern(7), 1: 0x00 }),
+      documented: map({ 0: S3511A_24H, 1: 0x40 }),
+      // The same moment with 24-hour mode off: 2:30 PM, PM in bit 7 of the hour.
+      "12-hour-mode": map({ 0: S3511A_12H, 1: 0x00 }),
       // A WonderSwan cartridge with its alarm register as ares keeps it, here
       // at the chip's power-on value. The chip reads the register back as all
       // ones, so only a producer that saw the write holds it.
-      "with-alarm": map({ 0: pattern(7), 1: 0x40, 2: new Tag(1, 1044057600), 3: Buffer.from([0x00, 0x80]) }),
+      "with-alarm": map({ 0: S3511A_24H, 1: 0x40, 2: new Tag(1, 1044057600), 3: Buffer.from([0x00, 0x80]) }),
       // A game that may have set an alarm, from a source that does not keep
       // it. Absent would say the game never sets one.
-      "alarm-unknown": map({ 0: pattern(7), 1: 0x40, 3: null }),
+      "alarm-unknown": map({ 0: S3511A_24H, 1: 0x40, 3: null }),
+      // MiSTer's WonderSwan core and Mednafen keep the time alone, so the
+      // register the chip still holds is null.
+      "control-unknown": map({ 0: S3511A_24H, 1: null }),
     },
     invalid: {
       // The S-3511A latches seven BCD bytes: year, month, day, weekday, hour,
@@ -340,19 +389,84 @@ export const extensions = {
       "components-too-short": map({ 0: pattern(6), 1: 0x40 }),
       // Neither key is derivable from the other, so neither is optional.
       "without-components": map({ 1: 0x40 }),
-      "without-control": map({ 0: pattern(7) }),
+      "without-control": map({ 0: S3511A_24H }),
       // 24-hour mode lives in bit 6 of the control register. A field beside it
       // would be a second spelling of one value, and the two could disagree.
-      "hour24-as-its-own-key": map({ 0: pattern(7), 1: 0x40, 2: true }),
+      "hour24-as-its-own-key": map({ 0: S3511A_24H, 1: 0x40, 4: true }),
       // The latched bytes are a byte string, not seven numbers: what a
       // consumer writes back has to be what it read.
       "components-as-array": map({ 0: [0, 1, 2, 3, 4, 5, 6], 1: 0x40 }),
-      "control-negative": map({ 0: pattern(7), 1: -1 }),
+      "control-negative": map({ 0: S3511A_24H, 1: -1 }),
+      // The control register is one byte.
+      "control-too-wide": map({ 0: S3511A_24H, 1: 0x140 }),
       // The alarm is the two bytes a game writes, not a number assembled from
       // them in an order a producer chose.
-      "alarm-as-integer": map({ 0: pattern(7), 1: 0x40, 3: 0x8000 }),
-      "alarm-too-long": map({ 0: pattern(7), 1: 0x40, 3: pattern(3) }),
+      "alarm-as-integer": map({ 0: S3511A_24H, 1: 0x40, 3: 0x8000 }),
+      "alarm-too-long": map({ 0: S3511A_24H, 1: 0x40, 3: pattern(3) }),
       "not-a-map": "40",
+    },
+  },
+
+  // The 64DD drive's clock: six BCD bytes, no weekday and no century, as ares
+  // keeps them with its anchor. 2001-04-14 12:34:56.
+  "x.1sav.rtc.n64dd": {
+    schema: `${DIR}/x.1sav.rtc.n64dd.cddl`,
+    valid: {
+      documented: map({ 0: Buffer.from([0x01, 0x04, 0x14, 0x12, 0x34, 0x56]), 1: new Tag(1, 1044057600) }),
+      // Bit 7 of the minute byte says the clock stopped. The key keeps it as
+      // read, and it is x.1sav.rtc that has to be left out.
+      stopped: map({ 0: Buffer.from([0x01, 0x04, 0x14, 0x12, 0xb4, 0x56]) }),
+    },
+    invalid: {
+      // A weekday or a century would be a byte the drive does not have.
+      "with-weekday": map({ 0: Buffer.from([0x01, 0x04, 0x14, 0x06, 0x12, 0x34, 0x56]) }),
+      "time-short": map({ 0: Buffer.from([0x01, 0x04, 0x14, 0x12, 0x34]) }),
+      "without-time": map({ 1: new Tag(1, 1044057600) }),
+      "time-as-array": map({ 0: [0x01, 0x04, 0x14, 0x12, 0x34, 0x56] }),
+      "anchor-untagged": map({ 0: Buffer.from([0x01, 0x04, 0x14, 0x12, 0x34, 0x56]), 1: 1044057600 }),
+      "not-a-map": pattern(6),
+    },
+  },
+
+  // The Saturn's clock and the four bytes of memory beside it, as Mednafen
+  // keeps them: 2001-04-14 12:34:56, a Saturday.
+  "x.1sav.rtc.smpc": {
+    schema: `${DIR}/x.1sav.rtc.smpc.cddl`,
+    valid: {
+      documented: map({ 0: Buffer.from([0x20, 0x01, 0x64, 0x14, 0x12, 0x34, 0x56]), 1: pattern(4) }),
+      "with-anchor": map({
+        0: Buffer.from([0x20, 0x01, 0x64, 0x14, 0x12, 0x34, 0x56]),
+        1: pattern(4),
+        2: new Tag(1, 1044057600),
+      }),
+      // Kronos keeps the memory alone and MiSTer neither, so a producer with
+      // the time from elsewhere has the memory as null.
+      "memory-unknown": map({ 0: Buffer.from([0x20, 0x01, 0x64, 0x14, 0x12, 0x34, 0x56]), 1: null }),
+    },
+    invalid: {
+      // The chip holds the memory whether or not a source kept it.
+      "without-memory": map({ 0: Buffer.from([0x20, 0x01, 0x64, 0x14, 0x12, 0x34, 0x56]) }),
+      // The year is four digits, so the time is seven bytes.
+      "two-digit-year": map({ 0: Buffer.from([0x01, 0x64, 0x14, 0x12, 0x34, 0x56]), 1: pattern(4) }),
+      "memory-short": map({ 0: Buffer.from([0x20, 0x01, 0x64, 0x14, 0x12, 0x34, 0x56]), 1: pattern(3) }),
+      "not-a-map": pattern(11),
+    },
+  },
+
+  // The MVS board's clock in the order the chip shifts it out: second,
+  // minute, hour, day, then month and weekday in one byte, then the year.
+  // 2001-04-14 12:34:56, a Saturday.
+  "x.1sav.rtc.upd4990a": {
+    schema: `${DIR}/x.1sav.rtc.upd4990a.cddl`,
+    valid: {
+      documented: map({ 0: Buffer.from([0x56, 0x34, 0x12, 0x14, 0x46, 0x01]), 1: new Tag(1, 1044057600) }),
+      "without-anchor": map({ 0: Buffer.from([0x56, 0x34, 0x12, 0x14, 0x46, 0x01]) }),
+    },
+    invalid: {
+      "time-long": map({ 0: Buffer.from([0x56, 0x34, 0x12, 0x14, 0x46, 0x01, 0x20]) }),
+      "without-time": map({}),
+      "anchor-untagged": map({ 0: Buffer.from([0x56, 0x34, 0x12, 0x14, 0x46, 0x01]), 1: 1044057600 }),
+      "not-a-map": pattern(6),
     },
   },
 
@@ -365,6 +479,10 @@ export const extensions = {
       // 12:30:59 on day 456, running. Day 456 needs the counter's ninth bit,
       // which is bit 0 of the high register: 456 is 0x1C8, so low 0xC8, high 1.
       documented: map({ 0: [59, 30, 12, 0xc8, 0x01], 1: [59, 30, 12, 0xc8, 0x01], 2: new Tag(1, 1044057600), 3: 4 }),
+      // As the EverDrive GB X7 keeps it, in a file of its own: both sets of
+      // registers, no anchor and no footer. The running clock has gone on past
+      // the copy the game last latched.
+      everdrive: map({ 0: [17, 14, 22, 88, 0x00], 1: [25, 3, 0, 0, 0x00] }),
       // The same clock from an emulator that wrote an 8-byte timestamp. Same
       // reading, different footer bytes, which is what key 3 records.
       "wide-timestamp": map({
@@ -398,6 +516,9 @@ export const extensions = {
       }),
       // ares keeps the running registers and a timestamp, and no latched copy.
       "latched-unknown": map({ 0: [59, 30, 12, 0xc8, 0x01], 1: null, 2: new Tag(1, 1044057600) }),
+      // A source that keeps no anchor. The registers still say what the chip
+      // holds, and a consumer rebuilding it starts the clock when it rebuilds.
+      "without-anchor": map({ 0: [59, 30, 12, 0xc8, 0x01], 1: [59, 30, 12, 0xc8, 0x01] }),
     },
     invalid: {
       // Five registers, exactly: seconds, minutes, hours, day low, day high.
@@ -417,8 +538,8 @@ export const extensions = {
       // The running registers are what the reading comes from, so they are
       // never unknown.
       "live-null": map({ 0: null, 1: [59, 30, 12, 0xc8, 0x01], 2: new Tag(1, 1044057600), 3: 4 }),
-      // The timestamp is tagged, for the reason `x.1sav.rtc` gives: a bare
-      // integer beside four registers could be anything.
+      // The timestamp is tagged, as every chip key's anchor is. A bare integer
+      // beside four registers could be anything.
       "timestamp-untagged": map({ 0: [59, 30, 12, 0xc8, 0x01], 1: [59, 30, 12, 0xc8, 0x01], 2: 1044057600, 3: 4 }),
       // 4 or 8, because those are the widths emulators actually write. A third
       // value would be a footer nobody can rebuild.
@@ -437,6 +558,9 @@ export const extensions = {
         3: null,
       }),
       "registers-as-bytes": map({ 0: pattern(5), 1: [59, 30, 12, 0xc8, 0x01], 2: new Tag(1, 1044057600), 3: 4 }),
+      // Each register is one byte, in either copy.
+      "register-too-wide": map({ 0: [59, 30, 12, 0x1c8, 0x01], 1: [59, 30, 12, 0xc8, 0x01] }),
+      "latched-register-too-wide": map({ 0: [59, 30, 12, 0xc8, 0x01], 1: [59, 30, 12, 0xc8, 0x101] }),
       "not-a-map": "1044057600",
     },
   },

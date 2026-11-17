@@ -12,7 +12,7 @@ and every name under `io.mgba` belongs to whoever holds the domain. The specific
 be globally unique and the spec cannot list the possibilities. That covers extension keys, catalog resolver names, the
 identity of a producing app, and the open vocabularies a producer can add to, such as a part's kind.
 
-A special vendor label `x` is used for names that must be referred to for which there is no DNS associated.
+The top-level label `x` is reserved for producers with no domain to reverse; see [The `x` tree](#the-x-tree).
 
 This page is **normative**. When a specification says a field holds a reverse-DNS name, every rule here applies to that
 field.
@@ -23,7 +23,7 @@ A reverse-DNS name is two or more labels joined by `.`, respecting the following
 
 - Lowercase ASCII only. A name carrying an uppercase letter is malformed, and consumers do not case-fold to rescue it.
 - The first label is the reversed top-level domain, so it is letters only, and two or more of them. The single-letter
-  label `x` is the one exception, reserved below.
+  label `x` is the one exception, reserved below. A top-level domain that is not ASCII has no name here.
 - Every other label holds letters, digits and `-`, starts and ends with a letter or a digit, and runs at most 63
   characters.
 - `-` is the only punctuation allowed inside a label. `_` is not, so that reversing any name yields something that is
@@ -34,7 +34,7 @@ A reverse-DNS name is two or more labels joined by `.`, respecting the following
 Nothing checks that the domain exists, resolves, or still belongs to the producer that minted the name. The convention
 buys uniqueness, not authentication.
 
-The following regular expression can validate a name:
+The following regular expression matches a whole name, together with the length limit above:
 
 ```text
 (x|[a-z]{2,63})(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+
@@ -59,15 +59,15 @@ nothing about what it means. A consumer that groups by prefix MUST NOT treat wha
 
 ## The `x` tree
 
-Plenty of producers don't own a domain. An emulator core is often a repository and nothing more, and asking it to buy a
-domain to name itself is absurd.
+Plenty of producers don't own a domain. An emulator core is often a repository and nothing more, with no domain to name
+itself by.
 
 The top-level label `x` is reserved by these specifications for those producers. A single-letter top-level domain cannot
 exist: ICANN requires an applied-for ASCII string to run three characters or more, since the two-character space is
 reserved for country codes. So a name in this tree cannot collide with a reversed real one, and no future round of
 top-level domains can make it start colliding.
 
-A name in the `x` tree is exactly two labels, `x.<vendor>`, and the `<vendor>` label is assigned in the
+A vendor's name in the `x` tree is exactly two labels, `x.<vendor>`, and the `<vendor>` label is assigned in the
 [Vendor Names registry](/registries/vendors/). Below its own name a vendor is on its own: whoever holds `x.fceumm` holds
 `x.fceumm.anything`, with nothing further to register.
 

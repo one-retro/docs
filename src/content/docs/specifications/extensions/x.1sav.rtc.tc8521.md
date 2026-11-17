@@ -4,8 +4,8 @@ description: The registers of the Toshiba TC8521 clock in the TAMA5 Tamagotchi c
 slug: specifications/extensions/x.1sav.rtc.tc8521
 ---
 
-**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's bundle header
-· **Status:** normative schema, optional to carry
+**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** the header of a save or
+state, or one of its parts · **Status:** normative schema, optional to carry
 
 The TAMA5 cartridge, Game de Hakken!! Tamagotchi: Osutchi to Mesutchi, keeps its clock in a Toshiba TC8521. The chip has
 the registers of the Ricoh RP5C01. This key carries what the chip holds and the moment a producer took it.
@@ -22,8 +22,9 @@ The representation belongs to no one emulator, so the name sits in the
 
 Key 0 is the chip's four blocks, each 13 registers of four bits, in index order:
 
-- **Block 0** is the time, in BCD. Registers 0 to 5 are the seconds, minutes and hours, each ones then tens. Register 6
-  is the weekday. Registers 7 to C are the day, month and year, each ones then tens.
+- **Block 0** is the time, in BCD. Registers 0 to 5 are the seconds, minutes and hours, each ones then tens. In 12-hour
+  mode, bit 1 of register 5 is PM and bit 0 alone holds the tens of hours. Register 6 is the weekday. Registers 7 to C
+  are the day, month and year, each ones then tens.
 - **Block 1** is the alarm and the settings. Registers 2 to 8 are the alarm, laid out as block 0's minutes to day.
   Register A is 1 in 24-hour mode and 0 in 12-hour mode. Register B counts years since a leap year, 0 to 3. Registers 0,
   1, 9 and C read zero.
@@ -55,24 +56,22 @@ The TC8521 is a dating clock. [`x.1sav.rtc`](/specifications/extensions/x.1sav.r
 UTC, as it does for every dating clock.
 
 - The year is two digits with no century, so a producer supplies one.
-- A producer **MUST** omit `x.1sav.rtc` when a block 0 register the date or time needs is null, as that key requires of
-  any reading a producer cannot compute.
+- With block 1's register A at 0 the clock runs in 12-hour mode. Bit 1 of block 0's register 5 then says the hour is
+  after noon, and a producer resolves the hour from it.
+- A producer **MUST** omit `x.1sav.rtc` when a register the date or time needs is null, as that key requires of any
+  reading a producer cannot compute. Those are block 0's registers and block 1's register A.
 
 ## Where it goes
 
-Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes and nowhere else: the
-[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
-[`state`](/specifications/states/). A producer carrying this key and `x.1sav.rtc` puts both in the same place, since
-they describe one clock.
+Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes, and nowhere else: the
+[header](/specifications/bundle/#0-header-map) of a [save](/specifications/saves/) or a
+[state](/specifications/states/), or one of its [parts](/specifications/bundle/#part-map). A producer carrying this key
+**SHOULD** carry `x.1sav.rtc` on the same map. The two describe one clock, and a consumer that wants only the time then
+reads it without knowing the chip. They
+[may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
+wrong.
 
 ## When to set it
 
 Only for the TAMA5 cartridge, the one game on that board. Other Game Boy clocks take the other keys
 [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#chip-keys) lists.
-
-This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
-[scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a
-[`bundle` part](/specifications/bundle/#nested-bundles). A producer **SHOULD** carry
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map. The two
-[may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
-wrong.

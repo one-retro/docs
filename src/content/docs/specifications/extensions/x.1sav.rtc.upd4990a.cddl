@@ -1,0 +1,20 @@
+; ============================================================================
+; x.1sav.rtc.upd4990a - the NEC uPD4990A clock on a Neo Geo MVS board
+;
+; An extension key for the Universal Saves Format, defined by these
+; specifications under a name reserved in the Vendor Names registry because
+; the chip's registers belong to no one emulator.
+;
+; The root here is the value carried under the key, not a bundle. A bundle
+; validates against the format's own schema whatever this holds, since an
+; extension value is `any` there; this file is what makes the shape checkable.
+; ============================================================================
+
+rtc-upd4990a = {
+  0 => bstr .size 6, ; time     - BCD second, minute, hour, day; month and weekday; BCD year
+  ? 1 => #6.1(int),  ; taken_at - the producer's clock when it took them
+}
+
+; The fifth byte holds the month, 1 to 12 in binary, in its high nibble and
+; the weekday, 0 to 6, in its low one. The hour runs 0 to 23. The year is two
+; BCD digits with no century.

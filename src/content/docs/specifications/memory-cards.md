@@ -18,15 +18,15 @@ original card byte for byte, and it is not meant to be. A producer that wants by
 
 `format` fixes two numbers, both in bytes: the length of a `dirent`, and the size of a block.
 
-| Format       | `dirent` | Block | Notes                                                                                                                                                                                                                                              |
-| ------------ | -------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ps1-mc`     | 128      | 8192  | The 128 is one directory frame, and a block is 64 of them.                                                                                                                                                                                         |
-| `ps2-mc`     | 512      | 1024  | One entry for the save's directory, one per file inside it. A block is a cluster of two 512-byte pages.                                                                                                                                            |
-| `n64-cpak`   | 32       | 256   | The pak's own word for a block is a page. A pak of several banks is one filesystem whose notes can span banks, so its `capacity` is 32768 times its bank count. Its ID block records that count, and a writer sets it from `capacity`.             |
-| `gc-mc`      | 64       | 8192  |                                                                                                                                                                                                                                                    |
-| `vmu`        | 32       | 512   |                                                                                                                                                                                                                                                    |
-| `neogeo-mc`  | 4        | 64    | Cards run from 2 KiB to 16 KiB and every one of them uses the same block. A Neo Geo CD takes no card: it keeps an 8 KiB one in the console.                                                                                                        |
-| `saturn-bup` | 30       | 64    | The entry sits at the head of the save's own first block rather than in a directory region, and the block list that follows it is the writer's. The 64 is the console's internal memory; a backup cartridge is a separate device carrying its own. |
+| Format       | `dirent` | Block | Notes                                                                                                                                                                                                                                                               |
+| ------------ | -------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ps1-mc`     | 128      | 8192  | The 128 is one directory frame, and a block is 64 of them.                                                                                                                                                                                                          |
+| `ps2-mc`     | 512      | 1024  | One entry for the save's directory, one per file inside it. A block is a cluster of two 512-byte pages.                                                                                                                                                             |
+| `n64-cpak`   | 32       | 256   | The pak's own word for a block is a page. A pak of several banks is one filesystem whose notes can span banks, so its `capacity` is 32768 times its bank count. Its ID block records that count, and a writer sets it from `capacity`.                              |
+| `gc-mc`      | 64       | 8192  |                                                                                                                                                                                                                                                                     |
+| `vmu`        | 32       | 512   |                                                                                                                                                                                                                                                                     |
+| `neogeo-mc`  | 4        | 64    | Cards run from 2 KiB to 16 KiB and every one of them uses the same block. A Neo Geo CD takes no card: it keeps an 8 KiB one in the console.                                                                                                                         |
+| `saturn-bup` | 30       | 64    | The entry sits at the head of the save's own first block rather than in a directory region, and the block list that follows it is the writer's. The 64 is the console's internal memory. A backup cartridge's block is larger, and this table does not give it yet. |
 
 The names are the ones already in circulation for these layouts, not system slugs with a suffix. That is why `ps1-mc`
 says `ps1` where the [registry](/registries/systems/) says `psx`, and why `vmu` carries no system at all. Reading a
@@ -35,6 +35,19 @@ system out of one of these names is a mistake; that is what [`system`](/specific
 The table covers the formats this spec has rebuild rules for, not every backup medium ever built. PC Engine internal
 backup RAM, a Famicom Disk System disk, a WonderSwan's internal EEPROM and several others have no entry yet. Adding one
 means documenting its `dirent` length and its rebuild rules alongside the name.
+
+A large N64 pak is one of two kinds. libultra switches a pak's banks itself, by writing a bank's number to the pak at
+0x8000, and a pak built for that is the one the table describes: bank 0 holds the ID block, an index page for every bank
+and the directory, and a note runs on from one bank into the next. Most large third-party paks switch with a button or a
+dial on the pak instead, and show the console one ordinary 32 KiB pak at a time, each with a filesystem of its own. Each
+position is then a pak of one bank to the console, and a card of its own here. A dump of every position is a
+[collection](/specifications/collections/) of those cards, each part's `slot` the position it was read from. The ID
+block tells the two kinds apart: a banked pak's records how many banks it has, and each position of a switched pak
+records one.
+
+ares keeps a banked pak in one file, bank 0 first, and takes paks of 1, 4, 16 or 62 banks. N64FlashcartMenu dumps a
+physical pak's banks to one file the same way. MiSTer's N64 core, mupen64plus, Project64 and gopher64 keep 32 KiB a pak,
+and ignore a write that switches banks.
 
 ## Capacity and out-of-band bytes
 
@@ -82,16 +95,16 @@ Consoles open saves by name and identifier instead: `bu00:BASLUS-XXXXX` on PS1, 
 GameCube, company and game code plus note name on N64, NGH plus sub-number on Neo Geo. Block placement is an allocator's
 business, so recording it would preserve a number that is wrong the moment the save lands anywhere else.
 
-Block _counts_ are a different thing, and they are still not stored, because they are derivable. A producer stores
-exactly the bytes the card allocated, so the count is the nested bundle's total payload size divided by the
-[block size](#per-format-facts) for the format.
+Block _counts_ are a different thing, and they are still not stored, because they are derivable. Each file's payload is
+the file as its entry records it. On most formats a file fills whole blocks, so a save's block count is the sum of its
+files' payloads divided by the format's [block size](#per-format-facts). A PS2 file is the exception: its payload is the
+file's exact length, and a writer allocates whole 1024-byte clusters for it. A count for a Saturn backup cartridge
+cannot be derived yet, since the table gives the block size of the console's internal memory alone.
 
-That division takes the block size from the format, which holds for every format here except `saturn-bup`. Its 64 is the
-console's internal memory and a backup cartridge carries its own, so a count derived this way for a cartridge is wrong.
-The table stands as written for 0.9. Settling it means keying the block size on
-[`capacity`](/specifications/bundle/#card-map), which is required on every card map, rather than on the format alone. A
-cartridge dumped by itself is a card bundle with no [`role`](/registries/roles/) anywhere in it. So the medium cannot be
-read back off the role, as it can when a Saturn is read whole as a [device](/specifications/device/).
+A file's payload holds its blocks in the order the format chains them, starting at its first block. An N64 note's pages
+follow the pak's index table from the entry's start page, and a PS1 file's blocks follow its directory frames.
+
+- A producer **MUST** put a file's blocks in its payload in the order its card chains them.
 
 ## What a writer regenerates
 
@@ -259,11 +272,10 @@ Three saves on a 128 KiB card, two of them for the same game. The Final Fantasy 
     -1: h'DA31534156…' }
 ```
 
-Each payload is a complete bundle holding one part, the save's 8192 bytes, plus the inner bundle's own framing. The two
-Final Fantasy VII entries differ from the Metal Gear Solid one by a single byte, because their game names differ by a
-character. The header carries no `game`, because none of the three describes the card. Each inner payload covers every
-block the save occupied, so a save spanning two blocks is one part of 16384 bytes, and the fact that its two blocks were
-not adjacent is not recorded.
+Each payload is a complete bundle holding one part, the save's 8192 bytes, plus the inner bundle's own framing. The
+header carries no `game`, because none of the three describes the card. Each inner payload covers every block the save
+occupied, so a save spanning two blocks is one part of 16384 bytes, and the fact that its two blocks were not adjacent
+is not recorded.
 
 Inside the first payload:
 
@@ -289,15 +301,16 @@ its files have entries of their own.
 Fifteen Final Fantasy VII saves fill a PS1 card, and the arrangement above still holds. Three things about that card are
 worth knowing before you build one.
 
-The `game` map appears sixteen times: once in each nested bundle, and once per outer part as the index copy. The inner
-copies are not removable. [Nothing is inherited](/specifications/bundle/#nested-bundles) across the nesting boundary,
-which is exactly what lets a save be sliced out of the card as a byte copy and still say what game it belongs to. The
-outer copies are removable, since a part with no `game` falls back to the header's, and dropping all fifteen of them
-recovers 495 bytes out of 128505. That is 0.4%, in exchange for giving up listing the card without reading a payload.
-
 Such a card may name Final Fantasy VII in its own header, because for once a single game does describe the whole card.
 That is the exception to the rule that a card has no header `game`, and it is what makes the card answer "yes" to
 [the identified test](/specifications/bundle/#0-header-map).
+
+The `game` map then appears sixteen times: once in each of the fifteen nested bundles, and once in the card's header.
+The inner copies are not removable. [Nothing is inherited](/specifications/bundle/#nested-bundles) across the nesting
+boundary, which is exactly what lets a save be sliced out of the card as a byte copy and still say what game it belongs
+to. The outer parts carry no copy. Each would equal the header's `game`, which is a
+[default spelled out](/specifications/universal-saves-format/#one-encoding-per-bundle), and a consumer listing the card
+reads the header instead.
 
 The other thing the full card shows is what splitting is worth. Fifteen saves come to 128505 bytes against the 131072 of
 a raw card image, so splitting a card that is genuinely full saves nothing. What it buys is that each save is separately
@@ -333,9 +346,9 @@ and inside that payload, the save itself:
 }
 
 [1] parts:
-  { 0: 0, 3: "icon.sys",     4: 4, 5: h'…512 bytes…', 9: 18540(h'…'), -1: h'…' }
-  { 0: 1, 3: "list.ico",     4: 5, 5: h'…512 bytes…', 9: 18540(h'…'), -1: h'…' }
-  { 0: 2, 3: "BASLUS-20312", 4: 6, 5: h'…512 bytes…', 9: 18540(h'…'), -1: h'…' }
+  { 0: 0, 3: "icon.sys",     4: 2, 5: h'…512 bytes…', 9: 18540(h'…'), -1: h'…' }
+  { 0: 1, 3: "list.ico",     4: 3, 5: h'…512 bytes…', 9: 18540(h'…'), -1: h'…' }
+  { 0: 2, 3: "BASLUS-20312", 4: 4, 5: h'…512 bytes…', 9: 18540(h'…'), -1: h'…' }
 ```
 
 The directory's own entry is on the outer part, which is what a writer needs to recreate the directory with the right
@@ -392,16 +405,14 @@ The pak's is a card, one nested save per note, laid out like any other card:
 }
 
 [1] parts:
-  { 0: 0, 1: "bundle", 2: "controller-pak-1", 4: 1, 5: h'…32 bytes…', 9: 18540(h'…'),
+  { 0: 0, 1: "bundle", 2: "controller-pak-1", 3: "MARIOKART64", 4: 1, 5: h'…32 bytes…', 9: 18540(h'…'),
     11: { 3: "NUS-NKTE", 4: "Mario Kart 64" }, 12: "n64", -1: h'DA31534156…' }
 ```
 
 The device header carries no `game`, because the pak's other notes are not Mario Kart 64's, and the outer parts carry
 `game` and `system` only as an [index](/specifications/bundle/#nested-bundles) of what each component holds.
 
-Carry only that game's note instead of the whole pak and there is no device at all. The cartridge save and the note are
-two ordinary parts of one [save](/specifications/saves/), told apart by `role`, with nothing nested. The cartridge's
-part carries `x.1sav.n64` there too. Which of the two a producer writes depends on what it read, not on what the game
-is.
+Carry only that game's note and nothing else changes: the pak's card holds that one note. A note is always a save on a
+card, as a PS1 save is, so its entry stays on the card's part for a writer.
 
 This arrangement is the `cartridge-and-pak` case in the conformance corpus.

@@ -4,11 +4,11 @@ description: A portable, self-describing CBOR container for retro console save f
 sidebar:
   label: Overview
   badge:
-    text: v0.9
+    text: v0.10
     variant: caution
 ---
 
-This is version 0.9 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
+This is version 0.10 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
 in place, under the same bundle tag.
 
 ## Changelog
@@ -18,14 +18,41 @@ moved. A version covers the format, the [common types](/specifications/common-ty
 [extension keys](/specifications/extensions/) these specifications own; a key belonging to a producer changes on that
 producer's schedule instead.
 
+- **0.10**, 2026-11-16. Breaking: a decoder checks each part's `sha256` against its payload, and part ids are unique. An
+  optional map, text or byte string is never empty, a part's `game` or `source` never equals the header's, and
+  `utc_offset` is never 0. A `path` has no empty, `.` or `..` segment and no `/` at either end. A card holds no bare
+  save part, a device and a collection hold only `bundle` parts, and every device component has a `role` of its own. A
+  `bundle` part names no `content_type` or `binding`, and only it takes part key 12. A `card-image` names no `game`.
+  Every part of one card names the same `role`, or none. Cards alone are a card or a collection, never a device, and a
+  component may name another system. The schema pins every list the spec owns, and a decoder round-trips a value a later
+  version adds to one. A reverse-DNS name in a field that takes only a slug is malformed. A rule on an extension page
+  binds producers only, `x.1sav.n64` apart. A ROM is hashed without any header a file format or a copier added. An N64
+  cartridge's save names `n64`, and a bundle holds one `cartridge` part at most. A producer that cannot tell a
+  cartridge's chip carries its file as an `aux` part. A Controller Pak note is a save on a card, never a part of another
+  save, and no part of a save or a state names a card's slot. A card may hold only some of its medium's saves, and a
+  file's payload holds its blocks in the order its card chains them. A file that keeps a slot for every pak gives no
+  card for an empty one, and a Controller Pak that switches with a button is a card per position. A 64DD disk's save
+  names `n64dd`, and holds its RAM area as its one `save` part, with no role. New: part key 14,
+  [`bound_to`](/specifications/bundle/#bound-payloads), names what a bound payload is bound to, and a consumer offers it
+  to nothing else. Roles: `sysnand` is `internal`, 3DS extdata is `sd`, a Famicom Disk System disk takes `disk-<n>` or
+  no role, `ram-cart` is common to every system, and `transfer-pak-<n>` is new. Extensions: `x.1sav.rtc` and its chip
+  keys may sit on a part, and the MBC3 anchor is optional. `x.1sav.rtc` may also sit on a device's header, where it
+  reads the console's own clock, and new chip keys carry the 64DD drive's
+  ([`x.1sav.rtc.n64dd`](/specifications/extensions/x.1sav.rtc.n64dd/)), a Saturn's
+  ([`x.1sav.rtc.smpc`](/specifications/extensions/x.1sav.rtc.smpc/)) and an MVS board's
+  ([`x.1sav.rtc.upd4990a`](/specifications/extensions/x.1sav.rtc.upd4990a/)). The S-3511A sets its PM bit itself in
+  24-hour mode, and its control register may be null. An `x.1sav.dirent` reading is the wall clock the entry records,
+  and a Saturn entry's date is `modified_at`. `x.1sav.dirent.gc-mc`'s codes are byte strings, and an offset is never
+  `0xFFFFFFFF`. The MBC3's registers and the S-3511A's control register are a byte each. An `x.1sav.icon` with one frame
+  has no hold, and every frame of an animated one has one. `taken_with` takes extension keys.
 - **0.9**, 2026-11-14. Breaking: an N64 cartridge's save memory sits on a save part with the role `cartridge`, in a
   bundle naming `n64`, wherever that bundle is nested. The part carries
   [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) naming its chip, and its payload is the chip in normal form. A
   missing key, an unlisted chip, a payload of another length, or the key anywhere else makes a bundle malformed. It is
   the one extension value a decoder checks. Breaking: an N64 ROM is hashed big-endian, and a 64DD disk as its retail
   dump. Breaking: a part is never compressed. Part keys 7 and 8, `encoding` and `size`, are retired, and a part carrying
-  either is malformed. A transport that wants a smaller file compresses the whole of it. With nothing compressed, a
-  bundle's file hash and content hash are one value, so the spec names only the
+  either is malformed. A transport that wants a smaller file compresses the whole of it. With nothing compressed, the
+  file hash and the content hash became one value, and the spec named only the
   [content hash](/specifications/bundle/#content-hash). New: the 64DD's [disk save](/specifications/saves/#a-64dd-disk),
   under the system `n64dd`, and [`x.1sav.dirent.n64-cpak`](/specifications/extensions/x.1sav.dirent.n64-cpak/). A
   Controller Pak of several banks is one card whose `capacity` counts every bank.
@@ -68,8 +95,8 @@ belongs with it. Every emulator invented its own convention:
 - Multi-part media like N64 controller paks or PS1 memory cards each got their own layout.
 
 This document specifies one portable container file, extension `.1saves`, holding typed binary parts plus whatever
-identifying context and interpretation a producer has. Everything but the parts is optional: a system slug and a chunk
-of bytes is a valid bundle. It is for moving saves around, not for an emulator to read in place.
+identifying context and interpretation a producer has. Everything but the shape and the parts is optional: a save that
+says nothing but its bytes is a valid bundle. It is for moving saves around, not for an emulator to read in place.
 
 The encoding is CBOR ([RFC 8949](https://datatracker.ietf.org/doc/html/rfc8949)), which keeps bytes as bytes and has a
 defined [deterministic form](https://datatracker.ietf.org/doc/html/rfc8949#name-deterministically-encoded-c).
@@ -90,22 +117,27 @@ defined [deterministic form](https://datatracker.ietf.org/doc/html/rfc8949#name-
     starting at byte 1. Byte 0 is the tag's head byte `0xDA`. Reading as ASCII magic follows
     [RFC 9277](https://datatracker.ietf.org/doc/rfc9277/), except that this format omits the self-describe tag #55799
     that convention puts in front, so the magic sits at byte 0. A bundle never carries #55799.
-  - The major version lives in the tag number. A future breaking format uses a different tag, so an old decoder rejects
-    a new-major file on its own, with no separate version field to check.
-  - Minor, additive changes happen _inside_ the bundle, as new optional integer keys in the header or part maps; see
+  - From 1.0, the major version lives in the tag number. A breaking format then uses a different tag, so an old decoder
+    rejects a new-major file on its own, with no separate version field to check. Before 1.0 the tag stays, and the
+    [changelog](#changelog) is the record of each break.
+  - Additive changes happen _inside_ the bundle, as new optional integer keys in the header or part maps; see
     [Additive integer keys](#additive-integer-keys).
-  - The only other tags a bundle carries are tag 1 on an epoch field and the
-    [hash value](/specifications/common-types/hash-value/) tags in `rom_hashes`.
+  - The only other tags the format defines are tag 1 on an epoch field and the
+    [hash value](/specifications/common-types/hash-value/) tags: on a part's `sha256`, in `rom_hashes`, and in
+    `taken_with`'s `firmware`. What sits under an [extension key](#extensions) may carry any tag.
 
 - **Determinism**: RFC 8949 section 4.2, with no deviations from it. Definite-length items, preferred serialization for
   every head (so integer map keys and floats both encode shortest), map keys sorted bytewise on their encodings, no
   duplicate keys. A generic deterministic-CBOR validator accepts a conforming bundle as-is, with no exceptions to
   unteach it.
 
-  Three further rules sit on top, and a generic validator will not check them: text is in NFC, parts are sorted by
-  ascending `id`, and `rom_hashes` entries follow the ordering rule on
-  [hash values](/specifications/common-types/hash-value/). What deterministic encoding does not settle at all is a data
-  model that can say one thing two ways; see [One encoding per bundle](#one-encoding-per-bundle).
+  Three further rules sit on top, and a generic validator will not check them. Text is in NFC. Parts are sorted by
+  strictly ascending `id`. Every list of [hash values](/specifications/common-types/hash-value/) follows that page's
+  ordering rule. What deterministic encoding does not settle at all is a data model that can say one thing two ways; see
+  [One encoding per bundle](#one-encoding-per-bundle).
+
+  Deterministic encoding covers every byte of a bundle, extension values included. The further rules and the next
+  section stop at an extension key: what sits under one is its owner's to spell.
 
 ### Semantics, not bytes
 
@@ -137,12 +169,14 @@ What it cannot fix is a format that offers two ways to say the same thing.
 
 So this one offers one, everywhere:
 
-- **Nothing is absence.** An optional container has exactly one encoding of empty, and that is not being there. An empty
-  `game`, `game_id` or `rom_hashes` is malformed, and so is an empty `parts` array.
+- **Nothing is absence.** An optional field has exactly one encoding of empty, and that is not being there. An empty
+  map, array, text string or byte string in an optional field is malformed: an empty `game`, `source`, `taken_with`,
+  `description` or `dirent`, for instance. A `parts` array is never empty. A payload is not optional, so a payload of no
+  bytes is a payload.
 - **A default is absence.** Where a field has a default, the default is written by leaving the key out, and spelling it
   out is malformed. A part's [`kind`](/specifications/bundle/#part-kinds) means `save` when absent, its
   [`role`](/specifications/bundle/#part-map) means `primary`, and its [`path`](/specifications/bundle/#part-map) means
-  the role is the whole address.
+  the role is the whole address. A part's `game` or `source` that equals the header's is a default spelled out too.
 - **One type per value.** A field that could take an integer or a float takes the integer, because
   [RFC 8949 section 4.2.2](https://datatracker.ietf.org/doc/html/rfc8949#name-additional-deterministic-en) declines to
   choose between them. Every epoch field here is whole seconds.
@@ -170,28 +204,32 @@ malformed save is a malformed card, however sound its other saves are.
 
 Whatever it kept would be a bundle its producer never wrote, still under that producer's `source`.
 
-What a decoder does not recognise is not malformed. An integer key or a shape from a later version is round-tripped, as
-the sections below say. A [kind](/specifications/bundle/#part-kinds) the decoder does not know is read as `aux`. Every
-extension value is round-tripped too. Apart from [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), which says how
-long a payload is, the format never looks inside one.
+What a decoder does not recognise is not malformed. An integer key from a later version is round-tripped, as the
+sections below say, and so is a [slug](/specifications/common-types/slug/) a later version adds to a list this spec
+owns: a shape, a card `format`, a `binding`. A [kind](/specifications/bundle/#part-kinds) the decoder does not know is
+read as `aux`. Three things look like a later version's and are malformed instead: a
+[retired key](#additive-integer-keys), a hash value under a tag its [page](/specifications/common-types/hash-value/)
+does not list, and a chip [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) does not list.
+
+Every extension value is round-tripped too, whatever it holds and wherever it sits. A page that defines a key states
+rules for the producer that carries it. Apart from `x.1sav.n64`, which says how long a payload is, a bundle that breaks
+one of those rules is not malformed, and the format never looks inside a value.
 
 ### Additive integer keys
 
 Integer keys belong to this specification, in every map it defines. Text keys belong to producers; that is the
 [extension](#extensions) mechanism, and the two never meet.
 
-So a decoder that meets an integer key it does not recognize MUST ignore it and round-trip it unchanged. There is only
-one thing an unfamiliar integer key can be: a field a later minor version assigned after this decoder shipped.
+So a decoder that meets an integer key it does not recognize **MUST** ignore it and round-trip it unchanged. There is
+only one thing an unfamiliar integer key can be: a field a later version assigned after this decoder shipped.
 
-A later minor version assigns the next free key in whatever map needs it. A change that cannot be expressed that way
-takes a new bundle tag and a new major version, which old decoders reject on the tag alone.
+A later version assigns the next free key in whatever map needs it. Before 1.0, a change that cannot be expressed that
+way happens in place and the changelog says so. From 1.0 it takes a new bundle tag and a new major version, which old
+decoders reject on the tag alone.
 
 A retired key is never free again, and the rule above does not cover it:
 
 - Part keys 7 and 8 are retired. A part carrying either is malformed.
-
-Under 0.8 those two keys compressed a part's payload. A decoder that ignored them would hand compressed bytes out as the
-save.
 
 ### Names
 
@@ -203,7 +241,10 @@ to it than that.
   `system`, a card `format`, a `role`, a `device_kind`. A producer takes a name from the list rather than inventing one,
   and the list grows by a PR.
 - **A [reverse-DNS name](/specifications/common-types/reverse-dns-name/)**, where the value is the producer's own to
-  mint with nobody to ask: an extension key, a source's `app`, a part's `kind` it invented.
+  mint with nobody to ask: an extension key, or a part's `kind` it invented.
+
+A source's `app`, `core` and `platform` take either of the last two: a registry's slug where the software is listed, and
+otherwise a name its owner minted.
 
 The two named types are normative and their pages carry the rules, including what a consumer does with a name it has
 never seen. Each field in [Bundle](/specifications/bundle/) says which kind it holds.
@@ -223,17 +264,17 @@ mean:
 | [`collection`](/specifications/collections/) | several bundles in one file       | one `bundle` part per entry, any shape but a collection |
 
 A decoder reads `shape` rather than inferring it from what the header happens to carry. The vocabulary is spec-owned,
-and a later minor version assigns a new one with a document to go with it.
+and a later version assigns a new one with a document to go with it.
 
 A shape is a [slug](/specifications/common-types/slug/) and follows that page's rules, which is what keeps a new one
 additive. A decoder meeting a shape it does not know **MUST** parse the bundle and round-trip it unchanged, exactly as
-it does for an integer key a later version assigned. It **MUST NOT** guess what the shape means, and **MUST** decline
-any operation that depends on knowing: walking the parts, restoring a save, rebuilding a card. Refusing to act on a
-bundle is not the same as rejecting it, and only the second loses the bytes.
+it does for an integer key a later version assigned. It **MUST NOT** guess what the shape means. It **MUST** decline any
+operation that depends on knowing: walking the parts, restoring a save, rebuilding a card. Refusing to act on a bundle
+is not the same as rejecting it, and only the second loses the bytes.
 
-The schema is the narrower of the two on purpose. It pins the six shapes this version defines, so validating against it
-says "this is a conforming 0.9 bundle" rather than "some decoder can read this", the same asymmetry
-[Additive integer keys](#additive-integer-keys) describes.
+The schema is the narrower of the two on purpose. It pins the six shapes this version defines, and every other list this
+spec owns, so validating against it says "this is a conforming 0.10 bundle" rather than "some decoder can read this".
+[Additive integer keys](#additive-integer-keys) describes the same asymmetry.
 
 A bundle names its shape and a decoder reads it; what the parts then mean is that shape's document, and
 [Bundle](/specifications/bundle/) is where every field those documents refer to is defined.
@@ -245,9 +286,11 @@ map entries whose key is a text string in [reverse-DNS form](/specifications/com
 (`x.1sav.rtc`, `com.1retro.forge`). This is how a clock reading, parser-extracted gameplay tags, emulator-native
 structures and third-party annotations ride along, without the spec needing to know anything about them.
 
-The [header](/specifications/bundle/#0-header-map), a [`Part`](/specifications/bundle/#part-map) and the
-[`game`](/specifications/bundle/#game-hints-map) map either one carries all take them, flat, alongside their integer
-keys. The rules:
+The [header](/specifications/bundle/#0-header-map), a [`Part`](/specifications/bundle/#part-map), the
+[`game`](/specifications/bundle/#game-hints-map) map either one carries, and a state's
+[`taken_with`](/specifications/bundle/#taken_with-map) all take them, flat, alongside their integer keys. Those are the
+maps whose keys this spec numbers. `taken_with`'s `firmware` and `options` are keyed by a core's own names instead, and
+take no extension keys. The rules:
 
 - An extension key **MUST** be a well-formed reverse-DNS name, and there is no unnamespaced alternative. A producer with
   no domain to reverse takes a name in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree). The
@@ -256,11 +299,10 @@ keys. The rules:
   string, a number. Apart from [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), which fixes how long the payload
   beside it is, the spec never looks inside one or imposes anything on it. The rule that integer keys belong to the spec
   stops at the key.
-- Decoders **MUST** round-trip an unknown extension key unchanged, value included. Never drop one just because you don't
-  recognize it.
+- Decoders **MUST** round-trip an unknown extension key unchanged, value included.
 - The integer namespace belongs to the spec, so an integer key is never an extension. Unknown ones are handled by
   [Additive integer keys](#additive-integer-keys).
-- A field that becomes first-class moves from an extension key to an integer key in a later minor version.
+- A field that becomes first-class moves from an extension key to an integer key in a later version.
 
 A producer with several fields to attach SHOULD put a map under one key rather than take a key each. The name is a
 namespace, not a field label, so paying for it once buys single-byte integer keys inside a space nobody else can reach:

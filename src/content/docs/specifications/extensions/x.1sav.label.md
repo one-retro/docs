@@ -4,8 +4,8 @@ description: What a console calls a save, and what it says about the save beneat
 slug: specifications/extensions/x.1sav.label
 ---
 
-**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's bundle header,
-and a card's part as an index copy · **Status:** normative schema, optional to carry
+**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's header, and a
+card's part as an index copy · **Status:** normative schema, optional to carry
 
 What a console lists a save as, so a consumer can show a person a list of saves rather than a list of addresses. The
 name sits in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree) because the value belongs to no
@@ -51,17 +51,18 @@ A producer **MAY** repeat the key on a [card](/specifications/cards/)'s
 [`bundle` part](/specifications/bundle/#nested-bundles) carrying the save, as an index copy so a consumer can list a
 card without stepping into payloads. Nowhere else: a [device](/specifications/device/) has a handful of components
 rather than a directory to list, and a [collection](/specifications/collections/) already indexes its entries with
-`system` and `game`. Producers **SHOULD** keep the two consistent, and on a mismatch the inner header wins.
+`system` and `game`. A producer **SHOULD** keep the copy the same as the save's own. On a mismatch, the inner header
+wins.
 
-A consumer holding both this key and a [`description`](/specifications/bundle/#0-header-map) **SHOULD** show `title`,
-and **MUST NOT** treat a `description` that disagrees as malformed. One is what the console called the save, the other a
+A consumer holding both this key and a [`description`](/specifications/bundle/#0-header-map) **SHOULD** show `title`. It
+**MUST NOT** treat a `description` that disagrees as malformed. One is what the console called the save, the other a
 free-form note the bundle's author attached.
 
 ## What a producer may write
 
-A producer **MUST NOT** write a title or a detail line the save does not say. The latitude is normalization: transcoding
-out of Shift-JIS, trimming padding a format pads with. A consumer re-deriving the text from the same bytes may land on a
-slightly different string, and **MUST NOT** treat that as malformed.
+A producer **MUST NOT** write a title or a detail line the save does not say. Its latitude is in turning the bytes into
+text: transcoding out of Shift-JIS, trimming the padding a format adds. A consumer re-deriving the text from the same
+bytes may land on a slightly different string. It **MUST NOT** treat that as malformed.
 
 The key is a projection and does not rebuild an entry. A writer copying an entry takes the bytes from
 [`dirent`](/specifications/bundle/#part-map); a writer building one takes the fields from the format's own key, such as

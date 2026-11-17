@@ -5,17 +5,16 @@ description:
 slug: specifications/extensions/x.1sav.rtc.s3511a
 ---
 
-**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** a save's bundle header
-· **Status:** normative schema, optional to carry
+**Owner:** these specifications, under a [reserved name](/registries/vendors/) · **Applies to:** the header of a save or
+state, or one of its parts · **Status:** normative schema, optional to carry
 
 The GBA's clock is a Seiko S-3511A on the cartridge. A WonderSwan cartridge with a clock carries the same chip, behind
-its Bandai 2003 mapper. [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) carries the instant a consumer needs to
-display it. This key carries what the chip itself holds and the moment a producer took it. That is what a producer
-handing the cartridge back byte for byte needs.
+its Bandai 2003 mapper. [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) carries the reading a consumer displays.
+This key carries what the chip itself holds and the moment a producer took it. That is what a producer handing the
+cartridge back byte for byte needs.
 
-Every emulator that keeps this clock keeps the same values, so the representation belongs to no one of them. The name
-sits in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree) for the reason
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) gives, under that key rather than beside it.
+Every emulator that keeps this clock keeps the same values, so the representation belongs to no one emulator. The name
+sits in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree), under `x.1sav.rtc`.
 
 ## Schema
 
@@ -24,8 +23,12 @@ sits in the [`x` tree](/specifications/common-types/reverse-dns-name/#the-x-tree
 ```
 
 Key 0 is what the chip latches on a read: year since 2000, month, day, weekday, hour, minute and second, one BCD byte
-each and in that order. Bit 7 of the hour byte carries PM, and only when 24-hour mode is off. Key 1 is the control
-register as read, whose bit 6 is that 24-hour flag and whose bit 7 is the power-off status.
+each and in that order. Bit 7 of the hour byte carries PM. In 24-hour mode the chip sets it itself for the hours 12 to
+23, and a write cannot change it. Key 1 is the control register as read, one byte, whose bit 6 is the 24-hour flag and
+whose bit 7 is the power-off status.
+
+Key 1 is null when the producer's source does not keep the control register. MiSTer's WonderSwan core and Mednafen keep
+the time alone.
 
 Key 2 is the producer's clock at the moment it took the components, in whole epoch seconds. It is the anchor the
 producer advances the chip from when the save is next loaded. It plays the part
@@ -53,50 +56,35 @@ A consumer rebuilding the chip without key 3, or with key 3 null, **SHOULD** use
 That is the alarm the chip holds at power-on. A game cannot read the alarm back, so it sees the difference only in when
 the chip interrupts it.
 
-## The reading is the components
+A consumer rebuilding the chip with key 1 null **SHOULD** use 0x40: 24-hour mode, with the power on and no interrupt.
+That is the mode every game this page names sets, and the one MiSTer's WonderSwan core runs in.
 
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) for this chip is what the components say, put on the Unix scale
-by reading them as though they were UTC, the way [`x.1sav.dirent`](/specifications/extensions/x.1sav.dirent/) puts a
-console's wall clock on it. The chip keeps no zone, and naming one would be a guess. Reading them resolves the hour: in
-12-hour mode, bit 7 of the hour byte is what says it is after noon.
+## The reading
 
-It is not key 2. The chip runs from whatever the game last set it to, which need not be anywhere near the host's clock.
-GBA_MiSTer starts it at 2009-12-31 23:59:45, and a game that never sets it leaves it there. So a save written in 2026
-can hold a clock reading early 2010. Both dates are correct. A producer whose components are not a date **MUST** omit
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/), as that key requires of any reading a producer cannot compute.
+The S-3511A is a dating clock. [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#the-reading) for it is what key 0
+says, read as though it were UTC, as it reads every dating clock. The year counts from 2000. In 12-hour mode, bit 7 of
+the hour byte says the hour is after noon, and a producer resolves the hour from it. In 24-hour mode, and where key 1 is
+null, the hour's digits are the hour, and bit 7 adds nothing to them.
 
-## 24-hour mode is not a field of its own
-
-It is bit 6 of key 1. A boolean beside the register would be a second spelling of one value, and a producer that set the
-two differently would write a bundle contradicting itself. The format keeps
-[one encoding per value](/specifications/universal-saves-format/#one-encoding-per-bundle) everywhere else. Read the flag
-out of the register.
-
-## What does not go here
-
-How an emulator keeps the clock running between the moments a game reads it, beyond the one moment key 2 records. One
-derives the current time from an offset against the host clock, another advances the components by the time since key 2,
-and neither is something the chip holds. A schema every producer has to satisfy can only require what the chip itself
-holds, which is why key 2 is optional. An emulator with a model worth preserving carries it beside this key under a
-[name of its own](/specifications/common-types/reverse-dns-name/).
+The reading is not key 2. The chip runs from whatever the game last set it to, which need not be anywhere near the
+host's clock. GBA_MiSTer starts it at 2009-12-31 23:59:45, and a game that never sets it leaves it there. So a save
+written in 2026 can hold a clock reading early 2010. Both dates are correct. A producer whose components are not a date
+**MUST** omit [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/), as that key requires of any reading a producer
+cannot compute.
 
 ## Where it goes
 
-Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes and nowhere else: the
-[header](/specifications/bundle/#0-header-map) of a bundle whose `shape` is [`save`](/specifications/saves/) or
-[`state`](/specifications/states/). A producer carrying this key and `x.1sav.rtc` puts both in the same place, since
-they describe one clock.
+Wherever [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#where-it-goes) goes, and nowhere else: the
+[header](/specifications/bundle/#0-header-map) of a [save](/specifications/saves/) or a
+[state](/specifications/states/), or one of its [parts](/specifications/bundle/#part-map). A producer carrying this key
+**SHOULD** carry `x.1sav.rtc` on the same map. The two describe one clock, and a consumer that wants only the time then
+reads it without knowing the chip. They
+[may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
+wrong.
 
 ## When to set it
 
 Only for a cartridge carrying this chip. On the GBA, Pokemon Ruby, Sapphire and Emerald use it, as do the Boktai games.
-On the WonderSwan, Dokodemo Hamster 3 and Inuyasha: Kagome no Sengoku Nikki do. A Game Boy cartridge keeps a different
-clock, under one of the other keys [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#chip-keys) lists.
-
-This key's placement follows [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/)'s
-[scope rules](/specifications/extensions/x.1sav.rtc/#where-it-goes), including the prohibition on a
-[`bundle` part](/specifications/bundle/#nested-bundles). A producer **SHOULD** carry
-[`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/) on the same map. A consumer that only wants to know what time the
-game thinks it is should not have to decode BCD to find out. And the two
-[may disagree](/specifications/extensions/x.1sav.rtc/#disagreeing-with-the-chip-is-not-an-error) without either being
-wrong.
+On the WonderSwan, Dokodemo Hamster 3, Inuyasha: Kagome no Sengoku Nikki and Dicing Knight do. A Game Boy cartridge
+keeps a different clock, under one of the other keys [`x.1sav.rtc`](/specifications/extensions/x.1sav.rtc/#chip-keys)
+lists.

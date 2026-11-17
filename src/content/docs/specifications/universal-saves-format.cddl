@@ -1,6 +1,6 @@
 ; ============================================================================
-; 1SAV - Universal Saves Format, v1
-; Spec version 0.9: not yet stabilized, expect breaking changes.
+; 1SAV - Universal Saves Format
+; Spec version 0.10: not yet stabilized, expect breaking changes.
 ;
 ; CDDL per RFC 8610. This file is the shape of a bundle and nothing else.
 ; Why the shape is what it is:  /specifications/universal-saves-format/
@@ -13,33 +13,32 @@
 ; ---- File framing ----------------------------------------------------------
 saves-file = #6.827539798(bundle)   ; tag reads "1SAV" from byte 1 of the file
 
-; A card, a state and a screenshot each hold a part no other shape may, so each
-; pairs its header with parts of its own. The other three shapes share one part
-; rule.
-bundle = [
-  header,           ; [0] header
-  parts,            ; [1] parts
-] / card-bundle / state-bundle / screenshot-bundle
+; Each shape pairs its header with the parts it may hold. A save, a state and a
+; screenshot hold no `bundle` part, and a device and a collection hold nothing
+; else. Which shapes those nested bundles may be is prose: CDDL's `.cbor` could
+; check it, but a reference validator's report on a rejected nested bundle
+; grows too fast with depth to be of use.
+bundle = save-bundle / card-bundle / device-bundle / collection-bundle
+       / state-bundle / screenshot-bundle
 
 ; Integer keys belong to the spec; text keys belong to producers. This schema
-; describes v0.9 exactly, so an integer key it does not list fails validation,
-; and so does a `shape` it does not list. A decoder is looser on purpose: it
-; parses and round-trips both, since each is a later minor version's. See the
-; spec.
+; describes v0.10 exactly, so an integer key it does not list fails validation,
+; and so does a value it does not list in a vocabulary the spec owns: a shape,
+; a card format, a binding. A decoder is looser on purpose: it parses and
+; round-trips each, since each is a later version's. See the spec.
 
 ; ---- [0] Header ------------------------------------------------------------
 ; `shape` says which document governs the bundle, and the six arms below are
 ; what each one allows. They are disjoint on key 0, so a decoder reads the shape
 ; and knows the rest without trying the arms in turn, and key 0 encodes first
-; under canonical ordering, so the shape leads the bundle. The vocabulary is
-; spec-owned and closed: a shape needs a document and rules of its own, so a
-; producer may not mint one, and a consumer MAY refuse one it does not know.
+; under canonical ordering, so the shape leads the bundle.
 ;
 ; `* reverse-dns => any` admits a producer's own keys. What sits under one is
 ; entirely that producer's: any CBOR value, of any shape, never inspected here.
-header = save-header / device-header / collection-header
 
 ; One game's in-game save, as the medium stored it.
+save-bundle = [save-header, [+ (card-image-part / part)]]
+
 save-header = {
     0 => "save",
   ? 1 => system-slug, ; system      (gb | snes | n64 | 3ds | ...)
@@ -49,8 +48,8 @@ save-header = {
 
 ; One memory card. The `card` map is what makes it one, so it is required here
 ; and admitted nowhere else. Its parts are its saves, the entries on it that
-; belong to no game, and anything kept beside them.
-card-bundle = [card-header, card-parts]
+; belong to no game, and anything kept beside them, but never a bare save.
+card-bundle = [card-header, [+ (card-entry / system-part / card-image-part / card-part)]]
 
 card-header = {
     0 => "card",
@@ -61,16 +60,21 @@ card-header = {
 }
 
 ; One console's storage, read whole: its components are the parts, each a card
-; or a save. `system` is required, which is what tells a device from a
-; collection; `game` is absent, since the components hold saves for many.
+; or a save in a socket a role names. `system` is required, which is what
+; tells a device from a collection; `game` is absent, since the components hold
+; saves for many.
+device-bundle = [device-header, [+ device-component]]
+
 device-header = {
     0 => "device",
     1 => system-slug,   ; system
   common-header,
 }
 
-; Cards and saves in one file. A collection has nothing of its own to say, so
-; `system`, `game` and `card` are all absent.
+; Bundles of any other shape in one file. A collection has nothing of its own
+; to say, so `system`, `game` and `card` are all absent.
+collection-bundle = [collection-header, [+ collection-entry]]
+
 collection-header = {
     0 => "collection",
   common-header,
@@ -79,7 +83,7 @@ collection-header = {
 ; One save state: an emulator's snapshot of a running game, which only the core
 ; that took it loads. So `source` is required, and has to name that core, or the
 ; app where nothing runs one.
-state-bundle = [state-header, state-parts]
+state-bundle = [state-header, [+ (state-part / screenshot-part / card-image-part / part)]]
 
 state-header = {
     0 => "state",
@@ -113,15 +117,17 @@ common-header = (
 )
 
 bundle-notes = (
-  ? 5 => tstr,        ; description (free-form human note)
+  ? 5 => filled-text,        ; description (free-form human note)
   ? 6 => epoch-time,  ; bundled_at
   * reverse-dns => any,   ; extension keys, e.g. "x.1sav.rtc"
 )
 
 ; What a state was taken with, where that bears on loading it anywhere else.
 ; Every entry is optional, null where the producer does not know it, and absent
-; where it does not apply.
-taken-with = {
+; where it does not apply; a map with nothing in it is left out.
+taken-with = taken-with-map .and non-empty
+
+taken-with-map = {
   ? 0 => byte-order / null,     ; byte_order     (the host's)
   ? 1 => word-size / null,      ; word_size      (the host's, in bits)
   ? 2 => firmware / null,       ; firmware       (what the machine booted)
@@ -140,21 +146,24 @@ firmware = { + path => rom-hashes }
 ; BCP 47, in its canonical case: a language, then a script, then a region.
 language-tag = tstr .regexp "[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?"
 
+; Keyed by the core's own names, so these are not extension keys.
 core-options = { + tstr => tstr }
 
-; Spec-owned, like a binding: who made the state, when it was not the player.
-origin = slug                 ; auto | undo
+; Who made the state, when it was not the player.
+origin = "auto" / "undo"
 
 
 ; `system` here is the game's, not the medium's: which system's release these
 ; hints identify. The header's `system` says what will load the bytes, and the
 ; two answer different questions even where they agree.
-game = {
+game = game-map .and non-empty
+
+game-map = {
   ? 0 => game-ids,    ; game_id
   ? 1 => rom-hashes,  ; rom_hashes
-  ? 2 => tstr,        ; rom_filename
-  ? 3 => tstr,        ; serial
-  ? 4 => tstr,        ; title
+  ? 2 => filled-text,        ; rom_filename
+  ? 3 => filled-text,        ; serial
+  ? 4 => filled-text,        ; title
   ? 5 => system-slug, ; system
   * reverse-dns => any,   ; extension keys, flat as in the header
 }
@@ -163,7 +172,7 @@ game = {
 ; id in that catalog, an integer or a string per catalog. The name is minted the
 ; same way an extension key is, so it is checked the same way.
 game-ids = {
-  + reverse-dns => uint / tstr,
+  + reverse-dns => uint / filled-text,
 }
 
 ; Hash values; see Common Types for the tags, the ordering and the comparison
@@ -175,65 +184,86 @@ hash = #6.18540(bstr .size 32)  ; sha256
      / #6.46010(bstr .size 4)   ; crc32
      / #6.46011(bstr .size 16)  ; md5
 
-source = {
-  ? 0 => device-kind, ; device_kind (emulator | cartridge-reader | flashcart | service)
-  ? 1 => tstr,        ; fingerprint
+source = source-map .and non-empty
+
+source-map = {
+  ? 0 => device-kind, ; device_kind (console | emulator | cartridge-reader | flashcart | service)
+  ? 1 => filled-text,        ; fingerprint
   ? 2 => app,         ; app         (app slug "retroarch", or a minted name "io.epilogue")
-  ? 3 => tstr,        ; app_version
+  ? 3 => filled-text,        ; app_version
   ? 4 => core,        ; core        (core slug "mgba", or a minted name)
-  ? 5 => tstr,        ; core_version
+  ? 5 => filled-text,        ; core_version
   ? 6 => platform,    ; platform    (platform slug "muos", or a minted name)
-  ? 7 => tstr,        ; platform_version
+  ? 7 => filled-text,        ; platform_version
   ? 8 => utc-offset,  ; utc_offset  (seconds east of UTC of the scale its clock anchors are on)
 }
 
-; The range is the span real zones occupy, -12:00 through +14:00.
-utc-offset = -43200..50400
+; The span real zones occupy, -12:00 through +14:00. Zero is UTC, which is
+; written by leaving the key out.
+utc-offset = -43200..-1 / 1..50400
 
 card = {
-  0 => card-format,   ; format      (ps1-mc | ps2-mc | n64-cpak | gc-mc | neogeo-mc | vmu | saturn-bup)
+  0 => card-format,   ; format      (the medium's layout)
   1 => uint,          ; capacity    (data capacity, not the length of a dump)
-  ? 2 => bstr,        ; system_area (card-level bytes belonging to no save)
+  ? 2 => filled-bytes,       ; system_area (card-level bytes belonging to no save)
 }
 
 ; ---- [1] Parts -------------------------------------------------------------
-parts = [+ part]
-
+; An ordinary part: a save, an `aux` blob, or a kind a producer minted. "save"
+; is the default, written by leaving key 1 out.
 part = {
   0 => uint,          ; id
-  ? 1 => part-kind,   ; kind     (absent means "save"; conditions everything below)
+  ? 1 => part-kind,   ; kind     (absent means "save")
+  part-fields,
+}
+
+; A card's own parts carry a kind: a bare save on a card is a save flattened
+; out of the bundle it belongs in.
+card-part = {
+  0 => uint,          ; id
+  1 => part-kind,     ; kind
+  part-fields,
+}
+
+part-fields = (
   ? 2 => part-role,   ; role     (absent means "primary")
   ? 3 => path,        ; path     (absent means the role is the whole address)
   ? 4 => uint,        ; slot     (index in the container this part came from)
-  ? 5 => bstr,        ; dirent   (that container's directory entry, verbatim)
-  ? 6 => tstr,        ; content_type
+  ? 5 => filled-bytes,       ; dirent   (that container's directory entry, verbatim)
+  ? 6 => filled-text,        ; content_type
   ? 10 => source,     ; source   (this part's producer; absent = header source)
   ? 11 => game,       ; game     (this part's game; absent = header game)
-  ? 12 => system-slug,; system   (index copy of a nested bundle's header system)
-  ? 13 => binding,    ; binding  (payload is bound to the console that wrote it)
+  ? bound,            ; binding and bound_to
+  9 => sha256-hash,   ; sha256   (over the payload)
+  -1 => bstr,         ; payload
+  * reverse-dns => any,   ; extension keys, flat as in the header
+)
+
+; A part's bytes are inline and never compressed, so the payload states its
+; own length. Keys 7 and 8 are retired, and a part carrying either is
+; malformed rather than a later version's.
+
+; The kinds a producer may write on an ordinary part. Each of the others has an
+; arm of its own below and sits only in the shapes that hold it.
+part-kind = "aux" / reverse-dns
+
+; A whole card, kept as one blob. It belongs to no game.
+card-image-part = {
+  0 => uint,          ; id
+  1 => "card-image",  ; kind
+  ? 2 => part-role,   ; role
+  ? 3 => path,        ; path
+  ? 4 => uint,        ; slot
+  ? 6 => filled-text,        ; content_type
+  ? 10 => source,     ; source
+  ? bound,            ; binding and bound_to
   9 => sha256-hash,   ; sha256   (over the payload)
   -1 => bstr,         ; payload
   * reverse-dns => any,   ; extension keys, flat as in the header
 }
 
-; A part's bytes are inline and never compressed, so the payload states its
-; own length. Keys 7 and 8 are retired: they compressed a payload in 0.8, and
-; a part carrying either is malformed rather than a later version's.
-
-kind = slug / reverse-dns     ; card-image | bundle | system | aux | state | screenshot, or a minted name
-
-; "save" is the default, written by leaving key 1 out. A state part, a
-; screenshot part and a system part each have rules of their own, below, and sit
-; only in the shapes that hold them.
-part-kind = (kind .ne "save") .and not-its-own-rule
-not-its-own-rule = (tstr .ne "state") .and ((tstr .ne "screenshot") .and (tstr .ne "system"))
-
 ; "primary" is the default, written by leaving key 2 out.
 part-role = role .ne "primary"
-
-; A card's parts: a `bundle` part per save, a `system` part per entry on the
-; card that belongs to no game, and whatever is kept beside them.
-card-parts = [+ (system-part / part)]
 
 ; A file or directory on the card that belongs to the card or the console. Its
 ; `path` is required, since it is the whole of where the entry goes, and it
@@ -246,21 +276,56 @@ system-part = {
   3 => path,          ; path     (where on the card the entry sits)
   ? 2 => part-role,   ; role
   ? 4 => uint,        ; slot
-  ? 5 => bstr,        ; dirent   (the entry, verbatim)
-  ? 6 => tstr,        ; content_type
+  ? 5 => filled-bytes,       ; dirent   (the entry, verbatim)
+  ? 6 => filled-text,        ; content_type
   ? 10 => source,     ; source
-  ? 13 => binding,    ; binding
+  ? bound,            ; binding and bound_to
   9 => sha256-hash,   ; sha256   (over the payload)
   -1 => bstr,         ; payload
   * reverse-dns => any,   ; extension keys, flat as in the header
 }
 
-; A state's parts: the state part, at most one screenshot, an in-game save its
-; emulator keeps beside the core's data, and `aux` parts for the rest of its
-; container. That exactly one is the state is prose, since CDDL cannot count
-; the members of an array that match one arm.
-state-parts = [+ (state-part / screenshot-part / part)]
+; A `bundle` part: its payload is a whole bundle, of a shape its holder allows.
+; `game` and `system` are index copies of the inner header's. It names no
+; `content_type`, which is this format's by construction, and no `binding`,
+; which belongs on the part inside that holds the bound bytes.
+bundle-part-fields = (
+  0 => uint,          ; id
+  1 => "bundle",      ; kind
+  ? 3 => path,        ; path     (the name the card's directory holds)
+  ? 4 => uint,        ; slot
+  ? 5 => filled-bytes,       ; dirent   (the save's own entry, verbatim)
+  ? 10 => source,     ; source
+  ? 11 => game,       ; game     (index copy)
+  ? 12 => system-slug,; system   (index copy)
+  9 => sha256-hash,   ; sha256   (the inner bundle's content hash)
+)
 
+card-entry = {
+  bundle-part-fields,
+  ? 2 => part-role,   ; role
+  -1 => bstr,        ; a saves-file holding a save
+  * reverse-dns => any,
+}
+
+; A device's component sits in a socket, and the role names it.
+device-component = {
+  bundle-part-fields,
+  2 => part-role,     ; role     (required: it is what tells components apart)
+  -1 => bstr,        ; a saves-file holding a card or a save
+  * reverse-dns => any,
+}
+
+collection-entry = {
+  bundle-part-fields,
+  ? 2 => part-role,   ; role
+  -1 => bstr,        ; a saves-file holding any shape but a collection
+  * reverse-dns => any,
+}
+
+; The state part, exactly one per state: the core's data. That exactly one is
+; the state is prose, since CDDL cannot count the members of an array that
+; match one arm.
 state-part = {
   0 => uint,          ; id
   1 => "state",       ; kind
@@ -282,9 +347,14 @@ screenshot-part = {
 
 image-type = "image/png" / "image/jpeg"
 
-; Spec-owned, like a card format: a binding names a category everyone shares,
-; so minting into it would split the category rather than extend it.
-binding = slug                ; device | account | device-account | medium
+; What a payload is bound to, and the identifiers that name it. `bound_to`
+; comes only with `binding`, and holds only the identifiers its value names.
+bound = (
+    13 => "device", ? 14 => { 0 => filled-bytes }
+  // 13 => "account", ? 14 => { 1 => filled-bytes }
+  // 13 => "device-account", ? 14 => ({ 0 => filled-bytes, ? 1 => filled-bytes } / { 1 => filled-bytes })
+  // 13 => "medium", ? 14 => { 2 => filled-bytes }
+)
 
 ; Tagged even though this spec pins the algorithm, so that a generic CBOR tool
 ; reading the bare-hash tag block can name the digest without knowing anything
@@ -295,29 +365,38 @@ sha256-hash = #6.18540(bstr .size 32)
 ; ---- Names -----------------------------------------------------------------
 ; One slug grammar everywhere: lowercase, single dashes between runs, no leading
 ; or trailing dash, at most 64 bytes. The shape and the length are separate
-; constraints, so `.and` states them separately rather than smuggling the bound
-; into a repetition count.
+; constraints, so `.and` states each on its own.
 ;
-; A slug is therefore exactly one DNS label, and a reverse-DNS name is two or
-; more, so the two vocabularies are disjoint and neither can collide with the
-; other.
+; A slug holds no `.`, and a reverse-DNS name holds at least one, so the two
+; vocabularies are disjoint and neither can collide with the other.
 slug = (tstr .regexp "[a-z0-9]+(-[a-z0-9]+)*") .and (tstr .size (1..64))
 
 ; The reverse-DNS grammar from Common Types, written without `\` so it stays a
 ; plain CDDL string. `x` is the reserved tree for producers with no domain.
-reverse-dns = tstr .regexp "(x|[a-z]{2,63})([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+"
+reverse-dns = (tstr .regexp "(x|[a-z]{2,63})([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+")
+              .and (tstr .size (3..255))
 
-; Aliases below carry no extra constraint; they name which vocabulary a field
-; draws from, which the key tables in the spec spell out.
+; Registry slugs carry no extra constraint; the registry grows by a PR.
 system-slug = slug                    ; System Slugs registry
-device-kind = slug                    ; spec-owned; a producer may not mint one
+role = slug                           ; Save Roles registry
 app = slug / reverse-dns              ; Apps registry slug, or a minted name
 core = slug / reverse-dns             ; Emulator Cores registry slug, or a minted name
 platform = slug / reverse-dns         ; Platforms registry slug, or a minted name
-role = slug                           ; Save Roles registry
-card-format = slug                    ; spec-owned; a producer may not mint one
 
-path = tstr .size (1..512)            ; byte length, not character count; "" is absence
+; Spec-owned vocabularies, pinned to this version's lists.
+device-kind = "console" / "emulator" / "cartridge-reader" / "flashcart" / "service"
+card-format = "ps1-mc" / "ps2-mc" / "n64-cpak" / "gc-mc" / "neogeo-mc" / "vmu" / "saturn-bup"
+
+; Relative, `/` between segments, and no empty, `.` or `..` segment. The size
+; is in bytes, not characters.
+path = (tstr .regexp "([^/.][^/]*|[.][^/.][^/]*|[.][.][^/]+)(/([^/.][^/]*|[.][^/.][^/]*|[.][.][^/]+))*")
+       .and (tstr .size (1..512))
 
 ; ---- Primitives ------------------------------------------------------------
 epoch-time = #6.1(int)                ; CBOR tag 1, whole seconds
+
+; An optional value is absent rather than empty. `text` and `bytes` are the
+; prelude's names, so these take their own.
+filled-text = tstr .ne ""
+filled-bytes = bstr .ne h''
+non-empty = { + any => any }

@@ -1,10 +1,10 @@
 ---
 title: CBOR tag 46011
-description: The tag that marks a MD5 digest in the Universal Saves Format, and its registration details.
+description: The tag that marks an MD5 digest in the Universal Saves Format, and its registration details.
 slug: iana/cbor-tag-46011
 ---
 
-The permanent reference for one entry in the IANA **CBOR Tags** registry. Not yet filed.
+The permanent reference for one entry in the IANA **CBOR Tags** registry. Registered.
 
 | Field     | Value                                          |
 | --------- | ---------------------------------------------- |

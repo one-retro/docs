@@ -4,7 +4,7 @@ description:
   A raw digest carried as a CBOR byte string under a tag naming the algorithm, with the four algorithms these
   specifications use.
 sidebar:
-  order: 2
+  order: 3
 ---
 
 A digest of some bytes, carried as the raw digest in a CBOR byte string, wrapped in a CBOR tag that names the algorithm
@@ -22,8 +22,7 @@ This page is **normative**. When a specification says a field holds a hash value
 | `46010` | `crc32`   | 4            | The oldest and weakest, and still in every DAT file ever published.                |
 | `46011` | `md5`     | 16           | Carried by No-Intro, Redump and TOSEC alongside CRC-32 and SHA-1.                  |
 
-That is the whole list, and it is short on purpose. These four are what retro databases actually key on. Adding BLAKE3
-or xxHash would cost every implementer a dependency and buy nobody a lookup they can perform today.
+That is the whole list, and it is short on purpose: these four are what retro databases actually key on.
 
 `crc32` is CRC-32 as used by zlib, PNG and every DAT file (ISO-HDLC: polynomial `0x04C11DB7` reflected, initial value
 `0xFFFFFFFF`, final XOR `0xFFFFFFFF`). The four bytes are the check value in big-endian order, so they read the same
@@ -39,12 +38,15 @@ Tags 18540 and 18542 are not ours. They fall in the bare-hash block IANA already
 those two without knowing anything about these specifications. 46010 and 46011 are taken from the
 First-Come-First-Served range instead, because COSE registers no CRC-32 and no MD5 and never will.
 
-Neither is registered yet. [IANA Registrations](/iana/) holds the provenance of all four and the current status of each.
+Both are registered with IANA. [IANA Registrations](/iana/) holds the provenance of all four.
 
 ## Rules
 
-- A consumer MUST reject a hash value whose tag is not in the table above, and MUST reject one whose digest length does
-  not match the algorithm. Both are malformed, and neither is recoverable by guessing.
+- A consumer **MUST** reject a hash value whose tag is not in the table above.
+- A consumer **MUST** reject a hash value whose digest length does not match its algorithm.
+
+Both are malformed, and neither is recoverable by guessing.
+
 - A consumer that does not implement an algorithm in the table still round-trips the value unchanged, and skips it when
   matching.
 - Where a specification holds several hash values together, it holds at most one per algorithm, sorted ascending by tag
@@ -55,9 +57,10 @@ Neither is registered yet. [IANA Registrations](/iana/) holds the provenance of 
 
 ## Adding an algorithm
 
-Open a PR against this page. An algorithm that has a COSE number in -256..255 already has a bare-hash tag and takes it;
-anything else needs a new First-Come-First-Served registration, which is a form and no review.
+Open a PR against this page. Adding one is a breaking change: a consumer of an earlier version rejects a value under the
+new tag, as the first rule above requires. So it takes a new version of the specifications and a line in the
+[changelog](/specifications/universal-saves-format/#changelog).
 
-That form is filed rather than merely planned. A number this specification uses and has not registered is held by
-nothing but this page. So every outstanding registration is submitted while the format is still in beta, and none is
-carried into 1.0 unfiled. An algorithm already listed here never changes tag, even if it later gains a standard one.
+An algorithm that has a COSE number in -256..255 already has a bare-hash tag and takes it. Anything else needs a new
+First-Come-First-Served registration, filed before the version that uses it. An algorithm already listed here never
+changes tag, even if it later gains a standard one.
