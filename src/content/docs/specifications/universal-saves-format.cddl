@@ -1,6 +1,6 @@
 ; ============================================================================
 ; 1SAV - Universal Saves Format
-; Spec version 0.10: not yet stabilized, expect breaking changes.
+; Spec version 0.11: not yet stabilized, expect breaking changes.
 ;
 ; CDDL per RFC 8610. This file is the shape of a bundle and nothing else.
 ; Why the shape is what it is:  /specifications/universal-saves-format/
@@ -22,7 +22,7 @@ bundle = save-bundle / card-bundle / device-bundle / collection-bundle
        / state-bundle / screenshot-bundle
 
 ; Integer keys belong to the spec; text keys belong to producers. This schema
-; describes v0.10 exactly, so an integer key it does not list fails validation,
+; describes v0.11 exactly, so an integer key it does not list fails validation,
 ; and so does a value it does not list in a vocabulary the spec owns: a shape,
 ; a card format, a binding. A decoder is looser on purpose: it parses and
 ; round-trips each, since each is a later version's. See the spec.

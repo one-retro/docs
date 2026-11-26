@@ -1,6 +1,6 @@
 {
   "corpus": "Universal Saves Format conformance cases",
-  "spec_version": "0.10",
+  "spec_version": "0.11",
   "generated_from": "test/bundles.js",
   "counts": {
     "valid": 56,

@@ -17,7 +17,7 @@ extension key is `any` and is never checked, which is deliberate rather than a g
 whatever form its catalog publishes. A decoder checks [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/) against
 that key's own schema and its payload's length, which this schema leaves to it.
 
-This schema describes v0.10 exactly. An integer key it does not list fails validation, and so does a value it does not
+This schema describes v0.11 exactly. An integer key it does not list fails validation, and so does a value it does not
 list in a vocabulary the spec owns: a shape, a part `kind`, a card `format`, a `binding`, a `device_kind` or an
 `origin`. A shipped decoder is deliberately looser. It round-trips each of those, since the only thing one can be is a
 later version's; see
@@ -61,6 +61,8 @@ These rules are left to prose, since a schema cannot see them:
 - An `n64` bundle's `cartridge` save part carrying [`x.1sav.n64`](/specifications/extensions/x.1sav.n64/), a chip that
   key's page lists, and a payload as long as that chip. The key sits nowhere else.
 - An `n64dd` save's RAM area being one of the lengths its [disk types](/specifications/saves/#a-64dd-disk) give.
+- An `nds` save's `save` part being as long as one of the chips a [DS game card](/specifications/saves/#a-ds-game-card)
+  carries.
 - Part keys 7 and 8 making a part malformed even to a decoder, which ignores any other integer key it does not know.
 
 The rules on a page that defines an extension key other than `x.1sav.n64` bind a producer and no decoder, so none of

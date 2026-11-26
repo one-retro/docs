@@ -4,11 +4,11 @@ description: A portable, self-describing CBOR container for retro console save f
 sidebar:
   label: Overview
   badge:
-    text: v0.10
+    text: v0.11
     variant: caution
 ---
 
-This is version 0.10 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
+This is version 0.11 of this specification, and it is not yet stabilized. Expect breaking changes; until 1.0 they happen
 in place, under the same bundle tag.
 
 ## Changelog
@@ -18,6 +18,11 @@ moved. A version covers the format, the [common types](/specifications/common-ty
 [extension keys](/specifications/extensions/) these specifications own; a key belonging to a producer changes on that
 producer's schedule instead.
 
+- **0.11**, 2026-11-25. Breaking: a DS game card's save names `nds`, and its one `save` part holds the card's save chip
+  in address order, as long as the chip, so a decoder rejects any other length. A producer fills a file left short with
+  `0xFF`, makes no save from a file holding more than the chip and its padding, and carries a file whose chip it cannot
+  tell, or a NAND card's, as an `aux` part. A payload carries no padding a file's tool added, where a producer can tell
+  it from the game the card's header names.
 - **0.10**, 2026-11-16. Breaking: a decoder checks each part's `sha256` against its payload, and part ids are unique. An
   optional map, text or byte string is never empty, a part's `game` or `source` never equals the header's, and
   `utc_offset` is never 0. A `path` has no empty, `.` or `..` segment and no `/` at either end. A card holds no bare
@@ -273,7 +278,7 @@ operation that depends on knowing: walking the parts, restoring a save, rebuildi
 is not the same as rejecting it, and only the second loses the bytes.
 
 The schema is the narrower of the two on purpose. It pins the six shapes this version defines, and every other list this
-spec owns, so validating against it says "this is a conforming 0.10 bundle" rather than "some decoder can read this".
+spec owns, so validating against it says "this is a conforming 0.11 bundle" rather than "some decoder can read this".
 [Additive integer keys](#additive-integer-keys) describes the same asymmetry.
 
 A bundle names its shape and a decoder reads it; what the parts then mean is that shape's document, and
