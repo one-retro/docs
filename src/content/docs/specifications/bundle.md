@@ -456,10 +456,13 @@ the 16-bit bus alone, so its bytes are every other address. Genesis Plus GX, Pic
 EverDrive keep a copy of the whole address window, with the even lane filled; MiSTer and BlastEm keep the SRAM's bytes
 one after another, and the payload is those. The Mega EverDrive PRO maps the window straight onto its memory, so a game
 whose SRAM is 16 bits wide keeps both lanes there, and the payload is both. A file can also pad a chip out: gpSP pads
-every GBA save to 128 KiB, and VBA Next keeps an EEPROM 128 KiB into its file. The payload is the chip.
+every GBA save to 128 KiB, VBA Next keeps an EEPROM 128 KiB into its file, and SkyEmu pads every DS save to 8 MiB. The
+payload is the chip.
 
 - A producer **MUST NOT** carry another lane's bytes, or a file's padding, in a payload where it can tell them from the
-  medium's. It tells them apart by the cartridge, as its header declares it, or by a layout only one reading fits.
+  medium's. It tells them apart by the cartridge, or by a layout only one reading fits. The cartridge says what its
+  header declares, and what a table of games says of the game its header names: a
+  [DS game card's](/specifications/saves/#a-ds-game-card) header names no chip, and its game code does.
 - A consumer writing a file for such a tool lays the payload out the way that tool keeps it, and pads it the way that
   tool pads it. MiSTer's GBA core reads a 4 Kbit EEPROM only from a file of 8 KiB, which is the size it writes. The
   EverDrive GBA writes the chip's 512 bytes.
@@ -561,11 +564,11 @@ cartridge can still differ where a producer cannot tell a file's padding from th
 [bound](#bound-payloads) bytes for the same progress. So one save can arrive under two content hashes.
 
 The format fixes a payload's [byte order](#byte-order), keeps it to the medium's bytes, and gives an N64 cartridge's
-[normal form](/specifications/extensions/x.1sav.n64/#the-payload) and a
-[64DD disk's](/specifications/saves/#a-64dd-disk) RAM area. Beyond those it has no canonical byte form for a save and
-does not try to acquire one. Deciding that a 64 KB dump and its 32 KB half are the same save takes exactly the
-per-system parsing this container keeps out. The content hash answers "are these the same bytes", which is what a store
-needs to deduplicate safely. A producer that wants "is this the same playthrough" builds that on top.
+[normal form](/specifications/extensions/x.1sav.n64/#the-payload), a [64DD disk's](/specifications/saves/#a-64dd-disk)
+RAM area and a [DS game card's](/specifications/saves/#a-ds-game-card) chip. Beyond those it has no canonical byte form
+for a save and does not try to acquire one. Deciding that a 64 KB dump and its 32 KB half are the same save takes
+exactly the per-system parsing this container keeps out. The content hash answers "are these the same bytes", which is
+what a store needs to deduplicate safely. A producer that wants "is this the same playthrough" builds that on top.
 
 ## Appendix A: CDDL schema
 

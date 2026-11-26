@@ -547,6 +547,16 @@ export const valid = {
   // 204 blocks, 1942080 bytes, the smallest a disk has.
   "n64dd-disk": bundle(map({ 0: "save", 1: "n64dd" }), [part({ payload: pattern(1942080, 89) })]),
 
+  // A DS card's save is its chip, whose length is all that tells one chip from another, so it
+  // carries no key naming it. Explorers of Sky's 1 Mbit EEPROM is 128 KiB.
+  "nds-card": bundle(map({ 0: "save", 1: "nds" }), [part({ payload: pattern(131072, 91) })]),
+
+  // A file whose chip its producer cannot tell, as SkyEmu's 8 MiB is without the game, goes as
+  // `aux`, which takes any length.
+  "nds-card-unknown-chip": bundle(map({ 0: "save", 1: "nds" }), [
+    part({ kind: "aux", path: "Game.srm", payload: pattern(8314, 91) }),
+  ]),
+
   // Saturn keeps a save's directory entry at the head of the save's own first
   // block rather than in a directory region, which changes where a reader finds
   // those 30 bytes and not whether they can be carried, so `dirent` holds them
@@ -1573,6 +1583,10 @@ export const malformedStructure = {
   // 32 KiB long. A save of part of the area cannot be told from a disk of
   // another type.
   "n64dd-disk-wrong-size": bundle(map({ 0: "save", 1: "n64dd" }), [part({ payload: pattern(32768, 89) })]),
+
+  // A DS card's save is as long as one of its chips. 8314 bytes is an 8 KiB EEPROM with DeSmuME's
+  // footer still on, which no card holds.
+  "nds-card-wrong-size": bundle(map({ 0: "save", 1: "nds" }), [part({ payload: pattern(8314, 91) })]),
 };
 
 // ---------------------------------------------------------------------------

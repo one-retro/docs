@@ -11,14 +11,14 @@ saves needs only this document. Cards and collections are other shapes, with doc
 
 `shape` is `"save"`. Everything else identifies what the bytes are.
 
-| Key | Name          | Req? | Notes                                                                                                                                          |
-| --- | ------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | `shape`       | yes  | `"save"`.                                                                                                                                      |
-| 1   | `system`      | no   | What will load these bytes. See the [System Registry](/registries/systems/). Required on an N64 cartridge's save and a 64DD disk's; see below. |
-| 2   | `game`        | no   | Identification hints. Absent means unidentified, which is a valid save.                                                                        |
-| 3   | `source`      | no   | What produced it.                                                                                                                              |
-| 5   | `description` | no   | Free-form note.                                                                                                                                |
-| 6   | `bundled_at`  | no   | When the bundle was assembled, not when the player saved.                                                                                      |
+| Key | Name          | Req? | Notes                                                                                                                                                            |
+| --- | ------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | `shape`       | yes  | `"save"`.                                                                                                                                                        |
+| 1   | `system`      | no   | What will load these bytes. See the [System Registry](/registries/systems/). Required on an N64 cartridge's save, a 64DD disk's and a DS game card's; see below. |
+| 2   | `game`        | no   | Identification hints. Absent means unidentified, which is a valid save.                                                                                          |
+| 3   | `source`      | no   | What produced it.                                                                                                                                                |
+| 5   | `description` | no   | Free-form note.                                                                                                                                                  |
+| 6   | `bundled_at`  | no   | When the bundle was assembled, not when the player saved.                                                                                                        |
 
 `card` is forbidden. A save that came off a card is still a save; the card it came off is a
 [card bundle](/specifications/cards/) that holds it.
@@ -132,6 +132,59 @@ The drive keeps the 64DD's clock, so a disk's save does not carry it. A
 files come from that clock, and travel inside the RAM area. A game that saves to its cartridge as well as its disk, as
 F-Zero X does with its Expansion Kit, has two saves, an `n64` one and an `n64dd` one, and a
 [collection](/specifications/collections/) holds both in one file.
+
+## A DS game card
+
+A DS game card keeps its saves in one serial chip on the card's SPI bus: an EEPROM, a FRAM or a flash chip. Each size of
+chip takes the same commands whatever kind it is, so the length of its memory is all a console or an emulator needs, and
+a DS save carries no key naming the chip. Its one `save` part holds every byte of the chip, in address order.
+
+| Save memory     | Payload in bytes | For example                                |
+| --------------- | ---------------- | ------------------------------------------ |
+| 4 Kbit EEPROM   | 512              | Bomberman, Contra 4                        |
+| 64 Kbit EEPROM  | 8192             | Tetris DS, Mario Party DS                  |
+| 256 Kbit FRAM   | 32768            |                                            |
+| 512 Kbit EEPROM | 65536            | Etrian Odyssey                             |
+| 1 Mbit EEPROM   | 131072           | Pokémon Mystery Dungeon: Explorers of Sky  |
+| 2 Mbit flash    | 262144           | Mario Kart DS, Animal Crossing: Wild World |
+| 4 Mbit flash    | 524288           | Pokémon Pearl, Pokémon HeartGold           |
+| 8 Mbit flash    | 1048576          | Picross 3D                                 |
+
+- A producer **MUST** name `nds` as the `system` of a DS game card's save.
+- A payload **MUST** be as long as the table gives for its chip.
+
+A handful of cards carry NAND of 8 MiB or more instead, which a game reaches through commands of its own. This version
+does not cover them, and a producer carries a NAND card's save as an [`aux` part](/specifications/bundle/#part-kinds)
+named by `path`.
+
+The card's header names the game in four characters at `0x0C`, such as `AMCE`, and says nothing about its chip. Nothing
+a game asks the chip tells its size either, so an emulator looks the code up in a table of games, as melonDS, NooDS and
+SkyEmu do, or works the size out from the addresses the game sends, as DeSmuME does. A producer tells the chip the same
+ways: from the game, or from a file that its tool keeps at the chip's own length.
+
+- A producer that cannot tell the chip **MUST NOT** carry the bytes as a `save` part.
+
+It carries the file it read as an `aux` part named by `path` instead, as it does an
+[N64 cartridge's](/specifications/extensions/x.1sav.n64/) whose chip it cannot tell.
+
+A file is not always as long as its chip. melonDS, melonDS DS and NooDS write the chip as it is, and so do flash
+cartridges and card readers. DeSmuME pads the chip out to the size it worked out, then appends 122 bytes of its own; it
+takes a 1 Mbit EEPROM for 2 Mbit flash, and writes 256 KiB of it. SkyEmu writes 8 MiB for every game, the chip at the
+start and `0x00` after it. An Action Replay DS puts a header of its own in front of the chip, and the converters that
+write its files pad every chip to 256 KiB, or cut a larger one down to it.
+
+- A producer **MUST** fill a payload the file left short with `0xFF`, up to its chip's length.
+- A producer **MUST NOT** make a save for a chip from a file holding anything past that chip's end but the file's
+  padding, `0xFF` or the byte its tool pads with, or the chip again, as a reader that reads past a chip's end reads it.
+
+melonDS DS and SkyEmu start a chip no game has written from `0x00`, where the chip itself and the other emulators hold
+`0xFF`. Those bytes are the tool's rather than the game's, but nothing tells them from bytes the game wrote, so they
+stay in the payload as the file holds them. A save made in either then differs from the same save made anywhere else
+wherever the game has not written, and the [content hash](/specifications/bundle/#content-hash) tells the two apart.
+
+A DS keeps its clock in the console, and no DS card carries one, so a DS save carries no clock. SkyEmu writes the
+console clock's registers to a `.rtc` file beside the save, but it sets them from the host's clock every frame, so the
+file holds nothing a game needs.
 
 ## Extension keys
 

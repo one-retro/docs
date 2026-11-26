@@ -145,13 +145,15 @@ slug.
 
 ## Nintendo DS
 
-| Slug           | Core         | Kind       | Systems      | Also seen as |
-| -------------- | ------------ | ---------- | ------------ | ------------ |
-| `desmume`      | DeSmuME      | `libretro` | `nds`        |              |
-| `desmume-2015` | DeSmuME 2015 | `libretro` | `nds`        |              |
-| `melonds`      | melonDS      | `libretro` | `nds`, `dsi` |              |
-| `melonds-ds`   | melonDS DS   | `libretro` | `nds`, `dsi` |              |
-| `noods`        | NooDS        | `libretro` | `nds`, `gba` |              |
+| Slug           | Core         | Kind         | Systems      | Also seen as |
+| -------------- | ------------ | ------------ | ------------ | ------------ |
+| `desmume`      | DeSmuME      | `libretro`   | `nds`        |              |
+| `desmume-2015` | DeSmuME 2015 | `libretro`   | `nds`        |              |
+| `drastic`      | DraStic      | `standalone` | `nds`        |              |
+| `melonds`      | melonDS      | `libretro`   | `nds`, `dsi` |              |
+| `melonds-ds`   | melonDS DS   | `libretro`   | `nds`, `dsi` |              |
+| `no-gba`       | no$gba       | `standalone` | `nds`, `gba` |              |
+| `noods`        | NooDS        | `libretro`   | `nds`, `gba` |              |
 
 ## Nintendo 3DS
 
